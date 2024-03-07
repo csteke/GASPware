@@ -7,13 +7,17 @@ BIN_DIR = ./bin
 #
 #####################################################################
 
-linux: OPT =  "GS_ONLINE=" "GS_AIO=-DUSE_AIO" "GS_OPT=-O2" linux
-linux: MAKE = gmake
-linux: Libr Cmat Gsort Recal Sadd Stopp Tape Xtrack
-
 intel: OPT =  "GS_ONLINE=" "GS_AIO=-DUSE_AIO" "GS_OPT=-O2" intel
 intel: MAKE = make
 intel: Libr Cmat Gsort Recal Sadd Stopp Tape Xtrack
+
+sstudio: OPT =  "GS_ONLINE=" "GS_AIO=-DUSE_AIO" sstudio
+sstudio: MAKE = make
+sstudio: Libr Cmat Gsort Recal Sadd Stopp Tape Xtrack
+
+linux: OPT =  "GS_ONLINE=" "GS_AIO=-DUSE_AIO" "GS_OPT=-O2" linux
+linux: MAKE = gmake
+linux: Libr Cmat Gsort Recal Sadd Stopp Tape Xtrack
 
 sun: OPT = "GS_ONLINE=" "GS_AIO=-DUSE_AIO" sun
 sun: MAKE = gmake

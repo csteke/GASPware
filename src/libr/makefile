@@ -48,6 +48,12 @@ intel: FOR = ifort @../../etc/ifc.cfg  -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
 intel: CC  = icc @../../etc/icc.cfg -c  -O2 $(GS_ONLINE) $(GS_AIO)
 intel: all
 
+############################### Solaris Studio FORTRAN compiler for Linux/ix86
+sstudio: FOR = f90 -f77 -ftrap=%none -e -D__sun_c__ -xpp=cpp -xO2  -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
+sstudio: CC  = cc  -c  -O2 $(GS_ONLINE) $(GS_AIO)
+sstudio: all
+
+
 ################################ Sun 
 sun: all
 sun: FOR = f77 -e -D__sun_c__ -xpp=cpp -xO2 -xtarget=native -c $(GS_ONLINE) $(GS_AIO)

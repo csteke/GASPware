@@ -45,6 +45,12 @@ intel: CC  = icc @../../etc/icc.cfg  -O2       $(GS_AIO)
 intel: LIB = $(LinuxLIB)
 intel :all
 
+############################### Solaris Studio FORTRAN compiler for Linux/ix86
+sstudio: FOR = f90 -f77 -ftrap=%none  -e -D__sun_c__ -xO2  $(GS_OPT) $(GS_AIO)
+sstudio: CC  = cc  $(GS_AIO)
+sstudio: LIB = $(LinuxLIB)
+sstudio: all
+
 ################################ Sun 
 sun:  all
 sun: FOR = f77 -e -D__sun_c__ -xO2 -xtarget=native -xpp=cpp $(GS_AIO)

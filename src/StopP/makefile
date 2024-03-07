@@ -19,6 +19,13 @@ intel: CC  = icc @../../etc/icc.cfg  -O2
 intel: LIB = $(LinuxLIB)
 intel: all
 
+############################### Intel compilers on Linux/ix86
+sstudio: FOR = f90 -f77 -ftrap=%none -e -D__sun_c__ -xpp=cpp $(GS_OPT)
+sstudio: CC  = cc  -O2
+sstudio: LIB = $(LinuxLIB)
+sstudio: all
+
+
 ################################ Sun 
 sun:  all
 sun: FOR = f77 -e -D__sun_c__ -xpp=cpp

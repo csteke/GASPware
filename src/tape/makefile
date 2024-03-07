@@ -22,6 +22,12 @@ intel: CC  = icc @../../etc/icc.cfg -O2 $(GS_AIO)
 intel: LIB = $(LinuxLIB)
 intel: all
 
+############################### Linux is the default choice
+sstudio: FOR = f90 -f77 -ftrap=%none -e -D__sun_c__ -xpp=cpp -xO2 $(GS_OPT) $(GS_AIO)
+sstudio: CC  = cc  -O2  $(GS_AIO)
+sstudio: LIB = $(LinuxLIB)
+sstudio: all
+
 ################################ Sun 
 sun: all
 sun: FOR = f77 -e -D__sun_c__  -xpp=cpp -xtarget=native -xO2 $(GS_AIO)

@@ -1704,8 +1704,9 @@ void xtpget_(float *x, float *y, Int32 *c){
 		      }
 		   break;}
      case REDRAW: { 
-
+/*
 #if defined(__APPLE__) && ( defined( __MAC_10_7 ) || defined( __MAC_10_8 ) )
+*/
 redraw:	  
           ReshapeWindow();
 	      while( qtest() )
@@ -1763,10 +1764,10 @@ redraw:
 		   _global_ForceRedraw = 0;
 
 
-
+/*
 #else
 		   int xWp, yWp;
-		   /*usleep( 1000 );*/
+		   /*usleep( 1000 );
 
 redraw:    
                    reshapeviewport();
@@ -1841,7 +1842,7 @@ redraw:
 			      }
 		      }
 #endif
-*/
+
 		      p=Plot;
 		      while(p)
 		      {
@@ -1876,6 +1877,7 @@ redraw:
 		   DOUBLEBUFF_OFF
 		   minsize ( GLW_MINXSIZE, GLW_MINYSIZE ); maxsize ( 3200, 2400 ); winconstraints ();
 #endif
+*/
 		   break;}
 
      case WINQUIT: {/*printf("\n Quiting ...\n");

@@ -1554,7 +1554,7 @@ void DrawPlot ( void ){
      case ZMIX: {ColorStep = mixf((double)( Plot.Zmax - Plot.Zmin +1))/16.00; break;}
      }
 
-  Plot.Image = ( Uint8 * )realloc( (void *)Plot.Image, Ypixels*sizeof(Uint8));  
+  Plot.Image = ( Uint8 * )realloc( (void *)Plot.Image, Ypixels*sizeof(Uint8));
   for( x = 0, xb = Xpixels-1 ; x <= xb; x++, xb--){
 
       x1 = Plot.Xmin + XChPix*x;

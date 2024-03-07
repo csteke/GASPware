@@ -36,6 +36,10 @@ intel: CDEBUGFLAGS = -O2
 intel: CC = icc @../../etc/icc.cfg
 intel: all
 
+sstudio: CDEBUGFLAGS = -O2
+sstudio: CC = cc
+sstudio: all
+
 sun: all
 sun: CDEBUGFLAGS	= -xO2 -xtarget=native
 sun: CC=cc 

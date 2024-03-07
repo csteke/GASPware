@@ -47,6 +47,13 @@ intel: CC  = icc @../../etc/icc.cfg  -O2
 intel: OPT =  $(GS_OPT)
 intel: $(P00)
 
+############################### Solaris Studio FORTRAN compiler for Linux/ix86
+sstudio: FOR = f90 -f77 -ftrap=%none
+sstudio: CC  = cc  -O2
+sstudio: OPT = -e -D__sun_c__ -xpp=cpp -xO2 $(GS_OPT)
+sstudio : $(P00)
+
+
 ################################ Sun 
 sun: $(P00)
 sun: FOR = f77

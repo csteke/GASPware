@@ -45,6 +45,13 @@ intel: OPT =  $(GS_OPT)
 intel: LIB = $(LinuxLIB)
 intel: all
 
+############################### Linux is the default choice
+sstudio: FOR = f90 -f77 -ftrap=%none -e -D__sun_c__ -xpp=cpp -xO2 $(GS_ONLINE) 
+sstudio: CC  = cc  -O2  $(GS_ONLINE) 
+sstudio: OPT = $(GS_OPT)
+sstudio: LIB = $(LinuxLIB)
+sstudio: all
+
 ################################ Sun 
 sun: all
 sun: FOR = f77 -xO2 -xtarget=native -xpp=cpp $(GS_ONLINE) 
