@@ -47,7 +47,7 @@
 	  call inp_I1('Record size [kb]',iio.wlen)
 	  iio.wlen = iio.wlen*512
 	  
-#if ( defined( __linux__ ) || defined(__APPLE__) )&& defined(USE_AIO)
+#if ( defined( __linux__ ) || defined(__APPLE__) || defined( __GFORTRAN__ ) )&& defined(USE_AIO)
 	  if( iio.mtch .gt. 0 ) call mt_close( iio.mtch )
           iio.mtch = fileopenro( iio.name )
 	  iio.lun = iio.mtch
@@ -55,7 +55,7 @@
 #else
 	  if( iio.lun .gt. 0 ) close( iio.lun )
 	  if(iio.lun.le.0) call lib$get_lun(iio.lun)
-#  if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER)
+#  if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER) 
 	  open(iio.lun,file=iio.name,status='old',readonly,access='direct',recl=iio.wlen/2,err=5)
 #  else
 	 open(iio.lun,file=iio.name,status='old',readonly,access='direct',recl=iio.wlen*2,err=5)
@@ -96,7 +96,7 @@ CVMS
 #ifdef __linux__
 	     if(lengthc(iio.name).lt.1) iio.name='/dev/nst0'
 #endif
-#ifdef __APPLE__
+#if ( defined( __APPLE__ ) || ( defined( __GFORTRAN__ ) ) && (!defined( __linux__ ) ) )
 	     if(lengthc(iio.name).lt.1) iio.name='/dev/nrst0'
 #endif
 
@@ -264,7 +264,6 @@ CVMS	  CALL STR_TOUPPER(TAPEDEVR)
 	   
 	endif
 	   
-	
 	
 	if(iio.datafile) then			! from file
 #if defined(USE_AIO)
@@ -862,10 +861,10 @@ c	pointer (pairspnt,dat)
 
 	integer res(*),nn
 
-#if defined( __GFORTRAN__ )
+#if defined( __GFORTRAN__ ) || defined( __PGI )
 	character*64 dyn_format
 	
-	write(dyn_format, '(a,i0,a)')'(''RES'',',nn,',i5)'
+	write(dyn_format, '(a,i0,a)')'(''RES'',',nn,'i5)'
 	write(list(llist:),dyn_format(1:len(dyn_format))) (res(ii),ii=1,nn)
 #else
 
@@ -884,10 +883,10 @@ c	pointer (pairspnt,dat)
 
 	integer step(*),nn
 
-#if defined( __GFORTRAN__ )
+#if defined( __GFORTRAN__ ) || defined( __PGI )
 	character*64 dyn_format
 	
-	write(dyn_format, '(a,i0,a)')'(''STEP'',',nn,',i4)'
+	write(dyn_format, '(a,i0,a)')'(''STEP'',',nn,'i4)'
 	write(list(llist:),dyn_format(1:len(dyn_format))) (step(ii),ii=1,nn)
 #else
 	write(list(llist:),4201) (step(ii),ii=1,nn)

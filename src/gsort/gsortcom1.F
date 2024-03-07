@@ -1745,7 +1745,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	subroutine gs2_recal_mult(rcl,dat)
 
 #include "gsort.inc"
-#if defined( __GFORTRAN__ )
+#if defined( __GFORTRAN__ ) || defined( __PGI )
 	character*64 dyn_format
 	logical*1 inp_yes
 	external inp_yes
@@ -1802,8 +1802,15 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	     dat(ICADC).limit(0)=0.000000
 	     dat(ICADC).nregs=nregs
 	     do ireg=1,nregs
-#if defined( __GFORTRAN__ )
+#if defined( __GFORTRAN__ ) 
 	      write(dyn_format,'(a,i0,a)')'2I5,',mrcl_npar(ireg),'G0,A,G0)'
+	      WRITE(LU2,'(''ADC#'''//dyn_format(1:len(dyn_format)) )ICADC,ireg,(TEMP(J),j=(ireg-1)*maxRCL_ORD+1,
+     &                       (ireg-1)*maxRCL_ORD+mrcl_npar(ireg)),' Upper limit: ',mrcl_limit(ireg)
+	      if(mrcl_npar(ireg).GT.maxRCL_ORD) then
+	      WRITE(LU1,'(''ADC#'''//dyn_format(1:len(dyn_format)) )ICADC,ireg,(TEMP(J),j=(ireg-1)*maxRCL_ORD+1,
+     &                       (ireg-1)*maxRCL_ORD+mrcl_npar(ireg)),' Upper limit: ',mrcl_limit(ireg)
+#elif defined( __PGI )
+	      write(dyn_format,'(a,i0,a)')'2I5,',mrcl_npar(ireg),'G,A,G)'
 	      WRITE(LU2,'(''ADC#'''//dyn_format(1:len(dyn_format)) )ICADC,ireg,(TEMP(J),j=(ireg-1)*maxRCL_ORD+1,
      &                       (ireg-1)*maxRCL_ORD+mrcl_npar(ireg)),' Upper limit: ',mrcl_limit(ireg)
 	      if(mrcl_npar(ireg).GT.maxRCL_ORD) then
@@ -1834,7 +1841,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	ENDIF
 	GOTO 10
 
-#if !defined( __GFORTRAN__ )
+#if !( defined( __GFORTRAN__ ) || defined( __PGI ) )
 4201	format(' ADC#',2I5,<mrcl_npar(ireg)>G,A,G)
 #endif
 

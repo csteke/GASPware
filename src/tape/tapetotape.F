@@ -17,11 +17,11 @@ CVMS	CHARACTER*10 TAPEDEVR	/'MKA400:'/
 	CHARACTER*80 TAPEDEVR	/'/dev/rmt/0mbn'/
 #elif defined(__linux__)
 	CHARACTER*80 TAPEDEVR	/'/dev/nst0'/
-#elif defined(__APPLE__)
+#elif defined( __APPLE__ ) || ( defined( __GFORTRAN__ ) && (!defined( __linux__ ) ) )
 	CHARACTER*80 TAPEDEVR	/'/dev/nrst0'/
 #else
-*   error "Undefined platform"
-	CHARACTER*80 TAPEDEVR	/'/dev/nrst0'/
+#   error "Undefined platform"
+*	CHARACTER*80 TAPEDEVR	/'/dev/nrst0'/
 #endif
 
 	PARAMETER (MTFLAGW=2)		! FLAG PER SINCRONIZZAZIONE NASTRO
@@ -35,11 +35,11 @@ CVMS	CHARACTER*10 TAPEDEVW	/'Mka500:'/
 	CHARACTER*80 TAPEDEVW	/'/dev/rmt/1mbn'/
 #elif defined(__linux__)
 	CHARACTER*80 TAPEDEVW	/'/dev/nst1'/
-#elif defined(__APPLE__)
+#elif defined( __APPLE__ ) || ( defined( __GFORTRAN__ ) && (!defined( __linux__ ) ) )
 	CHARACTER*80 TAPEDEVW	/'/dev/nrst1'/
 #else
-*   error "Undefined platform"
-	CHARACTER*80 TAPEDEVW	/'/dev/nrst1'/
+#   error "Undefined platform"
+*	CHARACTER*80 TAPEDEVW	/'/dev/nrst1'/
 #endif
 
 	PARAMETER (MBYTER=32*1024)	  ! Physical block length in byte READ

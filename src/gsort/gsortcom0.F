@@ -982,9 +982,9 @@ c	endif
 	lgh=1
 	if(dat.which .GE. 10) lgh=2
 #if defined( __GFORTRAN__ )
-	write(dyn_format,'(i4)')lgh
-	dyn_format = adjustl(dyn_format)
-	write(list,dyn_format)' HGATE   H',dat.which,'  on'
+	write(dyn_format,'(a,i0,a)')'(A,I',lgh,',A)   '
+*	dyn_format = adjustl(dyn_format)
+	write(list,dyn_format(1:lengthc(dyn_format)))' HGATE   H',dat.which,'  on'
 #else
 	write(list,4201)' HGATE   H',dat.which,'  on'
 4201	format(A,i<lgh>,A)
@@ -1032,12 +1032,11 @@ c	endif
 	lgp=1
 	if(dat.which .GE. 10) lgp=2
 #if defined( __GFORTRAN__ )
-	write(dyn_format,'(i4)')lgp
-	dyn_format = adjustl(dyn_format)
+	write(dyn_format,'(a,i0,a)')'(A,I',lgp,',A)   '
 	WRITE(LU1,*)
-	WRITE(LU1,dyn_format) ' Reading HGATE data for H',dat.which,'  from '//dat.file(1:lfile)
+	WRITE(LU1,dyn_format(1:lengthc(dyn_format))) ' Reading HGATE data for H',dat.which,'  from '//dat.file(1:lfile)
 	WRITE(LU2,*)
-	WRITE(LU2,dyn_format) ' HGATE data for H',dat.which,' taken from '//dat.file(1:lfile)
+	WRITE(LU2,dyn_format(1:lengthc(dyn_format))) ' HGATE data for H',dat.which,' taken from '//dat.file(1:lfile)
 #else
 4201	format(A,I<lgp>,A)
 	WRITE(LU1,*)
@@ -1298,9 +1297,9 @@ c	dat.file=pfile
 	if(nn.ge.10) lgp=2
 	lfile=lengthc(dat.file)
 #if defined( __GFORTRAN__ )
-	write(dyn_format,'(i4)')lgp
-	dyn_format = adjustl(dyn_format)
-	write(LLUN,dyn_format) ' PAIRS  (P',nn,')    taken from   '//dat.file(1:lfile)
+	write(dyn_format,'(a,i0,a)')'(A,I',lgp,',A)  '
+*	dyn_format = adjustl(dyn_format)
+	write(LLUN,dyn_format(1:lengthc(dyn_format))) ' PAIRS  (P',nn,')    taken from   '//dat.file(1:lfile)
 #else
 4201	format(A,I<lgp>,A)
 	write(LLUN,4201) ' PAIRS  (P',nn,')    taken from   '//dat.file(1:lfile)
@@ -1328,12 +1327,11 @@ c	dat.file=pfile
 	if(nn.ge.10) lgp=2
 
 #if defined( __GFORTRAN__ )
-	write(dyn_format,'(i4)')lgp
-	dyn_format = adjustl(dyn_format)
+	write(dyn_format,'(a,i0,a)')'(A,I',lgp,',A)   '
 	WRITE(LU1,*)
-	WRITE(LU1,'(A,I'//dyn_format//',A)') ' Reading PAIRS data for P',nn,'  from '//dat.file(1:lfile)
+	WRITE(LU1,dyn_format(1:lengthc(dyn_format))) ' Reading PAIRS data for P',nn,'  from '//dat.file(1:lfile)
 	WRITE(LU2,*)
-	WRITE(LU2,'(A,I'//dyn_format//',A)') ' PAIRS data for P',nn,' taken from '//dat.file(1:lfile)
+	WRITE(LU2,dyn_format(1:lengthc(dyn_format))) ' PAIRS data for P',nn,' taken from '//dat.file(1:lfile)
 #else
 4201	format(A,I<lgp>,A)
 	WRITE(LU1,*)

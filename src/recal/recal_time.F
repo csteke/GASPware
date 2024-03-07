@@ -1,6 +1,6 @@
 	PROGRAM TRECAL
 
-	PARAMETER (MAXRES=32768)
+	PARAMETER (MAXRES=65536)
 
 	real fspek(-2*maxres:2*maxres)
 	integer*4 ncicli

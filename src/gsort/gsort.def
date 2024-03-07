@@ -642,7 +642,7 @@ CVMS	  integer*2 mtch,hctm
 
 	structure/oevdef/
 	  logical*1 defined
-	  logical*1 same				! Same FILE structure on output
+	  logical*1 same			! Same FILE structure on output
 	  logical*1 sameRUN			! Same RUN number on output
 	  logical*1 ask				! Will ask every EOF
 	  logical*1 reduce			! Output events in forma ridotta

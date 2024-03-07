@@ -871,7 +871,7 @@ C$-
 	if ( modo .gt. 0 )then
 	    xinput=.TRUE.
 
-#if (defined(__IFC) || defined(__INTEL_COMPILER))&& defined(__APPLE__)
+#if ( (defined(__IFC) || defined(__INTEL_COMPILER) ||  defined( __PGI ) )&& defined(__APPLE__) ) ||  defined( __GFORTRAN__ )
 	   if( .not.ISATTY(5) ) xinput = .false.
 #endif
 

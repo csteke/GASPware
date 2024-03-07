@@ -150,7 +150,7 @@ C	  CALL EXIT
 	   if(tapedev(1:1).eq.'8') tapedev='/dev/nst8'
 	   if(tapedev(1:1).eq.'9') tapedev='/dev/nst9'
 #endif
-#ifdef __APPLE__
+#if defined( __APPLE__  )|| ( defined( __GFORTRAN__ ) && (!defined( __linux__ ) ) )
 	   if(tapedev(1:1).eq.'0') tapedev='/dev/nrst0'
 	   if(tapedev(1:1).eq.'1') tapedev='/dev/nrst1'
 	   if(tapedev(1:1).eq.'2') tapedev='/dev/nrst2'
@@ -350,7 +350,7 @@ C	  CALL EXIT
 	  WRITE(6,'(4x,A)') TAPEDEV(1:IL)//'  opened for READ/WRITE'
 #endif
 	ENDIF
-#if defined(__linux__) || defined(__APPLE__)	
+#if defined(__linux__) || defined(__APPLE__) || defined(__GFORTRAN__)
 *	call mt_setblk(MTCH,32768,ierr)
 	call mt_setblk(MTCH,0,ierr)
 *	WRITE(6,'(1x,A)')' Block size for '//TAPEDEV(1:IL)//'  set to 32768 bytes'	
@@ -400,7 +400,7 @@ C	  CALL EXIT
 	ENDIF
 #endif
 
-#ifdef __APPLE__
+#if defined( __APPLE__ ) || ( defined( __GFORTRAN__ ) && (!defined( __linux__ ) ) )
 	IF(ISTAT.EQ.0) THEN
 	  WRITE(6,'(1x,A)') TAPEDEV(1:IL)//'  opened'
 	  MSTATUS=.TRUE.

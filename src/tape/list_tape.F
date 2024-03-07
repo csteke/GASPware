@@ -31,7 +31,7 @@ C  LISTA I RECORDS SU UN NASTRO DATI LNL
 #ifdef __linux__
 	TAPEDEV='/dev/nst0'
 #endif
-#ifdef __APPLE__
+#if defined( __APPLE__ ) || ( defined( __GFORTRAN__ ) && (!defined( __linux__ ) ) )
 	TAPEDEV='/dev/nrst0'
 #endif
 	CALL TAPE_ASSIGN(TAPEDEV,MTCH)  ! SCELTA DELL' UNITA` NASTRO

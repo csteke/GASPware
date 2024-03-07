@@ -28,7 +28,7 @@ MULTIBUF 	= -DMULTIBUF
 
 
 
-pgi: CDEBUGFLAGS = 
+pgi: CDEBUGFLAGS = $(GS_OPT)
 pgi: CC = pgcc
 pgi: all
 

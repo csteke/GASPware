@@ -224,7 +224,7 @@ C   *  parametri presenti se 'GD', assenti se 'GR'
 	INTEGER*2 JDAT(2)
 	INTEGER*4 LDAT
 	EQUIVALENCE (JDAT,LDAT)
-	INTEGER*2 IDAT,nm_mask
+	INTEGER*2 IDAT,nm_mask, w_cmp
 	integer l_nm_mask
 
 
@@ -245,13 +245,15 @@ C   *  parametri presenti se 'GD', assenti se 'GR'
 
 	ipunt=17
 	ilast=nwords
+	
 
 
 
 30	IF (IPUNT.GT.ILAST) goto 9999		! Finito --> prossimo buffer
 	IDAT=IBUF(IPUNT)
 31	nm_mask='FF00'X
-	if(iand(idat,nm_mask).ne.'F000'X) then
+	w_cmp = 'F000'X
+	if( iand(idat,nm_mask).ne.w_cmp ) then
 	   if(idat.ne.0) then
 	      nlost=nlost+1
 	   endif
@@ -259,7 +261,8 @@ C   *  parametri presenti se 'GD', assenti se 'GR'
 	   if(ipunt.le.ilast) then
 	     IDAT=ibuf(ipunt)
 	     nm_mask='FF00'X
-	     if(iand(idat,nm_mask).ne.'F000'X) goto 32
+	     w_cmp = 'F000'X
+	     if(iand(idat,nm_mask).ne.w_cmp) goto 32
 	   else
 	     goto 9999
 	   endif
@@ -274,7 +277,8 @@ C   *  parametri presenti se 'GD', assenti se 'GR'
 	if(ipunt.le.ilast) then
 	   idat=ibuf(ipunt)
 	   nm_mask='FF00'X
-	   if(idat.ne.0 .and. iand(idat,nm_mask).ne.'F000'X) goto 31
+	   w_cmp = 'F000'X
+	   if(idat.ne.0 .and. iiand(idat,nm_mask).ne.w_cmp) goto 31
 	elseif(ipunt.gt.ilast+1) then
 	   nlost=nlost+1
 	   goto 9999

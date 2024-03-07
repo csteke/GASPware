@@ -41,6 +41,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 
 	call xinpmode(1)
+
 CVMS
 *	OPEN(UNIT=6,CARRIAGECONTROL='FORTRAN',STATUS='UNKNOWN')
 
@@ -443,7 +444,7 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 #include "gsort.inc"
 
 	CHARACTER SETUPFILE*80
-#if defined( __GFORTRAN__ )
+#if defined( __GFORTRAN__ ) || defined( __PGI )
 	character*64 dyn_format
 #endif
 
@@ -584,9 +585,8 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 *	       if(lcom.gt.0) write(6,'(1x,a<lcom>)') form(ii)(1:lcom)
 	       if(lcom .gt. 0)then
 	          if( lcom .le. 72 )then
-#if defined( __GFORTRAN__ )
-		     write(dyn_format,'(i4)')lcom
-		     dyn_format = adjustl(dyn_format)
+#if defined( __GFORTRAN__ ) || defined( __PGI )
+		     write(dyn_format,'(i0,a)')lcom,'   '
 		     write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') form(ii)(1:lcom)
 #else
 		     write(6,1104) form(ii)(1:lcom)
@@ -595,18 +595,15 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 	             ii1 = index(form(ii)(56:lcom), ' ')
 		     if( ii1 .gt. 0 )then
 		        ii1 = ii1 + 55
-#if defined( __GFORTRAN__ )
-		     	write(dyn_format,'(i4)')ii1
-			dyn_format = adjustl(dyn_format)
+#if defined( __GFORTRAN__ ) || defined( __PGI )
+		     	write(dyn_format,'(i0,a)')ii1,'   '
 			write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') form(ii)(1:ii1)
-		     	write(dyn_format,'(i4)')lcom-ii1
-			dyn_format = adjustl(dyn_format)
+		     	write(dyn_format,'(i0,a)')lcom-ii1,'   '
 		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') form(ii)(ii1+1:lcom)
 		     else
 		        ii1 = 70
 		     	write(6,'(1x,a70,''-'')') form(ii)(1:ii1)
-		     	write(dyn_format,'(i4)')lcom-ii1
-			dyn_format = adjustl(dyn_format)
+		     	write(dyn_format,'(i0,a)')lcom-ii1,'   '
 		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') form(ii)(ii1+1:lcom)
 #else			
 		     	write(6,1101) form(ii)(1:ii1)
@@ -627,9 +624,8 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 *	       if(lcom.gt.0) write(6,'(1x,a<lcom>)') decl(ii)(1:lcom)
 	       if(lcom .gt. 0)then
 	          if( lcom .le. 72 )then
-#if defined( __GFORTRAN__ )
-		     write(dyn_format,'(i4)')lcom
-		     dyn_format = adjustl(dyn_format)
+#if defined( __GFORTRAN__ ) || defined( __PGI )
+		     write(dyn_format,'(i0,a)')lcom,'   '
 		     write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') decl(ii)(1:lcom)
 #else
 		     write(6,1104) decl(ii)(1:lcom)
@@ -638,18 +634,15 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 	             ii1 = index(decl(ii)(56:lcom), ' ')
 		     if( ii1 .gt. 0 )then
 		        ii1 = ii1 + 55
-#if defined( __GFORTRAN__ )
-		     	write(dyn_format,'(i4)')ii1
-			dyn_format = adjustl(dyn_format)
+#if defined( __GFORTRAN__ )|| defined( __PGI )
+		     	write(dyn_format,'(i0,a)')ii1,'   '
 			write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') decl(ii)(1:ii1)
-		     	write(dyn_format,'(i4)')lcom-ii1
-			dyn_format = adjustl(dyn_format)
+		     	write(dyn_format,'(i0,a)')lcom-ii1,'   '
 		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') decl(ii)(ii1+1:lcom)
 		     else
 		        ii1 = 70
 		     	write(6,'(1x,a70,''-'')') decl(ii)(1:ii1)
-		        write(dyn_format,'(i4)')lcom-ii1
-			dyn_format = adjustl(dyn_format)
+		        write(dyn_format,'(i0,a)')lcom-ii1,'   '
 		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') decl(ii)(ii1+1:lcom)
 #else
 		     	write(6,1101) decl(ii)(1:ii1)
@@ -670,9 +663,8 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 *	     if(lcom.gt.0) write(6,'(1x,a<lcom>)') anal(ii)(1:lcom)
 	       if(lcom .gt. 0)then
 	          if( lcom .le. 72 )then
-#if defined( __GFORTRAN__ )
-		     write(dyn_format,'(i4)')lcom
-		     dyn_format = adjustl(dyn_format)
+#if defined( __GFORTRAN__ )|| defined( __PGI )
+		     write(dyn_format,'(i0,a)')lcom,'   '
 		     write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') anal(ii)(1:lcom)
 #else
 		     write(6,1104) anal(ii)(1:lcom)
@@ -681,19 +673,16 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 	             ii1 = index(anal(ii)(56:lcom), ' ')
 		     if( ii1 .gt. 0 )then
 		        ii1 = ii1 + 55
-#if defined( __GFORTRAN__ )
-		     	write(dyn_format,'(i4)')ii1
-			dyn_format = adjustl(dyn_format)
+#if defined( __GFORTRAN__ )|| defined( __PGI )
+		     	write(dyn_format,'(i0,a)')ii1,'   '
 			write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') anal(ii)(1:ii1)
-		     	write(dyn_format,'(i4)')lcom-ii1
-			dyn_format = adjustl(dyn_format)
+		     	write(dyn_format,'(i0,a)')lcom-ii1,'   '
 		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') anal(ii)(ii1+1:lcom)
 		     else
 		        ii1 = 70
 		     	write(6,'(1x,a70,''-'')') anal(ii)(1:ii1)
 		     	write(6,'(1x,a70,''-'')') decl(ii)(1:ii1)
-		        write(dyn_format,'(i4)')lcom-ii1
-			dyn_format = adjustl(dyn_format)
+		        write(dyn_format,'(i0,a)')lcom-ii1,'   '
 		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') anal(ii)(ii1+1:lcom)
 #else
 		     	write(6,1101) anal(ii)(1:ii1)
@@ -717,7 +706,7 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 	  phase=1
 	  goto 11
 	endif
-#if !defined( __GFORTRAN__ )	
+#if !( defined( __GFORTRAN__ ) || defined( __PGI ) )
 1101	format(1x,a<ii1>)       	  
 1102	format(17x,a<lcom-ii1>) 	  
 1103	format(1x,a<ii1>,'-')   	  
@@ -1192,7 +1181,7 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 ! Lista il programma di analisi definito nel file di comando
 
 #include "gsort.inc"
-#if defined( __GFORTRAN__ )
+#if defined( __GFORTRAN__ )|| defined( __PGI )
 	character*64 dyn_format
 #endif
 
@@ -1243,9 +1232,8 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 	  endif
 	  llist=llist+1
 	  if(ndpar(jj).gt.0) then
-#if defined( __GFORTRAN__ )
-	    write(dyn_format,'(i4)')NDPAR(jj)
-	    dyn_format = adjustl(dyn_format)
+#if defined( __GFORTRAN__ ) || defined( __PGI )
+	    write(dyn_format,'(i0,a)')NDPAR(jj),'    '
 	    write(list(llist:),'(i3,'//dyn_format(1:len(dyn_format))//'i6)') NDPAR(jj),(PARRES(ii,jj),ii=0,NDPAR(jj)-1)
 #else
 	    write(list(llist:),4201) NDPAR(jj),(PARRES(ii,jj),ii=0,NDPAR(jj)-1)
@@ -1255,9 +1243,8 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 	    llist=llist+2
 	  endif
 	  if(MDPAR(jj).gt.0) then
-#if defined( __GFORTRAN__ )
-	    write(dyn_format,'(i4)')MDPAR(jj)
-	    dyn_format = adjustl(dyn_format)
+#if defined( __GFORTRAN__ )|| defined( __PGI )
+	    write(dyn_format,'(i0,a)')MDPAR(jj),'   '
 	    write(list(llist:),'(''PLUS''i4,'//dyn_format(1:len(dyn_format))//'i6)') MDPAR(jj),
      1(PARRES(ii,jj),ii=NDPAR(jj),TDPAR(jj)-1)
 #else
@@ -1267,7 +1254,7 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 	  llist=lengthc(list)
 	  write(LUN,*) list(1:llist)
 5	enddo
-#if !defined( __GFORTRAN__ )
+#if !( defined( __GFORTRAN__ ) || defined( __PGI ) )
 4201	format(i3,<NDPAR(jj)>i6)
 4202	format('PLUS',i4,<MDPAR(jj)>i6)
 #endif
@@ -2016,25 +2003,411 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 
 	END
 
+
+
+*************************************************************** GFORTRAN VERSION START
+#if defined( __GFORTRAN__ )
+
+
 	subroutine EVANA
 
 ! analisi dell'evento secondo quanto definito nel file di comando
 
 #include "gsort.inc"
 
-#if defined( __GFORTRAN__ )
-	integer LABELNN(MAXCOMANDI+1),label_325
-	integer LABEL
+
+	NSTA=0
+	KILLEV=.FALSE.
+	STORED_EV=.FALSE.
+	oev.done=.false.
+	icmd = 1
+
+	do while (icmd .le. ncomandi)
+	  whichcom=com(icmd).whichcom
+
+	goto(	    301,302,303,304,305,306,307,308,309,
+	1	310,311,312,313,314,315,316,317,318,319,
+	2	320,321,322,323,324,325,326,327,328,329,
+	3	330,331,332,333,334,335,336,337,338,339,
+	4	340,341,342,343,344,345,346,347,348,349,
+	5	350,351,352,353,354,355,356,357,358,359,
+	6	360,361,362,363,364,365,366,367,368,369,
+	7	370,371,372,373,374,375,376,377,378,379,
+	8	380,381,382,383,384,385,386,387,388,389,
+	9	390,391,392,393,394,395,396,397,398,399,
+	1	400,401,402,403,404,405,406,407,408,409,
+	1	410,411,412,413,414,415,416,417,418,419,
+	1	420,421,422,423,424,425,426,427,428,429,
+	1	430,431,432,433,434,435,436,437,438,439,
+	1	440,441,442,443,444,445,446,447,448,449) whichcom
+
+
+301	  call gs3_fold(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+302	  call gs3_gate(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+303	  call gs3_gates(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+304	  call gs3_window(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+305	  call gs3_banana(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+306	  call gs3_bananas(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+307	  call gs3_filter(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+308	  call gs3_xban(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+309	  goto 900
+310	  call gs3_recal_mult(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+311	  call gs3_gain(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+312	  call gs3_recal(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+313	  call gs3_recal_lut(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+314	  call gs3_time_reference(com(icmd),%val(com(icmd).addr))
+	  goto 800
+	  
+315	  call gs3_timing(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+316	  call gs3_recal_doppler(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+317	  call gs3_recal_kinenew(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+318	  call gs3_time_adjust(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+319	  call gs3_pin(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+320	  call gs3_hk(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+321	  call gs3_add(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+322	  call gs3_kill(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+323	  call gs3_select(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+324	  call gs3_store_event(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+325	  call gs3_recall_event(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+326	  call gs3_write_event(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+327	  call gs3_list_event(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+328	  call gs3_reorder(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+329	  call gs3_statistics(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+330	  call gs3_swap(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+331	  call gs3_mask(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+332	  call gs3_move(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+333	  call gs3_merge(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+334	  call gs3_split(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+335	  call gs3_newid(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+336	  call gs3_ebkill(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+337	  call gs3_combine(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+338	  call gs3_addback(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+339	  call gs3_copy(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+340	  call gs3_useful(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+341	  call gs3_thresholds(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+342	  goto 900
+343	  goto 900
+
+344	  call gs3_mult(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+345	  call gs3_mean_value(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+346	  call gs3_div(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+347	  call gs3_SLtoCM(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+348	  call gs3_recal_choose(com(icmd),%val(com(icmd).addr))
+	  goto 800
+	  
+349	  call gs3_wmean_value(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+350	  call gs3_recal_polar(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+351	  goto 900
+352	  goto 900
+353	  goto 900
+
+354	  call gs3_angles_pms(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+355	  call gs3_track_pms(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+356	  call gs3_qvalue_pms(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+357	  call gs3_bpvelocity_pms(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+358	  call gs3_xfp_pms(com(icmd),%val(com(icmd).addr))
+	  goto 800
+	  
+359	  goto 900
+360	  goto 900
+361	  goto 900
+362	  goto 900
+363	  goto 900
+364	  goto 900
+365	  goto 900
+366	  goto 900
+367	  goto 900
+368	  goto 900
+369	  goto 900
+370	  goto 900
+371	  goto 900
+372	  goto 900
+373	  goto 900
+
+374	  call gs3_break
+	  goto 800
+375	  call gs3_pairgate(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+376	  call gs3_pow(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+377	  call gs3_pairkill(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
+378	  goto 900
+379	  goto 900
+380	  goto 900
+381	  goto 900
+382	  goto 900
+383	  goto 900
+384	  goto 900
+385	  goto 900
+386	  goto 900
+387	  goto 900
+388	  goto 900
+389	  goto 900
+390	  goto 900
+
+391	  call usersub1(3)
+	  goto 800
+
+392	  call usersub2(3)
+	  goto 800
+
+393	  call usersub3(3)
+	  goto 800
+
+394	  call usersub4(3)
+	  goto 800
+
+395	  call usersub5(3)
+	  goto 800
+
+396	  call usersub6(3)
+	  goto 800
+
+397	  call usersub7(3)
+	  goto 800
+
+398	  call usersub8(3)
+	  goto 800
+
+399	  call usersub9(3)
+	  goto 800
+
+400	goto 900
+
+401	call gs3_projections(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+402	call gs3_sort1d(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+403	call gs3_sort1d_m(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+404	goto 900
+405	goto 900
+406	goto 900
+407	goto 900
+408	goto 900
+409	goto 900
+410	goto 900
+	
+411	call gs3_sort2d(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+412	call gs3_sort3d(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+413	call gs3_sort4d(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+414	goto 900
+415	goto 900
+
+416	call gs3_sort2d_ab(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+417	goto 900
+418	goto 900
+419	goto 900
+420	goto 900	
+
+421	call gs3_sort2d_symm(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+422	call gs3_sort3d_symm(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+423	call gs3_sort4d_symm(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+424	goto 900
+
+425	call gs3_sort3d_pair(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+426	goto 900
+
+427	call gs3_sort3d_diff(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+428	goto 900
+429	goto 900
+430	goto 900
+
+431	call gs3_sort2d_hsymm(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+432	call gs3_sort3d_hsymm(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+433	call gs3_sort4d_hsymm(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
+434	goto 900
+435	goto 900
+436	goto 900
+437	goto 900
+438	goto 900
+439	goto 900
+440	goto 900
+441	goto 900
+442	goto 900
+443	goto 900
+444	goto 900
+445	goto 900
+446	goto 900
+447	goto 900
+448	goto 900
+449	goto 900
+
+800	  if(killev)then
+	     if(.NOT.STORED_EV) return
+	     do jcmd=icmd+1,ncomandi
+	       whichcom=com(jcmd).whichcom
+	       if(whichcom .eq. 25)then
+	          icmd=jcmd
+		  goto 325
+ 	       endif
+	     enddo
+	     return
+	  endif
+	  
+	  icmd = icmd + 1 
+
+	ENDDO
+
+	return
+
+900	Stop 'Unknown command'
+
+	END
+
+
+
+****************************************************************  GFORTRAN VERSION END
+
+
 #else
-CVMS	INTEGER LABELNN(MAXCOMANDI+1)
+
+
+
+	subroutine EVANA
+
+! analisi dell'evento secondo quanto definito nel file di comando
+
+#include "gsort.inc"
+
 	MACHINE_POINTERSIZE LABELNN(MAXCOMANDI+1),label_325
-CVMS	INTEGER LABEL
 	MACHINE_POINTERSIZE LABEL
-#endif
 	EQUIVALENCE (LABEL,LABELNN)
 	logical*1 INITIALIZE /.TRUE./
 
 	if(initialize) then
+	 DO ICMD=1,MAXCOMANDI+1
+	    LABELNN(ICMD) = 0
+	 enddo
 	 DO ICMD=1,NCOMANDI
 	   whichcom=com(icmd).whichcom
 
@@ -2357,7 +2730,7 @@ CVMS	INTEGER LABEL
 149	   assign 449 to label
 	   goto 888
 
-888	   do jj=ncomandi+1,2,-1
+888	  do jj=ncomandi+1,2,-1
 	    labelnn(jj)=labelnn(jj-1)
 	  enddo
 	 ENDDO
@@ -2718,6 +3091,8 @@ CVMS	INTEGER LABEL
 900	Stop 'Unknown command'
 
 	END
+
+#endif
 
 	subroutine FINIT_RUN(mode)
 
