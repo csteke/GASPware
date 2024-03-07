@@ -2132,25 +2132,23 @@ void MapGLWcolors(void){
 
 void LoadGLWfont(void){
 
-  Int32 startW, startH;
+  Int32 startW, startH, FontSize;
+  char FontName[80];
   
   startH = XDisplayHeight( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) ); 
   startW = XDisplayWidth ( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) ); 
 
-  if ( startW >= 3840 && startW < 3*startH ) { 
-	loadXfont(GLW_FONTID12, "-*-times-medium-r-*-*-24-120-*-*-*-*-iso8859-1");
-  loadXfont(GLW_FONTID14, "-*-times-medium-r-*-*-24-140-*-*-*-*-iso8859-1");
-  }
+   FontSize = (float)startH * 0.0577 + 45.0;
+   FontSize -= FontSize%20 -20;
+   if( FontSize > 180 ) FontSize = 180;
+    if( FontSize == 160 ) FontSize = 140;
+   
+   sprintf( FontName, "-*-charter-medium-r-*-*-0-%.2d-0-0-p-0-iso8859-1\0", FontSize-20); 
+   loadXfont(GLW_FONTID12, FontName );
 
-  else {
-	loadXfont(GLW_FONTID12, "-*-times-medium-r-*-*-12-120-*-*-*-*-iso8859-1");
-	loadXfont(GLW_FONTID14, "-*-times-medium-r-*-*-14-140-*-*-*-*-iso8859-1");
-  }
+   sprintf( FontName, "-*-charter-medium-r-*-*-0-%.2d-0-0-p-0-iso8859-1\0", FontSize); 
+   loadXfont(GLW_FONTID14, FontName );
 
-/*
-  loadXfont(GLW_FONTID12, "-*-helvetica-medium-r-*-*-10-100-*-*-*-*-iso8859-1");
-  loadXfont(GLW_FONTID14, "-*-helvetica-bold-r-*-*-12-120-*-*-*-*-iso8859-1");
-*/
 
   font(GLW_FONTID14);
  }
