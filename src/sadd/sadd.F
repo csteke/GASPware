@@ -358,7 +358,11 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 	ENDDO
 	WRITE(10,15) FAK,CH80(1:lfnam),CH1,KLA
 	WRITE(6,15)  FAK,CH80(1:lfnam),CH1,KLA
+#if defined(__GFORTRAN__)
+15	FORMAT(' ADD',4X,'Factor:',G0,5X,A,'|',A1,':',I1)
+#else
 15	FORMAT(' ADD',4X,'Factor:',G,5X,A,'|',A1,':',I1)
+#endif
 	GOTO 99
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! MULT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -409,11 +413,19 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 	IF(ICH1.NE.1 .OR. ICH2.NE.KLCH) THEN
 	  WRITE(10,14) FAK,ICH1,ICH2
 	  WRITE( 6,14) FAK,ICH1,ICH2
+#if defined(__GFORTRAN__)
+14	  FORMAT(' ADD ',3X,'Factor:',G0,'   [',I6,'  --',I6,'  ]')
+#else
 14	  FORMAT(' ADD ',3X,'Factor:',G,'   [',I6,'  --',I6,'  ]')
+#endif
 	ELSE
 	  WRITE(10,15) FAK
 	  WRITE( 6,15) FAK
+#if defined(__GFORTRAN__)
+15	  FORMAT(' ADD ',3X,'Factor:',G0)
+#else
 15	  FORMAT(' ADD ',3X,'Factor:',G)
+#endif
 	ENDIF
 	GOTO 99
 
@@ -424,11 +436,19 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 	IF(ICH1.NE.1 .OR. ICH2.NE.KLCH) THEN
 	  WRITE(10,24) FAK,ICH1,ICH2
 	  WRITE( 6,24) FAK,ICH1,ICH2
+#if defined(__GFORTRAN__)
+24	  FORMAT(' MULT',3X,'Factor:',G0,'   [',I6,'  --',I6,'  ]')
+#else
 24	  FORMAT(' MULT',3X,'Factor:',G,'   [',I6,'  --',I6,'  ]')
+#endif
 	ELSE
 	  WRITE(10,25) FAK
 	  WRITE(6,25)  FAK
+#if defined(__GFORTRAN__)
+25	  FORMAT(' MULT',3X,'Factor:',G0)
+#else
 25	  FORMAT(' MULT',3X,'Factor:',G)
+#endif
 	ENDIF
 	GOTO 99
 
@@ -440,11 +460,19 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 	IF(ICH1.NE.1 .OR. ICH2.NE.KLCH) THEN
 	  WRITE(10,34) FAK,ICH1,ICH2
 	  WRITE( 6,34) FAK,ICH1,ICH2
+#if defined(__GFORTRAN__)
+34	  FORMAT(' DIV ',3X,'Factor:',G0,'   [',I6,'  --',I6,'  ]')
+#else
 34	  FORMAT(' DIV ',3X,'Factor:',G,'   [',I6,'  --',I6,'  ]')
+#endif
 	ELSE
 	  WRITE(10,35) FAK
 	  WRITE(6,35)  FAK
+#if defined(__GFORTRAN__)
+35	  FORMAT(' DIV ',3X,'Factor:',G0)
+#else
 35	  FORMAT(' DIV ',3X,'Factor:',G)
+#endif
 	ENDIF
 
 
@@ -674,7 +702,11 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 50	CALL VMOVR(RB2,1,RB1,1,KLCH)
 	WRITE(10,15) XFACT
 	WRITE(6,15)  XFACT
+#if defined(__GFORTRAN__)
+15	FORMAT(' SHIFT_SQRT * ',G0)
+#else
 15	FORMAT(' SHIFT_SQRT * ',G)
+#endif
 
 99	ISUC=0
 100	RETURN
@@ -719,7 +751,11 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 50	CALL VMOVR(RB2,1,RB1,1,KLCH)
 	WRITE(10,15) XFACT
 	WRITE(6,15)  XFACT
+#if defined(__GFORTRAN__)
+15	FORMAT(' SHIFT_SQUARE / ',G0)
+#else
 15	FORMAT(' SHIFT_SQUARE / ',G)
+#endif
 
 99	ISUC=0
 100	RETURN
@@ -807,7 +843,11 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 
 	WRITE(10,15) ICH,RB1(ICH),VAL
 	WRITE(6,15)  ICH,RB1(ICH),VAL
+#if defined(__GFORTRAN__)
+15	FORMAT(' CHANNEL',I8,5X,'Was',G0,5X,'Is',G0)
+#else
 15	FORMAT(' CHANNEL',I8,5X,'Was',G,5X,'Is',G)
+#endif
 	RB1(ICH)=VAL
 
 99	ISUC=0
@@ -864,7 +904,11 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 
 	WRITE(10,15) npack
 	WRITE(6,15)  npack
+#if defined(__GFORTRAN__)
+15	FORMAT(' PACK_CHANNELS  ',i0)
+#else
 15	FORMAT(' PACK_CHANNELS  ',i)
+#endif
 
 99	ISUC=0
 100	RETURN
@@ -887,7 +931,7 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 	ENDIF
 	CALL INP_SHOWBUFF(IL)
 	IF(IL.ne.0) THEN
-	   CALL INP_str('Filename to cycle',ch80)
+	   NN = INP_str('Filename to cycle',ch80)
 	   if(ch80(1:1).eq.'+') then
 	     tipo=1
 	   elseif(ch80(1:1).eq.'-') then
@@ -985,7 +1029,11 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 	CALL HOME
 	CALL ANMODE
 	WRITE(6,15) K1,K2,YMIN,YMAX
+#if defined(__GFORTRAN__)
+15	FORMAT('+K1=',I3,5X,'K2=',I3,5X,'Ymin=',G0,5X,'Ymax=',G0)
+#else
 15	FORMAT('+K1=',I3,5X,'K2=',I3,5X,'Ymin=',G,5X,'Ymax=',G)
+#endif
 
 99	ISUC=0
 100	RETURN
@@ -1079,21 +1127,22 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 #include "sadd.inc"
 
 	CHARACTER*80	DCLCOM
-
+	
 	ISUC=-1
 
-	IIC=INP_STR('DCL command',DCLCOM)
+	IIC=INP_STR('Shell command>',DCLCOM)
 	IF(IIC.LT.0) GOTO 99
 	IL=LENGTHC(DCLCOM)
 	IF(IL.GT.0) THEN
-	  ISTATUS=Lib$Spawn(DCLCOM)
+	  call Lib$Spawn(DCLCOM)
 	ELSE
-	  ISTATUS=Lib$Spawn()
+	  call Lib$Spawn()
 	ENDIF
-	IF (.NOT.ISTATUS) THEN
-	  write( *,* )' DCL couldn''t spawn the subprocess '
-	  GOTO 100
-	ENDIF
+
+*	IF (.NOT.ISTATUS) THEN
+*	  write( *,* )' DCL couldn''t spawn the subprocess '
+*	  GOTO 100
+*	ENDIF
 
 99	ISUC=0
 	

@@ -100,7 +100,7 @@ CVMS	gsdir=gsdir(1:lgsdir)//':'
 *	enddo
 	stopsort = .false.
 	if( filexist('STOP_MATRIX').eq.0 )ii=fileremove('STOP_MATRIX')
-	data_proc = .FALSE.
+*	data_proc = .FALSE.
 #if defined(__IFC) || defined(__INTEL_COMPILER)
 	call signal(2,GS_INT_RUN,-1)
 	call signal(15,GS_INT_RUN,-1)
@@ -137,7 +137,7 @@ CVMS	gsdir=gsdir(1:lgsdir)//':'
 	IF(iio.run.NE.IRUNOLD) THEN
 	   WRITE(LOGFILE,'(''LOG.'',I4.4)') MOD(iio.run,10000)
 CVMS	   OPEN(UNIT=LU2,NAME=LOGFILE,STATUS='NEW',FORM='FORMATTED')
-	   OPEN(UNIT=LU2,NAME=LOGFILE,STATUS='UNKNOWN',FORM='FORMATTED')
+	   OPEN(UNIT=LU2,FILE=LOGFILE,STATUS='UNKNOWN',FORM='FORMATTED')
 	   IRUNOLD=iio.run
 	ENDIF
 
@@ -320,7 +320,7 @@ CVMS	CALL CPU_SECONDS(TIM_END)
 	  else
 	    WRITE(ilu,'(/,I15,''   Records read from tape    '',A)') iio.REC,iio.name(1:lfile)
 	  endif
-	  WRITE(ilu,'(I,''   Analysed events'')') iio.evcount
+	  WRITE(ilu,'(I15,''   Analysed events'')') iio.evcount
 	  if(nlost.ne.0) then
 	    WRITE(ilu,'(I15,''   Bad event sequences       '',A)') nlost
 	  endif
@@ -443,6 +443,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 #include "gsort.inc"
 
 	CHARACTER SETUPFILE*80
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 
 	DO II=1,NFORMCOM
 	  FORM(II)=' '
@@ -581,17 +584,38 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 *	       if(lcom.gt.0) write(6,'(1x,a<lcom>)') form(ii)(1:lcom)
 	       if(lcom .gt. 0)then
 	          if( lcom .le. 72 )then
+#if defined( __GFORTRAN__ )
+		     write(dyn_format,'(i4)')lcom
+		     dyn_format = adjustl(dyn_format)
+		     write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') form(ii)(1:lcom)
+#else
 		     write(6,1104) form(ii)(1:lcom)
+#endif
 	          else
 	             ii1 = index(form(ii)(56:lcom), ' ')
 		     if( ii1 .gt. 0 )then
 		        ii1 = ii1 + 55
+#if defined( __GFORTRAN__ )
+		     	write(dyn_format,'(i4)')ii1
+			dyn_format = adjustl(dyn_format)
+			write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') form(ii)(1:ii1)
+		     	write(dyn_format,'(i4)')lcom-ii1
+			dyn_format = adjustl(dyn_format)
+		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') form(ii)(ii1+1:lcom)
+		     else
+		        ii1 = 70
+		     	write(6,'(1x,a70,''-'')') form(ii)(1:ii1)
+		     	write(dyn_format,'(i4)')lcom-ii1
+			dyn_format = adjustl(dyn_format)
+		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') form(ii)(ii1+1:lcom)
+#else			
 		     	write(6,1101) form(ii)(1:ii1)
 		     	write(6,1102) form(ii)(ii1+1:lcom)
 		     else
 		        ii1 = 70
 		     	write(6,1103) form(ii)(1:ii1)
 		     	write(6,1102) form(ii)(ii1+1:lcom)
+#endif
 		     endif
 	          endif
 	       endif
@@ -603,17 +627,38 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 *	       if(lcom.gt.0) write(6,'(1x,a<lcom>)') decl(ii)(1:lcom)
 	       if(lcom .gt. 0)then
 	          if( lcom .le. 72 )then
+#if defined( __GFORTRAN__ )
+		     write(dyn_format,'(i4)')lcom
+		     dyn_format = adjustl(dyn_format)
+		     write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') decl(ii)(1:lcom)
+#else
 		     write(6,1104) decl(ii)(1:lcom)
+#endif
 	          else
 	             ii1 = index(decl(ii)(56:lcom), ' ')
 		     if( ii1 .gt. 0 )then
 		        ii1 = ii1 + 55
+#if defined( __GFORTRAN__ )
+		     	write(dyn_format,'(i4)')ii1
+			dyn_format = adjustl(dyn_format)
+			write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') decl(ii)(1:ii1)
+		     	write(dyn_format,'(i4)')lcom-ii1
+			dyn_format = adjustl(dyn_format)
+		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') decl(ii)(ii1+1:lcom)
+		     else
+		        ii1 = 70
+		     	write(6,'(1x,a70,''-'')') decl(ii)(1:ii1)
+		        write(dyn_format,'(i4)')lcom-ii1
+			dyn_format = adjustl(dyn_format)
+		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') decl(ii)(ii1+1:lcom)
+#else
 		     	write(6,1101) decl(ii)(1:ii1)
 		     	write(6,1102) decl(ii)(ii1+1:lcom)
 		     else
 		        ii1 = 70
 		     	write(6,1103) decl(ii)(1:ii1)
 		     	write(6,1102) decl(ii)(ii1+1:lcom)
+#endif
 		     endif
 	          endif
 	       endif
@@ -625,17 +670,39 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 *	     if(lcom.gt.0) write(6,'(1x,a<lcom>)') anal(ii)(1:lcom)
 	       if(lcom .gt. 0)then
 	          if( lcom .le. 72 )then
+#if defined( __GFORTRAN__ )
+		     write(dyn_format,'(i4)')lcom
+		     dyn_format = adjustl(dyn_format)
+		     write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') anal(ii)(1:lcom)
+#else
 		     write(6,1104) anal(ii)(1:lcom)
+#endif
 	          else
 	             ii1 = index(anal(ii)(56:lcom), ' ')
 		     if( ii1 .gt. 0 )then
 		        ii1 = ii1 + 55
+#if defined( __GFORTRAN__ )
+		     	write(dyn_format,'(i4)')ii1
+			dyn_format = adjustl(dyn_format)
+			write(6,'(1x,a'//dyn_format(1:len(dyn_format))//')') anal(ii)(1:ii1)
+		     	write(dyn_format,'(i4)')lcom-ii1
+			dyn_format = adjustl(dyn_format)
+		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') anal(ii)(ii1+1:lcom)
+		     else
+		        ii1 = 70
+		     	write(6,'(1x,a70,''-'')') anal(ii)(1:ii1)
+		     	write(6,'(1x,a70,''-'')') decl(ii)(1:ii1)
+		        write(dyn_format,'(i4)')lcom-ii1
+			dyn_format = adjustl(dyn_format)
+		     	write(6,'(17x,a'//dyn_format(1:len(dyn_format))//')') anal(ii)(ii1+1:lcom)
+#else
 		     	write(6,1101) anal(ii)(1:ii1)
 		     	write(6,1102) anal(ii)(ii1+1:lcom)
 		     else
 		        ii1 = 70
 		     	write(6,1103) anal(ii)(1:ii1)
 		     	write(6,1102) anal(ii)(ii1+1:lcom)
+#endif
 		     endif
 	          endif
 	       endif
@@ -650,12 +717,12 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 	  phase=1
 	  goto 11
 	endif
-	
+#if !defined( __GFORTRAN__ )	
 1101	format(1x,a<ii1>)       	  
 1102	format(17x,a<lcom-ii1>) 	  
 1103	format(1x,a<ii1>,'-')   	  
 1104	format(1x,a<lcom>)      	  
-
+#endif
 	call filetype(setupfile,'setup')
 	lsetupfile=lengthc(setupfile)
 
@@ -1125,6 +1192,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 ! Lista il programma di analisi definito nel file di comando
 
 #include "gsort.inc"
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 
 	llun=lun
 
@@ -1173,19 +1243,34 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 	  endif
 	  llist=llist+1
 	  if(ndpar(jj).gt.0) then
+#if defined( __GFORTRAN__ )
+	    write(dyn_format,'(i4)')NDPAR(jj)
+	    dyn_format = adjustl(dyn_format)
+	    write(list(llist:),'(i3,'//dyn_format(1:len(dyn_format))//'i6)') NDPAR(jj),(PARRES(ii,jj),ii=0,NDPAR(jj)-1)
+#else
 	    write(list(llist:),4201) NDPAR(jj),(PARRES(ii,jj),ii=0,NDPAR(jj)-1)
+#endif
 	    llist=lengthc(list)+2
 	  else
 	    llist=llist+2
 	  endif
 	  if(MDPAR(jj).gt.0) then
+#if defined( __GFORTRAN__ )
+	    write(dyn_format,'(i4)')MDPAR(jj)
+	    dyn_format = adjustl(dyn_format)
+	    write(list(llist:),'(''PLUS''i4,'//dyn_format(1:len(dyn_format))//'i6)') MDPAR(jj),
+     1(PARRES(ii,jj),ii=NDPAR(jj),TDPAR(jj)-1)
+#else
 	    write(list(llist:),4202) MDPAR(jj),(PARRES(ii,jj),ii=NDPAR(jj),TDPAR(jj)-1)
+#endif
 	  endif
 	  llist=lengthc(list)
 	  write(LUN,*) list(1:llist)
 5	enddo
+#if !defined( __GFORTRAN__ )
 4201	format(i3,<NDPAR(jj)>i6)
 4202	format('PLUS',i4,<MDPAR(jj)>i6)
+#endif
 	call gs1_rawfoldmin
 	
 	do ii=0,hashgiven-1
@@ -1937,10 +2022,15 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 
 #include "gsort.inc"
 
+#if defined( __GFORTRAN__ )
+	integer LABELNN(MAXCOMANDI+1),label_325
+	integer LABEL
+#else
 CVMS	INTEGER LABELNN(MAXCOMANDI+1)
 	MACHINE_POINTERSIZE LABELNN(MAXCOMANDI+1),label_325
 CVMS	INTEGER LABEL
 	MACHINE_POINTERSIZE LABEL
+#endif
 	EQUIVALENCE (LABEL,LABELNN)
 	logical*1 INITIALIZE /.TRUE./
 

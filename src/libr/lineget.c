@@ -77,7 +77,7 @@ int flineget(FILE *, unsigned char *, int);
 
 
 
-static void delete(), deleteline(), insert(), prichar(), linectrl_cf();
+static void delete(int), deleteline(), insert(), prichar(), linectrl_cf();
 static int countword(), testchar(), movecur();
 static void histclose(), histopen(), linetohistory(), histsearch(), sputchar();
 static int gethistline();

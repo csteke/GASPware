@@ -1635,7 +1635,7 @@ C	  CALL ANSI_BELL(LU1)
 	  endif
 	enddo
 
-	if( has_header .and. (ndet(0).eq.0) ) then
+	if( (has_header .gt. 0) .and. (ndet(0).eq.0) ) then
 	  doff(0) = 0
 *	  do ii = 1, ntipi
 *	    doff(0) = doff(0) + NDET(ii)

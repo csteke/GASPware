@@ -1,6 +1,6 @@
 	PROGRAM recaltest
 
-	PARAMETER (MAXRES=8192)
+	PARAMETER (MAXRES=32768)
 	PARAMETER (MAXGER=256)
 	PARAMETER (MAXNCHAN=MAXRES*MAXGER)
 	PARAMETER (MAXORD=10)
@@ -10,6 +10,7 @@
 	real   ftot(0:MAXNCHAN-1)
 	common/spectra/ fout,ftot
 	logical*1 inp_yes
+	external inp_yes
 
 ! produce proiezioni ricalibrate secondo coefficienti polinomiali letti da file
 
@@ -205,6 +206,9 @@ C	      write(6,'(I5,I5,I3,F10.3,F10.6,<NlORD>G14.6)') IlTAP,IlADC,NlCO,(Temp(j)
 	character*60 specfile
 	character fname1*60,fname2*64
 	character*1 fmti,fmto
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 
 	CALL inp_str('File with the calibration coefficients',calfile)
 	LUNC=21
@@ -233,8 +237,13 @@ C	      write(6,'(I5,I5,I3,F10.3,F10.6,<NlORD>G14.6)') IlTAP,IlADC,NlCO,(Temp(j)
 	maxadc=-1
 20	READ(LUNC,*,ERR=30,END=32) IlTAP,IlADC,NlCO,(temp(J),J=0,NlCo-1)
 	NlORD=NlCO-1
+#if defined( __GFORTRAN__ )
+	write(dyn_format,'(a,i0,a)')'(I5,I5,I3,F10.3,F10.6,',NlORD,'G14.6)'
+	write(6,dyn_format(1:len(dyn_format))) IlTAP,IlADC,NlCO,(Temp(j),j=0,NlORD)
+#else
 	write(6,1001) IlTAP,IlADC,NlCO,(Temp(j),j=0,NlORD)
 1001	format(I5,I5,I3,F10.3,F10.6,<NlORD>G14.6)
+#endif
 	if((IlADC.ge.0 .and. IlADC.lt.MAXGER) .and. (NlORD.gt.0 .and. NlORD.le.MAXORD)) then
 	   do ii=0,NlCo-1
 	      coefs(ii,IlADC)=temp(ii)

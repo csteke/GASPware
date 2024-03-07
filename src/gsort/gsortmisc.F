@@ -148,6 +148,9 @@ CVMS	  CALL STR_TOUPPER(TAPEDEVR)
 	integer ganil_get_run_no
 	external ganil_get_run_no
 
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 	break=.true.
 	
 	if(autonumber) goto 50
@@ -197,7 +200,12 @@ CVMS	  CALL STR_TOUPPER(TAPEDEVR)
 	    enddo
 	    if(la.gt.0) then
 	      do ii=la,1,-1
+#if defined( __GFORTRAN__ )
+	        write(dyn_format,'(a,i0,a)')'(I',ii,')'
+		read(autostring(1:ii),dyn_format(1:len(dyn_format)),err=65) nn
+#else
 	        read(autostring(1:ii),4201,err=65) nn
+#endif
 	        iio.run= MOD(abs(nn),10000)
 	        WRITE(6,'(a,i5)') ' This is RUN#',iio.run
 		write(lu1,*) 'Skipping rest of header'
@@ -224,8 +232,9 @@ CVMS	  CALL STR_TOUPPER(TAPEDEVR)
 	  endif
 	  goto 100
 	ENDIF
+#if !defined( __GFORTRAN__ )
 4201	format(I<ii>)
-	  
+#endif	  
 	
 	if( DATAFORMAT .eq. GANIL )then
 4301	   call gs_get_header_record( NSEEN )
@@ -382,6 +391,12 @@ CVMS	if(nseen.eq.-2) nseen=-3
 	integer lun,indent
 	character*(*) list
 
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+	
+	write(dyn_format,'(a,i0,a)')'(',indent,'x,a)'
+#endif
+
 	llist=lengthc(list)
 	if(llist.le.0) return
 
@@ -391,11 +406,17 @@ CVMS	if(nseen.eq.-2) nseen=-3
 	  write(lun,'(1x,a)') list(1:LINELENGTH-2)//'-'
 	  lstep=LINELENGTH-indent-1
 	  do ii=LINELENGTH-1,llist,lstep
+#if defined( __GFORTRAN__ )
+	    write(lun,dyn_format(1:len(dyn_format))) list(ii:ii+lstep-1)//'-'
+#else
 	    write(lun,4201) list(ii:ii+lstep-1)//'-'
+#endif
 	  enddo
 	endif
 	list=' '
+#if !defined( __GFORTRAN__ )
 4201	format(<indent>x,a)
+#endif
 	return
 
 	end
@@ -405,18 +426,31 @@ CVMS	if(nseen.eq.-2) nseen=-3
 #include "gsort.inc"
 
 	character errline*(*)
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 
 	if(.not.syntax) then
 	  call ansi_bell(6)
 	  if(whichcom.gt.0) then
 	    jjn=lengthc(comline)
 	    nnn=lcomline-jjn
+#if defined( __GFORTRAN__ )
+	    if(nnn.gt.0) then
+	      write(dyn_format,'(a,i0,a)')'(1x,',nnn,'(''-''),''^'')'
+	      write(6,dyn_format(1:len(dyn_format)))
+	    endif
+	  endif
+#else
 	    if(nnn.gt.0) write(6,4201)
 	  endif
+#endif
 	  lerrline=max(1,lengthc(errline))
 	  write(6,*) errline(1:lerrline)
 	endif
+#if !defined( __GFORTRAN__ )
 4201	format(1x,<nnn>('-'),'^')
+#endif
 
 	lsynt=0
 	do ii=1,nsynt
@@ -445,16 +479,26 @@ CVMS	if(nseen.eq.-2) nseen=-3
 
 	character errline*(*)
 	integer ival
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 
 	call ansi_bell(6)
 
 	if(whichcom.gt.0) then
 	  jjn=lengthc(comline)
 	  nnn=lcomline-jjn
+#if defined( __GFORTRAN__ )
+	  if(nnn.gt.0) then
+	    write(dyn_format,'(a,i0,a)')'(1x,',nnn,'(''-''),''^'')'
+	    write(6,dyn_format(1:len(dyn_format)))
+	  endif
+	endif
+#else
 	  if(nnn.gt.0) write(6,4201)
 	endif
 4201	format(1x,<nnn>('-'),'^')
-
+#endif
 	lerrline=max(1,lengthc(errline))
 	write(6,*) errline(1:lerrline),ival
 
@@ -484,15 +528,25 @@ CVMS	if(nseen.eq.-2) nseen=-3
 
 	character errline*(*)
 	integer ival1,ival2
-
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 	call ansi_bell(6)
 
 	if(whichcom.gt.0) then
 	  jjn=lengthc(comline)
 	  nnn=lcomline-jjn
+#if defined( __GFORTRAN__ )
+	  if(nnn.gt.0) then
+	    write(dyn_format,'(a,i0,a)')'(1x,',nnn,'(''-''),''^'')'
+	    write(6,dyn_format(1:len(dyn_format)))
+	  endif
+	endif
+#else
 	  if(nnn.gt.0) write(6,4201)
 	endif
 4201	format(1x,<nnn>('-'),'^')
+#endif
 
 	lerrline=max(1,lengthc(errline))
 	write(6,*) errline(1:lerrline),ival1,ival2
@@ -703,7 +757,11 @@ CVMS	if(nseen.eq.-2) nseen=-3
 	  write(list(llist:),4201) dname(ind),par
 	endif
 	llist=lengthc(list)
+#if defined( __GFORTRAN__ )
+4201	format(A,i0)
+#else
 4201	format(A,i<lgp>)
+#endif
 	
 	return
 
@@ -804,10 +862,17 @@ c	pointer (pairspnt,dat)
 
 	integer res(*),nn
 
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+	
+	write(dyn_format, '(a,i0,a)')'(''RES'',',nn,',i5)'
+	write(list(llist:),dyn_format(1:len(dyn_format))) (res(ii),ii=1,nn)
+#else
+
 	write(list(llist:),4201) (res(ii),ii=1,nn)
-	llist=lengthc(list)
 4201	format('RES ',<nn>i5)
-*4201	format('RES ',4i5)
+#endif
+	llist=lengthc(list)
 
 	return
 
@@ -819,10 +884,16 @@ c	pointer (pairspnt,dat)
 
 	integer step(*),nn
 
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+	
+	write(dyn_format, '(a,i0,a)')'(''STEP'',',nn,',i4)'
+	write(list(llist:),dyn_format(1:len(dyn_format))) (step(ii),ii=1,nn)
+#else
 	write(list(llist:),4201) (step(ii),ii=1,nn)
-	llist=lengthc(list)
 4201	format('STEP',<nn>i4)
-*4201	format('STEP',4i4)
+#endif
+	llist=lengthc(list)
 
 	return
 
@@ -910,8 +981,11 @@ c	hashpnt=hashaddr(ihash)
 	if(ihash.GE.10) lph=2
 	write(list(llist:),4201) ihash,' applied',nhash,' time(s)' 
 	llist=lengthc(list)
+#if defined( __GFORTRAN__ )
+4201	format('H',I0,A,I3,A)
+#else
 4201	format('H',I<lph>,A,I3,A)
-
+#endif
 	return
 
 	end
@@ -1334,8 +1408,24 @@ c	hashpnt=hashaddr(ihash)
 	integer total(0:100)
 	logical*1 nonzero
 
+#if defined( __GFORTRAN__ )
+	character*64 dyn_f1, dyn_f2, dyn_f3
+	
+	write( dyn_f1(1:len(dyn_f1)), '(a,i0,a)')'(2x,a,',NSTATCOM+1,'(a,i1))'
+	write( dyn_f2(1:len(dyn_f2)), '(a,i0,a)')'(3x,a,'' fold '',i2,',NSTATCOM+1,'i11)'
+	write( dyn_f3(1:len(dyn_f3)), '(a,i0,a)')'(3x,a,'' Total '',',NSTATCOM+1,'i11)'
+#else
+4201	format(2x,a,<NSTATCOM+1>(a,i1))
+4202	format(3x,a,' fold ',i2,<NSTATCOM+1>i11)
+4203	format(3x,a,' Total ',<NSTATCOM+1>i11)
+#endif
+
 	do ji=1,NTIPI
+#if defined( __GFORTRAN__ )
+	    WRITE(ILU,dyn_f1) dname(ji)//'-Statistics    RAW',('      STAT',ii,ii=1,NSTATCOM)
+#else
 	    WRITE(ILU,4201) dname(ji)//'-Statistics    RAW',('      STAT',ii,ii=1,NSTATCOM)
+#endif
 	    do ii=0,NSTATCOM
 	      total(ii)=0
 	    enddo
@@ -1347,17 +1437,22 @@ c	hashpnt=hashaddr(ihash)
 	          total(ii)=total(ii)+STAT.FOLD(nn,ji,ii)
 	        endif
 	      enddo
+#if defined( __GFORTRAN__ )
+	      if(nonzero) WRITE(ILU,dyn_f2)dname(ji), nn,(STAT.FOLD(nn,ji,ii),ii=0,NSTATCOM)
+#else
 	      if(nonzero) WRITE(ILU,4202)dname(ji), nn,(STAT.FOLD(nn,ji,ii),ii=0,NSTATCOM)
+#endif
 	    enddo
 	    nonzero=.false.
 	    do ii=0,NSTATCOM
 	      if(total(ii).gt.0) nonzero=.true.
 	    enddo	
+#if defined( __GFORTRAN__ )
+	    if(nonzero)   WRITE(ILU,dyn_f3) dname(ji), (total(ii),ii=0,NSTATCOM)
+#else
 	    if(nonzero)   WRITE(ILU,4203) dname(ji), (total(ii),ii=0,NSTATCOM)
+#endif
 	enddo
-4201	format(2x,a,<NSTATCOM+1>(a,i1))
-4202	format(3x,a,' fold ',i2,<NSTATCOM+1>i11)
-4203	format(3x,a,' Total ',<NSTATCOM+1>i11)
 
 	return
 
@@ -1454,6 +1549,11 @@ c	hashpnt=hashaddr(ihash)
 
 	subroutine gs_get_angles(th,ph,nn,angfile,lun)
 
+#if defined( __GFORTRAN__ )
+	logical*1 inp_yes
+	external inp_yes
+#endif
+
 	integer nn,lun
 	real th(0:nn-1)
 	real ph(0:nn-1)
@@ -1528,7 +1628,11 @@ c	hashpnt=hashaddr(ihash)
 	  endif
 	 lulu=lu2
 	enddo
+#if defined( __GFORTRAN__ )
+	CLOSE(inlu,STATUS='DELETE')
+#else
 	CLOSE(inlu,DISPOSE='DELETE')
+#endif
 	stopsort=.true.
 	return
 

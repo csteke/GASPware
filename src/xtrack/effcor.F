@@ -29,7 +29,11 @@
 	     	
 	elseif( ICMD .eq. 2 )then
 	     do ii=1,MAXCOEF
+#if defined( __GFORTRAN__ )
+	        write(6,'('' A('',i1,'')   = '',1pg0)') ii-1,coeff(ii)
+#else
 	        write(6,'('' A('',i1,'')   = '',1pg)') ii-1,coeff(ii)
+#endif
 	     enddo
 	     efftype = 1
 	     eff_define = .TRUE.

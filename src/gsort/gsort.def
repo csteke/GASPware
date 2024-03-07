@@ -280,7 +280,7 @@
 
 	structure/tref/
 	   integer*8 N
-#if defined( __i386__ ) || defined( i386 )
+#if defined( __i386__ ) || defined( i386 ) || defined ( __PGI )
 	   real*8 SQSUM
 #else
 	   real*16 SQSUM

@@ -28,13 +28,17 @@ MULTIBUF 	= -DMULTIBUF
 
 
 
-linux: CDEBUGFLAGS = -mpreferred-stack-boundary=2 -march=i686
-linux: CC = gcc
-linux: all
+pgi: CDEBUGFLAGS = 
+pgi: CC = pgcc
+pgi: all
 
 intel: CDEBUGFLAGS = $(GS_OPT)
 intel: CC = icc @../../etc/icc.cfg
 intel: all
+
+gnu: CC  = $(GNU_CC)  -Wno-deprecated-declarations
+gnu: CDEBUGFLAGS = $(GS_OPT)
+gnu: all
 
 sstudio: CDEBUGFLAGS = $(GS_OPT)
 sstudio: CC = suncc

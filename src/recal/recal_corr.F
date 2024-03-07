@@ -11,7 +11,10 @@
 	real	temp(0:300)
 	real*8	tab(0:maxord,0:maxord),TTAB
 	logical inp_yes
-
+	external inp_yes
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 	call xinpmode(1)
 
 	dispc=1.
@@ -46,8 +49,13 @@ c  sulla base dei coefficienti POLINOMIALI ottenuti nella seconda passata
 	  do ii=0,NcORD
 	    coefcur(ii,IcADC)=temp(ii)
 	  enddo
+#if defined( __GFORTRAN__ )
+	  write(dyn_format,'(a,i0,a)')'(I5,I3,F10.3,F10.6,',NcORD,'G14.6)'
+	  write(6,dyn_format(1:len(dyn_format))) IcADC,NcORD+1,(Temp(j),j=0,NcORD)
+#else
 	  write(6,101) IcADC,NcORD+1,(Temp(j),j=0,NcORD)
 101	  format(I5,I3,F10.3,F10.6,<NcORD>G14.6)
+#endif
 	else
 	  write(6,*) 'Error reading  ',calfcur
 	  call exit
@@ -57,8 +65,13 @@ c  sulla base dei coefficienti POLINOMIALI ottenuti nella seconda passata
 20	READ(21,*,ERR=30,END=30) IlTAP,IlADC,NlCO,(temp(J),J=0,NlCo-1)
 	NlORD=NlCO-1
 	if(IlADC.ge.0 .and. IlADC.lt.MAXGER .and. NlORD.eq.1) then
+#if defined( __GFORTRAN__ )
+	  write(dyn_format,'(a,i0,a)')'(I5,I5,I3,F10.3,F10.6,',NlORD,'G14.6)'
+	  write(6,dyn_format(1:len(dyn_format))) IlTAP,IlADC,NlORD+1,(Temp(j),j=0,NlORD)
+#else
 	  write(6,102) IlTAP,IlADC,NlORD+1,(Temp(j),j=0,NlORD)
 102	  format(I5,I5,I3,F10.3,F10.6,<NlORD>G14.6)
+#endif
 	  do ii=0,NlORD
 	  temp(ii)=temp(ii)/dispc
 	  enddo
@@ -84,10 +97,17 @@ c  sulla base dei coefficienti POLINOMIALI ottenuti nella seconda passata
 	      enddo
 	      Temp(ii)=TTAB
 	    enddo
+#if defined( __GFORTRAN__ )
+	    write(dyn_format,'(a,i0,a)')'(5X,5X,I3,F10.3,F10.6,',NcORD,'G14.6)'
+	    write(6, dyn_format(1:len(dyn_format)))  NcORD+1,(Temp(j),j=0,NcORD)
+	    write(dyn_format,'(a,i0,a)')'(I5,I5,I3,F10.3,F10.6,',NcORD,'G14.6)'
+	    WRITE(23,dyn_format(1:len(dyn_format))) IlTAP,IlADC,NcORD+1,(Temp(j),j=0,NcORD)
+#else
 	    write(6, 103)             NcORD+1,(Temp(j),j=0,NcORD)
 	    WRITE(23,104) IlTAP,IlADC,NcORD+1,(Temp(j),j=0,NcORD)
 103	    format(5X,5X,I3,F10.3,F10.6,<NcORD>G14.6)
 104	    format(I5,I5,I3,F10.3,F10.6,<NcORD>G14.6)
+#endif
 	  else
 	     write(6,'(10X,A)') 'Missing modifying coefficients'
 	  endif
@@ -122,8 +142,13 @@ c  sulla base dei coefficienti LINEARI ottenuti nella seconda passata
 	  do ii=0,NcORD
 	    coefcur(ii,IcADC)=temp(ii)
 	  enddo
+#if defined( __GFORTRAN__ )
+	  write(dyn_format,'(a,i0,a)')'(I5,I3,F10.3,F10.6,',NcORD,'G14.6)'
+	  write(6,dyn_format(1:len(dyn_format))) IcADC,NcORD+1,(Temp(j),j=0,NcORD)
+#else
 	  write(6,105) IcADC,NcORD+1,(Temp(j),j=0,NcORD)
 105	  format(I5,I3,F10.3,F10.6,<NcORD>G14.6)
+#endif
 	else
 	  write(6,*) 'Error reading  ',calfcur
 	  call exit
@@ -139,8 +164,13 @@ c  sulla base dei coefficienti LINEARI ottenuti nella seconda passata
 1020	READ(22,*,ERR=30,END=1030) IlTAP,IlADC,NlCO,(temp(J),J=0,NlCo-1)
 	NlORD=NlCO-1
 	if(IlADC.ge.0 .and. IlADC.lt.MAXGER .and. NlORD.eq.1) then
+#if defined( __GFORTRAN__ )
+	  write(dyn_format,'(a,i0,a)')'(I5,I5,I3,F10.3,F10.6,',NlORD,'G14.6)'
+	  write(6,dyn_format(1:len(dyn_format))) IlTAP,IlADC,NlORD+1,(Temp(j),j=0,NlORD)
+#else
 	  write(6,106) IlTAP,IlADC,NlORD+1,(Temp(j),j=0,NlORD)
 106	  format(I5,I5,I3,F10.3,F10.6,<NlORD>G14.6)
+#endif
 	  NcORD=ordcur(IlADC)
 	  if(NcORD.gt.0) then
 	    do ii=0,NcORD
@@ -150,10 +180,17 @@ c  sulla base dei coefficienti LINEARI ottenuti nella seconda passata
 	    do ii=0,NcORD
 	      Temp(ii)=TAB(ii,0)
 	    enddo
+#if defined( __GFORTRAN__ )
+	    write(dyn_format,'(a,i0,a)')'(5X,5X,I3,F10.3,F10.6,',NcORD,'G14.6)'
+	    write(6, dyn_format(1:len(dyn_format))) NcORD+1,(Temp(j),j=0,NcORD)
+	    write(dyn_format,'(a,i0,a)')'(I5,I5,I3,F10.3,F10.6,',NcORD,'G14.6)'
+	    WRITE(23,dyn_format(1:len(dyn_format))) IlTAP,IlADC,NcORD+1,(Temp(j),j=0,NcORD)
+#else
 	    write(6, 107)             NcORD+1,(Temp(j),j=0,NcORD)
 	    WRITE(23,108) IlTAP,IlADC,NcORD+1,(Temp(j),j=0,NcORD)
 107	    format(5X,5X,I3,F10.3,F10.6,<NcORD>G14.6)
 108	    format(I5,I5,I3,F10.3,F10.6,<NcORD>G14.6)
+#endif
 	  else
 	     write(6,'(10X,A)') 'Missing source coefficients'
 	  endif

@@ -326,8 +326,14 @@ CCCCCCCCCCCCCCCCCCCCCC Comandi di sort CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  endif 
 	endif	   
 
+#if defined( __GFORTRAN__ )
+4201	format('Spherical H',I0,A,I3,A)
+4202	format('Cubic     H',I0,A,I3,A)
+#else
 4201	format('Spherical H',I<lph>,A,I3,A)
 4202	format('Cubic     H',I<lph>,A,I3,A)
+#endif
+
 	return
 
 	end
@@ -464,7 +470,11 @@ CCCCCCCCCCCCCCCCCCCCCC Comandi di sort CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	    WRITE(LU2,*) 'Error writing  '//filepro(1:lfilepro),kv
 	  endif
 	ENDIF
+#if defined( __GFORTRAN__ )
+4201	format(1X,A,I0,I15,' Counts')
+#else
 4201	format(1X,A,I<nn>,I15,' Counts')
+#endif
 
 	return
 
@@ -544,8 +554,13 @@ CCCCCCCCCCCCCCCCCCCCCC Comandi di sort CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  write(list(llist:),4202) spec.ihash,' applied up to ',spec.nhash,' time(s)'
 	endif
 
+#if defined( __GFORTRAN__ )
+4201	format('Spherical H',I0,A,I3,A)
+4202	format('Cubic     H',I0,A,I3,A)
+#else
 4201	format('Spherical H',I<lph>,A,I3,A)
 4202	format('Cubic     H',I<lph>,A,I3,A)
+#endif
 
 	return
 
@@ -745,8 +760,11 @@ CCCCCCCCCCCCCCCCCCCCCC Comandi di sort CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	    WRITE(LU2,*) 'Error writing  '//filepro(1:lfilepro),kv
 	  endif
 	ENDIF
+#if defined( __GFORTRAN__ )
+4201	format(1X,A,I0,I15,' Counts')
+#else
 4201	format(1X,A,I<nn>,I15,' Counts')
-
+#endif
 	return
 
 	end
@@ -3266,14 +3284,24 @@ CCCC	call gs_getmatmode(mat.matmode,mat.msdim)
 #include "gsort.inc"
 	record/matrix/mat
 
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
+
 	call gs_putindpar(mat.ind(1),mat.par(1))
 	llist=llist+2
 	call gs_putindpar(mat.ind(2),mat.par(2))
 
 	lgi=1
 	if(mat.par(3).GE.10) lgi=2
+
+#if defined( __GFORTRAN__ )
+	write(dyn_format,'(i0)')jpar
+	write(list(llist+2:),'(A,'//dyn_format(1:len(dyn_format))//')')'P',mat.par(3)
+#else
 	write(list(llist+2:),4201)'P',mat.par(3)
 4201	format(A,I<lgi>)
+#endif
 
 	llist=max(1,lengthc(list))+3
 	lfile=max(1,lengthc(mat.file))

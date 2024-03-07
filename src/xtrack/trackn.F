@@ -27,6 +27,9 @@ cpgi$g novector
 	external fileremove
 	external EXIT_TRACK
 	
+	logical inp_ask, lg_nm
+	external inp_ask
+	
 
 	CALL STARTPARAMETERS
 	call xinpmode(1)
@@ -248,8 +251,13 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  call PUT_COMMENT
 	  if(iecal.eq.1) then
 	    call xtpshowpeaks
+#if defined( __GFORTRAN__ )
+	    WRITE(6,'(''  A(1) = '',1PG0,''       A(2) = '',1PG0)')
+	1          ECAL(1),ECAL(2)
+#else
 	    WRITE(6,'(''  A(1) = '',1PG,''       A(2) = '',1PG)')
 	1          ECAL(1),ECAL(2)
+#endif
 	  endif
 
 	ELSEIF(CMD(1:NCMD) .EQ. 'AG') THEN
@@ -310,7 +318,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	    MAXCICLI=1
 	    if(CMD(1:1) .EQ. 'C') then
 	      call xtptermfocus
-	      CALL INP_I1('#Cicli',MAXCICLI)
+	      ii_nm = INP_I1('#Cicli',MAXCICLI)
 	      IF(MAXCICLI.LE.0) GOTO 100
 	    endif
 	    CYCLE=.TRUE.
@@ -319,7 +327,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	    NCICLO=1
 	    IF(AUTOSPEC(IAUTO)) THEN
 	      if(LUNLIST(IAUTO).lt.0) then
-		CALL INP_str('File with the list of spectra',SPECLIST)
+		ii_nm = INP_str('File with the list of spectra',SPECLIST)
 		if(speclist(1:1).eq.'=' .or.
 	1	   speclist(1:1).eq.'+' .or.
 	1	   speclist(1:1).eq.'-') then 
@@ -404,13 +412,13 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  IF(CYCLE) GOTO 100
 	  READ(CMD(NCMD:NCMD),*) IAUTO
 	  call xtptermfocus
-	  CALL INP_STR('Automatic command string #'//cmd(2:2)//'# ',AUTOCOM(IAUTO))
+	  ii_nm = INP_STR('Automatic command string #'//cmd(2:2)//'# ',AUTOCOM(IAUTO))
 	  CALL STR_TOUPPER(AUTOCOM(IAUTO))
 	  LAUTOCOM(IAUTO)=LENGTHC(AUTOCOM(IAUTO))
 	  AUTOSPEC(IAUTO)=INDEX(AUTOCOM(IAUTO),'N').GT.0
 	  IF(AUTOSPEC(IAUTO)) THEN
 	    LUNLIST(IAUTO)=-1
-	    CALL INP_str('File with the list of spectra',AUTOLIST(IAUTO))
+	    ii_nm = INP_str('File with the list of spectra',AUTOLIST(IAUTO))
 	    if(AUTOLIST(IAUTO)(1:1).eq.'=' .or.
 	1      AUTOLIST(IAUTO)(1:1).eq.'+' .or.
 	1      AUTOLIST(IAUTO)(1:1).eq.'-') then
@@ -432,7 +440,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  efficor = eff_define()
 
 	ELSEIF(CMD(1:NCMD) .EQ. 'DG') THEN
-	  call inp_ask('Consider individual peak width for fit',VarWidth)
+	  lg_nm = inp_ask('Consider individual peak width for fit',VarWidth)
 	  
 	ELSEIF(CMD(1:NCMD) .EQ. 'DK') THEN
 	  IF(CYCLE) GOTO 100
@@ -444,7 +452,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	ELSEIF(CMD(1:NCMD) .EQ. 'DL' .or. CMD(1:NCMD) .EQ. 'DF') THEN
 	  IF(CYCLE) GOTO 100
 	  call xtptermfocus
-	  call inp_str('Name for output file',lunout_fname)
+	  ii_nm = inp_str('Name for output file',lunout_fname)
 	  if( lengthc(lunout_fname) .gt. 0) then 
             if( lunout .eq. 21)close(lunout)
 	    if( filexist(lunout_fname) .eq. 0)then
@@ -469,7 +477,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 	ELSEIF(CMD(1:NCMD) .EQ. 'DN') THEN
 	  IF(CYCLE) GOTO 100
-	  CALL INP_STR('Command string',DISPCOM)
+	  ii_nm = INP_STR('Command string',DISPCOM)
 	  CALL STR_TOUPPER(DISPCOM)
 	  ll=lengthc(dispcom)
 	  if(ll.eq.0) then
@@ -1008,6 +1016,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	
 	SUBROUTINE EXIT_TRACK
 	
+	logical*1 inp_not
+	external  inp_not
+	
 	IF(INP_NOT('Do you really want to exit this program')) THEN
 	    CALL EXIT(0)
 	ENDIF
@@ -1451,7 +1462,7 @@ c	e tutte le possibili combinazioni
 	  call disp_text(TX+0.5*chrx,TYY-mym*chry,textsize,textang,string)
 	  mym=mym+1
 	endif
-	if((mod(ilist/2,2).eq.1).OR.((mod(ilist,2).eq.1).AND.(.not.iecal)))then
+	if((mod(ilist/2,2).eq.1).OR.((mod(ilist,2).eq.1).AND.(iecal .eq. 0)))then
 	  LI=XINP
 	  JJ=1
 	  IF(LI.NE.0) JJ=LOG10(FLOAT(IABS(LI)))+1
@@ -1709,7 +1720,11 @@ c	e tutte le possibili combinazioni
 	   IECAL=1
 	   WRITE(6,'(2H (,F8.2,2H ,,F9.2,'' )    ('',F8.2,2H ,,F9.2,2H ))')
 	1		 RMARKLE,ENER1,RMARKRI,ENER2
+#if defined( __GFORTRAN__ )
+	   WRITE(6,'(''  A(1) = '',1PG0,''       A(2) = '',1PG0)')ECAL(1),ECAL(2)
+#else
 	   WRITE(6,'(''  A(1) = '',1PG,''       A(2) = '',1PG)')ECAL(1),ECAL(2)
+#endif
 	   RETURN
 	ENDIF
 
@@ -1717,9 +1732,17 @@ c	e tutte le possibili combinazioni
 	WRITE(6,*) ' Old Energy Calibration'
 	WRITE(6,*)
 	DO II=1,m$k
+#if defined( __GFORTRAN__ )
+	   WRITE(6,'('' A('',I1,'')   = '',1PG0)') II-1,ECAL(II)
+#else
 	   WRITE(6,'('' A('',I1,'')   = '',1PG)') II-1,ECAL(II)
+#endif
 	end do
-	   write(6,'('' A(1/2) = '',1pg)')ecal(m$k+1)
+#if defined( __GFORTRAN__ )
+	write(6,'('' A(1/2) = '',1pg0)')ecal(m$k+1)
+#else
+	write(6,'('' A(1/2) = '',1pg)')ecal(m$k+1)
+#endif
 	if(iecal.eq.0) write(6,*)'Energy calibration presently not enabled'
 
 	WRITE(6,*)
@@ -1800,7 +1823,11 @@ c	e tutte le possibili combinazioni
 	WRITE(6,*) ' Old FWHM Calibration'
 	WRITE(6,*)
 	DO II=1,m$k
+#if defined( __GFORTRAN__ )
+	   WRITE(6,'('' A('',I1,'') = '',1PG0)') II-1,WCAL(II)
+#else
 	   WRITE(6,'('' A('',I1,'') = '',1PG)') II-1,WCAL(II)
+#endif
 	end do
 	if(iwcal.eq.0) write(6,*)'Width calibration presently not enabled'
 
@@ -2369,7 +2396,7 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 	ENDIF
 
 	IF(XPOS.LT.1) THEN
-	   CALL INP_R2('Energy',ENER,EOFFS)
+	   ii_nm = INP_R2('Energy',ENER,EOFFS)
 	   CALL INP_HOWMANY(IIC)
 	   if(iic .lt. 0)return
 	   IF(IIC.EQ.2) ENER=ENER-EOFFS
@@ -2950,7 +2977,11 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 	   dchi=0
 	endif
 
+#if defined( __GFORTRAN__ )
+	if(ishow.eq.1) Write (6,'(I3,1H.,3(3x,G0))') Iter, flamda, chisqr, dchi
+#else
 	if(ishow.eq.1) Write (6,'(I3,1H.,3F)') Iter, flamda, chisqr, dchi
+#endif
 
 	FLAMDA=0.10D0*FLAMDA  
 	flamda=max(flamda,1.0e-7)
@@ -3702,6 +3733,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 *	logical*1 INP_YES
 	character*6 nm_char
 	integer*4 ncolsreg,nrowsreg
+
+	logical inp_ask
+	external inp_ask
+	logical lg_nm
 	
 	EMPTY=.TRUE.
 	II=2
@@ -3743,7 +3778,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	if(iask.eq.1) then
 	  if(fwfact.le.0) fwfact=2.5
 	  fwfact=fwfact*2
-	  call inp_r1('Width of the fit region (in FWHM units) ',fwfact)
+	  ii_nm = inp_r1('Width of the fit region (in FWHM units) ',fwfact)
 	  fwfact=fwfact/2
 	endif
 	if(fwfact.le.0) fwfact=2.5
@@ -3764,9 +3799,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	shft0=0.
 	shft1=1.
 	if(iask.eq.1) then
-	  call inp_r1('Gain factor for the energy calibration',shft1)
+	  ii_nm  = inp_r1('Gain factor for the energy calibration',shft1)
 	  if(shft1.eq.0.) shft1=1.
-	  call inp_ask('Consider SQRT term in energy calibration',sqrterm)
+	  lg_nm = inp_ask('Consider SQRT term in energy calibration',sqrterm)
 	endif
 
 10	chichi=0
@@ -3835,6 +3870,15 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	   do inr=1,ntrreg
 		if(ipack1(inr).eq.ii) if1=inr
 	   end do
+#if defined( __GFORTRAN__ )
+	   if(if1.eq.0) then
+		write(6,'(i3,f9.2,1H(,f9.2,1H),4x,g0,4x,f6.2,1H(,f6.2,1H))')
+	1		 ii,pp,rene(ii),ar,fw,efw
+	   else
+		write(6,'(i3,f9.2,1H(,f9.2,1H),4x,g0,4x,f6.2,1H(,f6.2,1H),f7.1)')
+	1		 ii,pp,rene(ii),ar,fw,efw,min(trchichi(if1),9999.)
+	   endif
+#else
 	   if(if1.eq.0) then
 		write(6,'(i3,f9.2,1H(,f9.2,1H),g,f6.2,1H(,f6.2,1H))')
 	1		 ii,pp,rene(ii),ar,fw,efw
@@ -3842,6 +3886,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 		write(6,'(i3,f9.2,1H(,f9.2,1H),g,f6.2,1H(,f6.2,1H),f7.1)')
 	1		 ii,pp,rene(ii),ar,fw,efw,min(trchichi(if1),9999.)
 	   endif
+#endif
 	end do
 	WRITE(6,'(1X,A,''    Chisquare='',F8.2)')
 	1	 FNAMEI(1:LFNAMEI),chichi
@@ -3922,11 +3967,20 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 	write(6,'('' Order of E_cal polynomial is'',i3)')IREORD
 	write(nm_char,'(i6)')ireord
+#if defined( __GFORTRAN__ )
+	WRITE(6,'(F9.3,F10.6,'//nm_char//'(4x,G0))') (ecaltmp(LL),LL=1,IREORD+1)
+	if(sqrterm)write(6,'(''  SQRT term : '',G0)')ecaltmp(ireord+2)
+#else
 	WRITE(6,'(F9.3,F10.6,'//nm_char//'G)') (ecaltmp(LL),LL=1,IREORD+1)
 	if(sqrterm)write(6,'(''  SQRT term : '',G)')ecaltmp(ireord+2)
+#endif
 	write(6,'('' Order of W_cal polynomial is'',i3)')IRWORD
 	write(nm_char,'(i6)')irword
+#if defined( __GFORTRAN__ )
+	WRITE(6,'(F9.3,F10.6,'//nm_char//'(4x,G0))') (wcaltmp(LL),LL=1,IRWORD+1)
+#else
 	WRITE(6,'(F9.3,F10.6,'//nm_char//'G)') (wcaltmp(LL),LL=1,IRWORD+1)
+#endif
 
 	IF(.NOT.INP_YES('OK')) THEN
 	      IFIT=0
@@ -3934,7 +3988,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	ENDIF	
 
 	if(iask.eq.1) then
-	   call INP_ASK
+	   lg_nm = INP_ASK
 	1 ('Save coefficients as Energy & Width calibration',svcoefs)
 	endif
 	if(svcoefs) then
@@ -3959,7 +4013,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	ENDIF
 
 	if(iask.eq.1) then
-	   call inp_ask('Want to save coefficients on FOR008',wrcoefs)
+	   lg_nm = inp_ask('Want to save coefficients on FOR008',wrcoefs)
 	endif
 	if(wrcoefs) then
 	  ldir=index(FNAMEI,']')
@@ -4109,12 +4163,21 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 		if(ipack1(inr).eq.ii) if1=inr
 	   end do
 	   if(if1.eq.0) then
+#if defined( __GFORTRAN__ )
+		write(6,'(i3,f9.2,1H(,f9.2,1H),4x,g0,4x,f6.2,1H(,f6.2,1H))')
+	1		 ii,pp,rene(ii),ar,fw,efw
+	   else
+		write(6,'(i3,f9.2,1H(,f9.2,1H),4x,g0,4x,f6.2,1H(,f6.2,1H),f7.1)')
+	1		 ii,pp,rene(ii),ar,fw,efw,min(trchichi(if1),9999.)
+	   endif
+#else
 		write(6,'(i3,f9.2,1H(,f9.2,1H),g,f6.2,1H(,f6.2,1H))')
 	1		 ii,pp,rene(ii),ar,fw,efw
 	   else
 		write(6,'(i3,f9.2,1H(,f9.2,1H),g,f6.2,1H(,f6.2,1H),f7.1)')
 	1		 ii,pp,rene(ii),ar,fw,efw,min(trchichi(if1),9999.)
 	   endif
+#endif
 	end do
 	WRITE(6,'(1X,A,''    Chisquare='',F8.2)')
 	1	 FNAMEI(1:LFNAMEI),chichi
@@ -4269,7 +4332,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	if(lnch.eq.-1) goto 44
 	if(readtapnum) then
 	else
-	  call inp_i1('RUN number',ITAP)
+	  ii_nm = inp_i1('RUN number',ITAP)
 	  if(itap.lt.0) goto 200
 	endif
 
@@ -4289,7 +4352,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	else
 	   write(strask,'(''ADC number ['',i3.3,''] '')')iadc
 	   lstrask=lengthc(strask)
-	   call inp_i1(strask(:lstrask),IADC)
+	   ii_nm = inp_i1(strask(:lstrask),IADC)
 	   if(lnch.eq.-1) goto 44
 !	   call inp_ask('Want to write ADC# into spectrum name',writadcnum)	
 	   if(writadcnum) then
@@ -4464,12 +4527,21 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 		if(ipack1(inr).eq.ii) if1=inr
 	     end do
 	     if(if1.eq.0) then
+#if defined( __GFORTRAN__ )
+		write(6,'(i3,f9.2,1H(,f9.2,1H),4x,g0,4x,f6.2,1H(,f6.2,1H))')
+	1		 ii,pp,rene(ii),ar,fw,efw
+	     else
+		write(6,'(i3,f9.2,1H(,f9.2,1H),4x,g0,4x,f6.2,1H(,f6.2,1H),f7.1)')
+	1		 ii,pp,rene(ii),ar,fw,efw,min(trchichi(if1),9999.)
+	     endif
+#else
 		write(6,'(i3,f9.2,1H(,f9.2,1H),g,f6.2,1H(,f6.2,1H))')
 	1		 ii,pp,rene(ii),ar,fw,efw
 	     else
 		write(6,'(i3,f9.2,1H(,f9.2,1H),g,f6.2,1H(,f6.2,1H),f7.1)')
 	1		 ii,pp,rene(ii),ar,fw,efw,min(trchichi(if1),9999.)
 	     endif
+#endif
 	   endif
 	   POSTOT(NTAPE,Ii)=pp
 	   if(ar.le.0) ar=1.
@@ -4575,11 +4647,19 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	    fw=sqrt(s2)*2.354820
 	    ar=aa*sqrt(6.283185*s2)
 	    if(ii.eq.1) then	
+#if defined( __GFORTRAN__ )
+		WRITE(lunoutr,'(1x,a,t20,i5,4(4x,g0))')FNAMEI(1:LFNAMEI),
+	1	ii,pp,cpol(pp,ecal,-m$k),ar,fw
+	    else
+		WRITE(lunoutr,'(1x  ,t20,i5,4(4x,g0))')
+	1	ii,pp,cpol(pp,ecal,-m$k),ar,fw
+#else
 		WRITE(lunoutr,'(1x,a,t20,i5,4g)')FNAMEI(1:LFNAMEI),
 	1	ii,pp,cpol(pp,ecal,-m$k),ar,fw
 	    else
 		WRITE(lunoutr,'(1x  ,t20,i5,4g)')
 	1	ii,pp,cpol(pp,ecal,-m$k),ar,fw
+#endif
 	    endif
 	  end do
 	endif
@@ -4993,7 +5073,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 	INTYP=0
 	call xtptermfocus
-	CALL INP_I1('Input Energies from File(1),Hand(2),Source(3)',INTYP)
+	ii_nm = INP_I1('Input Energies from File(1),Hand(2),Source(3)',INTYP)
 	if(intyp.le.0 .or. intyp.gt.3) goto 50
 	if(nrene.gt.0) then
 	   aggiungi=inp_not('Want to add to the previous energies')
@@ -5071,7 +5151,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	   write(6,*) ii,rene(ii),drene(ii)
 	end do
 
-60	call inp_i1('To delete a line type its number ( <RET> to continue )'
+60	ii_nm = inp_i1('To delete a line type its number ( <RET> to continue )'
 	1	,ii)
 
 	if(ii.le.0 .or. ii.gt.nrene) RETURN
@@ -5139,7 +5219,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 	end
 
-	function TRSETPAR
+	subroutine TRSETPAR
 
 #include "trackn.inc"
 	integer TRSET
@@ -5167,13 +5247,13 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 	ii = TRSET(fitpar,nfitpar)
 
-	trsetpar=0
+*	trsetpar=0
 
 	return
 
 	end
 
-	function TRGETPAR
+	subroutine TRGETPAR
 
 #include "trackn.inc"
 
@@ -5204,7 +5284,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	   if(iptype.gt.0 .and. iptype.ne.ii) trpar(ii)=trpar(iptype)
 	end do
 
-	trgetpar=0
+*	trgetpar=0
 	return
 
 	end
@@ -5511,6 +5591,13 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	logical*1 logtemp
 	logical*1 reorder	/.false./
 
+	logical inp_ask
+	external inp_ask
+	logical lg_nm
+	
+*	logical*1 inp_yes, inp_not
+*	external inp_yes, inp_not
+
 	call xtptermfocus
 
 	ngnext=0
@@ -5610,7 +5697,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  if(egate(1,ii).gt.egate(1,ii+1)) logtemp=.true.
 	end do
 	if(logtemp) then
-	  call inp_ask('Want to reorder them',reorder)
+	  lg_nm = inp_ask('Want to reorder them',reorder)
 	  if(reorder) then
 	    call checkgates(1)
 	    write(6,*)'    List of gates'
@@ -5740,6 +5827,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	character*60 oldcmat
 	character*10 nm_string
 	logical*1 ltemp
+	
+	logical inp_ask, lg_nm
+	external inp_ask
 *	character cchh
 
 
@@ -5796,8 +5886,12 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  transposed=.false.
 	else
 	  ltemp=transposed
-	  call inp_ask('Want to use the matrix in transposed form',ltemp)
+	  lg_nm = inp_ask('Want to use the matrix in transposed form',ltemp)
+#if defined( __GFORTRAN__ )
+	  if(ltemp.neqv.transposed) then
+#else
 	  if(ltemp.ne.transposed) then
+#endif
 	    transposed=ltemp
 	    if(transposed) then
 	      gside=1
@@ -5862,9 +5956,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	if(ikaw.gt.iklw) call swapl(ikaw,iklw)
 	  
 
-	call inp_ask('Keep gate markers after <CW>',keepgates)
+	lg_nm = inp_ask('Keep gate markers after <CW>',keepgates)
 
-	call inp_ask('Want to subtract the background',backsub)
+	lg_nm = inp_ask('Want to subtract the background',backsub)
 	if(backsub) then
 	  call wdef_cback(iok)
 	  if(iok.ne.1) then
@@ -5930,6 +6024,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	character*1 chback
 	logical*1 useproj
 	character*60 oldcmat
+	
+	logical inp_ask, lg_nm
+	external inp_ask
 
 	iok=0
 
@@ -5963,7 +6060,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	      sbacktot(jj)=sbacktot(jj)+sback(ii,jj)
 	    end do
 	  end do
-	  call inp_r1('Correction factor ',corrback(1))
+	  ii_nm = inp_r1('Correction factor ',corrback(1))
 	  do ii=2,mdim
 	   corrback(ii)=corrback(1)
 	  end do
@@ -5971,7 +6068,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  return
 	elseif(autobg.yes) then
 	   useproj=.false.
-	   call inp_ask('Want to use 2D projection for fast access  ',useproj)
+	   lg_nm = inp_ask('Want to use 2D projection for fast access  ',useproj)
 	   if(useproj)then
 	    if(autobg.useproj) then
 	      write(6,*) 'You are using  the compressed 2D projection   '//autobg.projfile(1:autobg.lprojfile)
@@ -6035,17 +6132,17 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	if(autobg.ch .eq. 'Y')then
 *	 write(6,'(5x,''Smoothing Window [channels] : '',$)')
 *	 read(*,*)autobg.m
-	 call inp_i1('Smoothing Window [channels]',autobg.m)
+	 ii_nm = inp_i1('Smoothing Window [channels]',autobg.m)
 *	 write(6,'(5x,''Slope to increase Sm. Win. : '',$)')
 *	 read(*,*)autobg.fstep
-1201	 call inp_r1('Slope to increase Sm. Window',autobg.fstep)
+1201	 ii_nm = inp_r1('Slope to increase Sm. Window',autobg.fstep)
 	 if(autobg.fstep .gt. 0.3000)then
 	    write(6,'('' %%%ERROR - slope cannot be larger than 0.30'')')
 	    goto 1201
 	 endif
 *	 write(6,'(5x,''Number of iterations : '',$)')
 *	 read(*,*)autobg.itmax
-	 call inp_i1('Number of iterations',autobg.itmax)
+	 ii_nm = inp_i1('Number of iterations',autobg.itmax)
  	endif
 	iok=1
 	return
@@ -6053,9 +6150,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 *********
 
 	if(mmode.gt.0) then
-	  call inp_ask('Want to use the projection  as background',backpro)
+	  lg_nm = inp_ask('Want to use the projection  as background',backpro)
 	else
-	  call inp_ask('Want to use the projections as background',backpro)
+	  lg_nm = inp_ask('Want to use the projections as background',backpro)
 	endif
 
 	if(backpro) then
@@ -6067,7 +6164,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	    end do
 	  end do
 	  if(mmode.gt.0) then
-	    call inp_r1('Correction factor ',corrback(1))
+	    ii_nm = inp_r1('Correction factor ',corrback(1))
 	    corrback(2)=corrback(1)
 	  endif
 	  iok=1
@@ -6186,7 +6283,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	    write(line,'(A,i4)')'Scaling factor for the efficiency of index',ll
 	  endif	
 	  lline=lengthc(line)
-	  call inp_r1(line(1:lline),correffi(ll))
+	  ii_nm = inp_r1(line(1:lline),correffi(ll))
 	  if(correffi(ll).le.0) then
 	    correffi(ll)=1.
 	    do ii=0,mres(ll)-1
@@ -7012,7 +7109,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	      write(6,*) 'Error from cmt_readspec at',ind
 	      call exit(0)
 	    endif
+#if defined( __GFORTRAN__ )
+	    write(6,'(1H+,i0)') ind
+#else
 	    write(6,'(1H+,i)') ind
+#endif
 	    DO II=0,mres(cside)-1
 	      cut(II)=cut(II)+speccut(II)
 	    end do
@@ -7053,7 +7154,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	integer lunit	/0/
 	integer nsmoo	/2/
 	real fwfact	/5./
-
+	
+#if defined( __GFORTRAN__ )
+	logical inp_ask
+	external inp_ask
+#endif
 	call xtptermfocus
 
 	if(nwfon.gt.1) goto 50
@@ -7132,7 +7237,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	     if(iwcal.ne.1) return
 	  endif
 	  xx=nsmoo
-	  call inp_r2('Width of the smooth region (in FWHM units) ',fwfact,xx)
+	  ii_nm = inp_r2('Width of the smooth region (in FWHM units) ',fwfact,xx)
 	  nsmoo=xx+0.5
 	  if(fwfact.le.0) fwfact=5
 	  do ii=0,MAXRES-1
@@ -7199,7 +7304,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	if(logtemp) then
 	  write(6,*)' List of smooth background points'
 	  do ii=0,nwfon-1
+#if defined( __GFORTRAN__ )
+	    write(6,'(i6,i0,4x,g0)') II,INT(WFONX(II)),WFONY(II)
+#else
 	    write(6,'(i6,i,g)') II,INT(WFONX(II)),WFONY(II)
+#endif
 	  end do
 	endif
 
@@ -7214,7 +7323,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  if(lunit.le.0) call lib$get_lun(lunit)
 	  open(unit=lunit,file=wfonfile,status='new',err=120)
 	  do ii=0,nwfon-1
+#if defined( __GFORTRAN__ )
+	    write(lunit,'(i8,4x,g0)') INT(WFONX(II)),WFONY(II)
+#else
 	    write(lunit,'(i,g)') INT(WFONX(II)),WFONY(II)
+#endif
 	  end do
 	  close(lunit)
 	endif
@@ -7285,6 +7398,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	PARAMETER (dimlasx=180)
 	PARAMETER (dimlasy=270)
 
+	logical inp_ask
+	external inp_ask
+	logical lg_nm
+
 	call las_open(lasfile,laslun)
 	if(laslun.le.0) return
 
@@ -7303,11 +7420,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	islaser=.true.
 
 	write(6,*) 'Dimensioni in mm'
-	call inp_ask('Landscape',landscape)
+	lg_nm = inp_ask('Landscape',landscape)
 	if(landscape) then
 	   xorig=dimlasx
 	   yorig=0.
-	   call inp_r2('Origin x,y',xorig,yorig)
+	   ii_nm = inp_r2('Origin x,y',xorig,yorig)
 	   call las_origin(xorig,yorig)
 	   call las_landscape
 	   px0=twin(1)*dimlasy/1024.
@@ -7317,7 +7434,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	else
 	   xorig=0.
 	   yorig=0.
-	   call inp_r2('Origin x,y',xorig,yorig)
+	   ii_nm = inp_r2('Origin x,y',xorig,yorig)
 	   call las_origin(xorig,yorig)
 	   px0=twin(1)*dimlasx/1024.
 	   px1=twin(2)*dimlasx/1024.
@@ -7325,7 +7442,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	   py1=twin(4)*dimlasy/768.
 	endif
 
-	call inp_r4('x0,x1,y0,y1',px0,px1,py0,py1)
+	ii_nm = inp_r4('x0,x1,y0,y1',px0,px1,py0,py1)
 	call put4lw(twin,px0,px1,py0,py1)
 
 	ityp=abs(ityp)		! disabilita la compressione
@@ -7333,7 +7450,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	ticy=ticy/4.
 	ticl=ticl/4.
 	if(ticlold.gt.0) ticl=max(1.,ticl)
-	call inp_r1('Text size',textsizelas1)
+	ii_nm = inp_r1('Text size',textsizelas1)
 	textsize=textsizelas1
 	chrx=textsize*0.75
 	chry=textsize
@@ -7344,10 +7461,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	call tktdisplay(0,1)
 
 	if(npeaks.gt.0) then
-	   call inp_ask('Plot peak labels',picchi)
+	   lg_nm = inp_ask('Plot peak labels',picchi)
 	   if(picchi) then
 	      xpre=peakpre
-	      call inp_r2('Size, precision',textsizelas2,xpre)
+	      ii_nm = inp_r2('Size, precision',textsizelas2,xpre)
 	      peakpre=xpre
 	      if(textsizelas2.gt.0) then
 		textsize=textsizelas2
@@ -7356,10 +7473,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	   endif
 	endif
 
-	call inp_str('General comment',scritta1)
+	ii_nm = inp_str('General comment',scritta1)
 	lscritta1=lengthc(scritta1)
 	if(lscritta1.gt.0) then
-	    call inp_r1('Size',textsizelas3)
+	    ii_nm = inp_r1('Size',textsizelas3)
 	    if(textsizelas3.gt.0) then
 		dx=2*textsizelas3
 		dy=2*textsizelas1+1.5*textsizelas3
@@ -7368,10 +7485,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	    endif
 	endif
 
-	call inp_str('Inner comment',scritta2)
+	ii_nm = inp_str('Inner comment',scritta2)
 	lscritta2=lengthc(scritta2)
 	if(lscritta2.gt.0) then
-	    call inp_r1('Size',textsizelas4)
+	    ii_nm = inp_r1('Size',textsizelas4)
 	    if(textsizelas4.gt.0) then
 		dx=0.75*textsizelas4*(lscritta2+2)
 		dy=textsizelas4*1.5
@@ -7398,7 +7515,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	write(6,'('' PS output in file : trackn.ps'')')
 
 	if(lplotcom.gt.0) then
-	  call inp_ask('Spool the plot file',plotit)
+	  lg_nm = inp_ask('Spool the plot file',plotit)
 	  if(plotit) then
 	    call Lib$Spawn(plotcom(1:lplotcom)//LASFILE)
 	    call lib$wait(1.)
@@ -8376,7 +8493,7 @@ C----- MAXIMUM RELATIVE PRECISION IN DOUBLE PRECISION ON IBM 37O IS 1.0D-16
 C-----  MCONV INVERTS THE POSITIVE DEFINITE PACKED SYMMETRIC MATRIX Z           
 C-----  BY THE SQUARE-ROOT METHOD                                               
       IMPLICIT REAL*8(A-H,O-Z)                                                  
-      COMMON /Z/Z(410)                                                         
+      COMMON /Z/Z(41000)                                                         
       COMMON /PLU/PL0(200)/R/R(200)                                             
       COMMON /ENDFLG/ ENDFLG,NA,INDFLG(5)                                       
 C-----  MAXIMUM REAL NUMBER AND MAXIMUM REL. PRECISION IN DOUBLE PRECISION      

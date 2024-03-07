@@ -13,6 +13,10 @@ c  calcola la differenza fra due diverse ricalibrazioni
 	real	spek(0:MAXRES-1)
 	CHARACTER*60 SPEKNAM
 	logical*1 inp_not
+	external inp_not
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 
 	call xinpmode(1)
 
@@ -49,8 +53,15 @@ c  calcola la differenza fra due diverse ricalibrazioni
 	endif
 	if(i2tap.ne.i1tap .or. i2adc.ne.i1adc) goto 20
 	if(scritte) then
+#if defined( __GFORTRAN__ )
+	  write(dyn_format,'(a,i0,a)')'(I5,I5,I3,F10.3,F10.6,',N1ORD,'G14.6)'
+	  write(6,dyn_format(1:len(dyn_format))) I1TAP,I1ADC,N1ORD,(Coef1(j),j=0,N1ORD)
+	  write(dyn_format,'(a,i0,a)')'(5x,5x,I3,F10.3,F10.6,',N2ORD,'G14.6)'
+	  write(6,dyn_format(1:len(dyn_format))) N2ORD,(Coef2(j),j=0,N2ORD)
+#else
 	  write(6,'(I5,I5,I3,F10.3,F10.6,<N1ORD>G14.6)') I1TAP,I1ADC,N1ORD,(Coef1(j),j=0,N1ORD)
 	  write(6,'(5x,5x,I3,F10.3,F10.6,<N2ORD>G14.6)') N2ORD,(Coef2(j),j=0,N2ORD)
+#endif
 	endif
 	DIFFMAX=0
 	IIMAX=0
@@ -79,7 +90,12 @@ c  calcola la differenza fra due diverse ricalibrazioni
 30	call exit
 
 35	if(ngiro.gt.0)then
+#if defined( __GFORTRAN__ )
+	   write(dyn_format,'(a,i0,a)')'(I5,I5,I3,F10.3,F10.6,',N1ORD,'G14.6)'
+	   write(6,dyn_format(1:len(dyn_format))) I1TAP,I1ADC,N1ORD,(Coef1(j),j=0,N1ORD)
+#else
 	   write(6,'(I5,I5,I3,F10.3,F10.6,<N1ORD>G14.6)') I1TAP,I1ADC,N1ORD,(Coef1(j),j=0,N1ORD)
+#endif
 	   write(6,*) 'coefficients not found  in  ',calf2
 	   goto 10
 	endif

@@ -35,6 +35,11 @@
 	external get_adc_number
 	external get_tape_number
 
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
+
+
 	call xinpmode(1)
 	xfactor=1.0
 	iadcold=-1
@@ -147,7 +152,11 @@
 
 1	if(list) READ(LISTLUN,'(A)',ERR=200,END=200) FNAME
 	if(writadcnum) then
+#if defined( __PGI )
+	  ldir=rindex(fname,'/')
+#else
 	  ldir=index(fname,'/', BACK=.TRUE.)
+#endif
 	  ldot=index(fname(ldir+1:),'.')
 	  if(ldot.le.0) then
 	    ldot=lengthc(fname)+1
@@ -155,8 +164,13 @@
 	    ldot=ldot+ldir
 	  endif
 	  if(ldot.gt.nldot) then
+#if defined( __GFORTRAN__ )
+	    write(dyn_format,'(a,i0,a,i0,a)')'(i',nldot,'.',nldot,')'
+	    write(fname(ldot-nldot:ldot-1),dyn_format(1:len(dyn_format))) iadc
+#else
 	    write(fname(ldot-nldot:ldot-1),101) iadc
 101	    format(i<nldot>.<nldot>)
+#endif
 	  else
 	   lfname=lengthc(fname)
 	   write(6,*) 'No place to write the ADC# in  ',fname(1:lfname)
@@ -274,12 +288,20 @@
 	   call home
 	   call anmode
 	endif
+#if defined( __GFORTRAN__ )
+	WRITE(6,'(1x,a,4x,i0,3(4x,g0))') fname(1:lfname),maxch,p1+0.5,p0,xfwhm
+#else
 	WRITE(6,'(1x,a,i,3g)') fname(1:lfname),maxch,p1+0.5,p0,xfwhm
+#endif
 	if(display) call lib$wait(0.1)
 
 	if(baricentro) ipo=iposfin-(p1+0.5)
 	if(wrtcoefs)WRITE(luc,'(I5,I5,I5,I12,I5)')ITAP,IADC,2,ipo,1
+#if defined( __GFORTRAN__ )
+	if(writeres)WRITE(lur,'(1X,A,4x,I0,3(4x,G0))')fname(1:lfname),maxch,p1+0.5,p0,xfwhm
+#else
 	if(writeres)WRITE(lur,'(1X,A,I,3G)')fname(1:lfname),maxch,p1+0.5,p0,xfwhm
+#endif
 	if(list) goto 1
 
 200	if(multiple) then

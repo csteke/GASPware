@@ -11,16 +11,16 @@ CVMS	INTEGER*2 IOSBR(4)		! DI LETTURA
 CVMS	INTEGER*2 MTCHR
 	INTEGER   MTCHR
 CVMS	CHARACTER*10 TAPEDEVR	/'MKA400:'/
-#ifdef Digital
+#if defined(Digital)
 	CHARACTER*80 TAPEDEVR	/'/dev/nrmt0h'/
-#endif
-#ifdef sun
+#elif defined(sun)
 	CHARACTER*80 TAPEDEVR	/'/dev/rmt/0mbn'/
-#endif
-#ifdef __linux__
+#elif defined(__linux__)
 	CHARACTER*80 TAPEDEVR	/'/dev/nst0'/
-#endif
-#ifdef __APPLE__
+#elif defined(__APPLE__)
+	CHARACTER*80 TAPEDEVR	/'/dev/nrst0'/
+#else
+*   error "Undefined platform"
 	CHARACTER*80 TAPEDEVR	/'/dev/nrst0'/
 #endif
 
@@ -29,16 +29,16 @@ CVMS	INTEGER*2 IOSBW(4)		! DI SCRITTURA
 	INTEGER*4 IOSBW(4)		! DI SCRITTURA
 	INTEGER*2 MTCHW
 CVMS	CHARACTER*10 TAPEDEVW	/'Mka500:'/
-#ifdef Digital
+#if defined(Digital)
 	CHARACTER*80 TAPEDEVW	/'/dev/nrmt1h'/
-#endif
-#ifdef sun
+#elif defined(sun)
 	CHARACTER*80 TAPEDEVW	/'/dev/rmt/1mbn'/
-#endif
-#ifdef __linux__
+#elif defined(__linux__)
 	CHARACTER*80 TAPEDEVW	/'/dev/nst1'/
-#endif
-#ifdef __APPLE__
+#elif defined(__APPLE__)
+	CHARACTER*80 TAPEDEVW	/'/dev/nrst1'/
+#else
+*   error "Undefined platform"
 	CHARACTER*80 TAPEDEVW	/'/dev/nrst1'/
 #endif
 
@@ -51,6 +51,7 @@ CVMS	CHARACTER*10 TAPEDEVW	/'Mka500:'/
 	integer*2 buffrw(2*MWORDR)		! BUFFER r/w
 
 	logical*1 INP_NOT
+	external INP_NOT
 	logical*1 newrun,askoneof,setdg,setxg,firstrecord
 	character*80 prompt
 	

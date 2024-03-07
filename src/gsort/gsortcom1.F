@@ -240,7 +240,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	endif
 
 	do ii=1,gate.res-1
-	  if(dat.bad(ii).ne.inside) then	! boundary
+	  if(dat.bad(ii).neqv.inside) then	! boundary
 	    if(inside) then
 	      jwhi=ii-1
 	      ngates=ngates+1
@@ -352,13 +352,21 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 
 #include "gsort.inc"
 	record/window/win
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 
 	call gs_putind(win.ind)
 
 	npar=TDPAR(win.ind)
+
+#if defined( __GFORTRAN__ )
+	write(dyn_format,'(a,i0,a)')'(',2*npar,'i5)'
+	write(list(llist+3:),dyn_format) (win.LO(ii),win.HI(ii),ii=0,npar-1)
+#else
 	write(list(llist+3:),4201) (win.LO(ii),win.HI(ii),ii=0,npar-1)
 4201	format(<2*npar>i5)
-
+#endif
 	llist=lengthc(list)+1	
 	call gs_putfoldgate(win.ind,win.fl,win.fh,win.same)
 
@@ -572,7 +580,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	      ipos = 0
 	    endif
 	    offban=IVAL.LT. dat.ban(1,ican+ipos) .OR. IVAL.GT. dat.ban(2,ican+ipos)
-	    if(offban .ne. ban.inside) goto 100
+	    if(offban .neqv. ban.inside) goto 100
 	  endif
 10	  det(jx).id=-1
 	  nelim=nelim+1
@@ -732,7 +740,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	    do nn=1,ban.nban
 	      ipos=ican+jpos
 	      offban=IVAL.LT. dat.ban(1,ipos) .OR. IVAL.GT. dat.ban(2,ipos)
-	      if(offban .ne. ban.inside) goto 100
+	      if(offban .neqv. ban.inside) goto 100
 	      jpos=jpos+ires
 	    end do
 	  endif
@@ -949,7 +957,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	       if( (IVAL.LT. dat.ban(1,ican)) .OR. (IVAL.GT. dat.ban(2,ican)) )itimes = 1
 	       if( (ICAN.LT. dat.ban(1,ival)) .OR. (ICAN.GT. dat.ban(2,ival)) )itimes = itimes + 1
 	       offban = itimes .ne. 1
-	       if(offban .ne. ban.inside) then
+	       if(offban .neqv. ban.inside) then
                    det(jx).id = -1
 		   det(jy).id = -1
 	           nelim=2
@@ -993,7 +1001,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	 if(ican.GE.0 .and. ican.LT.ires )then
 	  IVAL=det(jx).ival(jn2)
 	  offban = (IVAL.LT. dat.ban(1,ican)) .OR. (IVAL.GT. dat.ban(2,ican))
-	  if(offban .ne. ban.inside) then
+	  if(offban .neqv. ban.inside) then
             det(jx).id = -1
 	    nelim=1
 	    goto 100
@@ -1221,6 +1229,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	subroutine gs2_thresholds(rcl,dat)
 
 #include "gsort.inc"
+#if defined( __GFORTRAN__ )
+	logical*1 inp_yes
+	external inp_yes
+#endif
 	record/recal/rcl
 	record/calcoef/dat(0:1)
 
@@ -1283,8 +1295,13 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	ENDIF
 	GOTO 10
 
+#if defined( __GFORTRAN__ )
+4201	format(' ADC#',I5,2G0)
+4202	format(' FPAR#',I4,2G0)
+#else
 4201	format(' ADC#',I5,<JPAR>G)
 4202	format(' FPAR#',I4,<JPAR>G)
+#endif
 
 20	CLOSE(gs2lun)
 
@@ -1457,6 +1474,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	subroutine gs2_recal(rcl,dat)
 
 #include "gsort.inc"
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+	logical*1 inp_yes
+	external inp_yes
+#endif
 	record/recal/rcl
 	record/calcoef/dat(0:1)
 
@@ -1498,12 +1520,21 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	RETURN	
 
 10	READ(gs2lun,*,ERR=20,END=20) ICTAP,ICADC,JPAR,(TEMP(J),J=1,JPAR)
+#if defined( __GFORTRAN__ )
+	write(dyn_format,'(i0)')jpar
+#endif
 	IF(ICTAP.EQ.iio.run .OR. .NOT. rcl.run) THEN
 	  IF(MISSING(ICADC)) THEN
 	    if(j_ind.ne.0) then
+#if defined( __GFORTRAN__ )
+	      WRITE(LU2,'(''ADC#'',I5,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+	      if(jpar.GT.maxRCL_ORD) then
+	        WRITE(LU1,'(''ADC#'',I5,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+#else
 	      WRITE(LU2,4201)ICADC,(TEMP(J),J=1,JPAR)
 	      if(jpar.GT.maxRCL_ORD) then
 	        WRITE(LU1,4201)ICADC,(TEMP(J),J=1,JPAR)
+#endif
 	        stop 'Too high order of recalibration'
 	      endif
 	      dat(ICADC).ord=JPAR
@@ -1511,9 +1542,15 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	        dat(ICADC).coef(J)=TEMP(j)
 	      end do
 	    else
+#if defined( __GFORTRAN__ )
+	      WRITE(LU2,'(''FPAR#'',I4,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+	      if(jpar.GT.2) then
+	        WRITE(LU1,'(''FPAR#'',I4,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+#else
 	      WRITE(LU2,4202)ICADC,(TEMP(J),J=1,JPAR)
 	      if(jpar.GT.2) then
 	        WRITE(LU1,4202)ICADC,(TEMP(J),J=1,JPAR)
+#endif
 	        stop 'Too high order of recalibration'
 	      endif
 	      rcl.offs=temp(1)
@@ -1526,8 +1563,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	ENDIF
 	GOTO 10
 
+#if !defined( __GFORTRAN__ )
 4201	format(' ADC#',I5,<JPAR>G)
 4202	format(' FPAR#',I4,<JPAR>G)
+#endif
 
 20	CLOSE(gs2lun)
 
@@ -1706,6 +1745,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	subroutine gs2_recal_mult(rcl,dat)
 
 #include "gsort.inc"
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+	logical*1 inp_yes
+	external inp_yes
+#endif
 	record/recal/rcl
 	record/mcalcoef/dat(0:1)
 
@@ -1758,11 +1802,20 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	     dat(ICADC).limit(0)=0.000000
 	     dat(ICADC).nregs=nregs
 	     do ireg=1,nregs
+#if defined( __GFORTRAN__ )
+	      write(dyn_format,'(a,i0,a)')'2I5,',mrcl_npar(ireg),'G0,A,G0)'
+	      WRITE(LU2,'(''ADC#'''//dyn_format(1:len(dyn_format)) )ICADC,ireg,(TEMP(J),j=(ireg-1)*maxRCL_ORD+1,
+     &                       (ireg-1)*maxRCL_ORD+mrcl_npar(ireg)),' Upper limit: ',mrcl_limit(ireg)
+	      if(mrcl_npar(ireg).GT.maxRCL_ORD) then
+	      WRITE(LU1,'(''ADC#'''//dyn_format(1:len(dyn_format)) )ICADC,ireg,(TEMP(J),j=(ireg-1)*maxRCL_ORD+1,
+     &                       (ireg-1)*maxRCL_ORD+mrcl_npar(ireg)),' Upper limit: ',mrcl_limit(ireg)
+#else
 	      WRITE(LU2,4201)ICADC,ireg,(TEMP(J),j=(ireg-1)*maxRCL_ORD+1,
      &                       (ireg-1)*maxRCL_ORD+mrcl_npar(ireg)),' Upper limit: ',mrcl_limit(ireg)
 	      if(mrcl_npar(ireg).GT.maxRCL_ORD) then
 	      WRITE(LU1,4201)ICADC,ireg,(TEMP(J),j=(ireg-1)*maxRCL_ORD+1,
      &                       (ireg-1)*maxRCL_ORD+mrcl_npar(ireg)),' Upper limit: ',mrcl_limit(ireg)
+#endif
 	        stop 'Too high order of recalibration'
 	      endif
 	      dat(ICADC).ord(ireg)=mrcl_npar(ireg)
@@ -1781,7 +1834,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	ENDIF
 	GOTO 10
 
+#if !defined( __GFORTRAN__ )
 4201	format(' ADC#',2I5,<mrcl_npar(ireg)>G,A,G)
+#endif
 
 20	CLOSE(gs2lun)
 
@@ -1980,6 +2035,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	subroutine gs2_recal_choose(rcl,dat)
 
 #include "gsort.inc"
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+	logical*1 inp_yes
+	external inp_yes
+#endif
 	record/recal_choose/rcl
 	record/calcoef/dat(0:MAXDET-1,2)
 
@@ -2039,12 +2099,22 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	endif
 
 10	READ(gs2lun,*,ERR=20,END=20) ICTAP,ICADC,JPAR,(TEMP(J),J=1,JPAR)
+#if defined( __GFORTRAN__ )
+	write(dyn_format,'(i4)')jpar
+	dyn_format = adjustl(dyn_format)
+#endif
 	IF(ICTAP.EQ.iio.run .OR. .NOT. rcl.run) THEN
 	  IF(MISSING(ICADC)) THEN
 	    if(j_ind.ne.0) then
+#if defined( __GFORTRAN__ )
+	      WRITE(LU2,'(''ADC#'',I5,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+	      if(jpar.GT.maxRCL_ORD) then
+	        WRITE(LU1,'(''ADC#'',I5,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+#else
 	      WRITE(LU2,4201)ICADC,(TEMP(J),J=1,JPAR)
 	      if(jpar.GT.maxRCL_ORD) then
 	        WRITE(LU1,4201)ICADC,(TEMP(J),J=1,JPAR)
+#endif
 	        stop 'Too high order of recalibration'
 	      endif
 	      dat(ICADC,kk).ord=JPAR
@@ -2052,9 +2122,15 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	        dat(ICADC,kk).coef(J)=TEMP(j)
 	      end do
 	    else
+#if defined( __GFORTRAN__ )
+	      WRITE(LU2,'(''FPAR#'',I4,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+	      if(jpar.GT.2) then
+	        WRITE(LU1,'(''FPAR#'',I4,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+#else
 	      WRITE(LU2,4202)ICADC,(TEMP(J),J=1,JPAR)
 	      if(jpar.GT.2) then
 	        WRITE(LU1,4202)ICADC,(TEMP(J),J=1,JPAR)
+#endif
 	        stop 'Too high order of recalibration'
 	      endif
 	      rcl.offs=temp(1)
@@ -2067,8 +2143,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	ENDIF
 	GOTO 10
 
+#if !defined( __GFORTRAN__ )
 4201	format(' ADC#',I5,<JPAR>G)
 4202	format(' FPAR#',I4,<JPAR>G)
+#endif
 
 20	CLOSE(gs2lun)
 
@@ -2270,6 +2348,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	subroutine gs2_recal_lut(rcl,dat)
 
 #include "gsort.inc"
+#if defined( __GFORTRAN__ )
+	logical*1 inp_yes
+	external inp_yes
+#endif
 	record/recal/rcl
 	integer*4 dat(0:1)
 
@@ -2395,7 +2477,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 
 	character*72 angfil
 
-	synt(1)='RECAL_DOPPLER Pn v0_% [ch0 ch1 v1_%] [theta_rec phi_rec] (GASP|EBIII|EBIV|CLARA|Angle_file) offset gain Wl Wh FOLD_GATE'
+	synt(1)='RECAL_DOPPLER Pn v0_% [ch0 ch1 v1_%] [theta_rec phi_rec] (GASP|EBIII|EBIV|CLARA|Angle_file) 
+     1offset gain Wl Wh FOLD_GATE'
 
 	if(syntax) then
 	  call gs_syntax(' ')
@@ -3892,6 +3975,10 @@ C	    if(beta.GT.0) Xcan=Xcan*(1.-beta*dat.costheta(kger))/sqrt(1.-beta*beta)
 	subroutine gs2_recal_kinenew(kine,dat)
 
 #include "gsort.inc"
+#if defined( __GFORTRAN__ )
+	logical*1 inp_yes
+	external inp_yes
+#endif
 	record/kinenew/kine
 	record/kinenewdat/dat
 
@@ -4256,6 +4343,10 @@ C	    Xcan=Xcan*(1.-beta*costh)*sqbetainv	! Relativistic
 	subroutine gs2_recal_kine(kine,dat)
 
 #include "gsort.inc"
+#if defined( __GFORTRAN__ )
+	logical*1 inp_yes
+	external inp_yes
+#endif
 	record/kine/kine
 	record/kinedat/dat
 
@@ -5338,7 +5429,7 @@ C	    Xcan=Xcan*(1.-beta*costh)*sqbetainv	! Relativistic
 
 	iin=lengthn(comline)
 	do while(iin.GT.0)
-	  call istr_i1(comline,jj)
+	  jjdmmy = istr_i1(comline,jj)
 	  if(jj.LT.0 .or. jj.GE.nitems(ji)) call gs_syntax1('Detector index must be between 0 and',nitems(ji)-1)
 	  kill.det(jj)=.TRUE.
 	  iin=lengthn(comline)
@@ -5422,7 +5513,7 @@ C	    Xcan=Xcan*(1.-beta*costh)*sqbetainv	! Relativistic
 
 	iin=lengthn(comline)
 	do while(iin.GT.0)
-	  call istr_i1(comline,jj)
+	  jjdmmy = istr_i1(comline,jj)
 	  if(jj.LT.0 .or. jj.GE.nitems(ji)) call gs_syntax1('Detector index must be between 0 and',nitems(ji)-1)
 	  sel.det(jj)=.TRUE.
 	  iin=lengthn(comline)
@@ -5953,6 +6044,10 @@ CVMS	    CALL STR_TOUPPER(oio.name)
 	subroutine gs4_write_event
 
 #include "gsort.inc"
+#if defined( __GFORTRAN__ )
+	logical*1 inp_not
+	external inp_not
+#endif
 
 	if(finit_mode.EQ.0) return
 	if(FINISHED_OUT)return
@@ -6017,6 +6112,10 @@ CVMS	    CALL STR_TOUPPER(oio.name)
 	subroutine gs5_OEVflush
 
 #include "gsort.inc"
+#if defined( __GFORTRAN__ )
+	logical*1 inp_yes
+	external inp_yes
+#endif
 	integer*2 OWW(2)
 	integer   OLW
 	equivalence (OWW,OLW)
@@ -6534,7 +6633,7 @@ CVMS	    CALL STR_TOUPPER(oio.name)
 	  mask.one=.TRUE.
 	endif
 
-	call istr_i1(comline,mask.mask)
+	jjdmmy = istr_i1(comline,mask.mask)
 
 	return
 
@@ -6551,7 +6650,11 @@ CVMS	    CALL STR_TOUPPER(oio.name)
 	  call gs_putind(mask.ind)
 	endif
 
+#if defined( __GFORTRAN__ )
+	write(list(llist+4:),'(i0)') mask.mask
+#else
 	write(list(llist+4:),'(i)') mask.mask
+#endif
 
 	return
 
@@ -6738,7 +6841,7 @@ CVMS	    CALL STR_TOUPPER(oio.name)
 
 	nmove=0
 	do while(lengthn(comline).GT.0)
-	  call istr_i1(comline,ii)
+	  jjdmmy = istr_i1(comline,ii)
 	  if(ii.GE.0 .AND. ii.LT.nitems(move.ind1)) then
 	    move.which(ii)=nmove
 	    nmove=nmove+1
@@ -6758,7 +6861,7 @@ CVMS	    CALL STR_TOUPPER(oio.name)
 	if(nitems(move.ind2) .LT. nmove) call gs_syntax('Too many detectors for destination')
 	
 	move.offset=0
-	if(lengthn(comline).GT.0) call istr_i1(comline,move.offset)
+	if(lengthn(comline).GT.0) jjdmmy = istr_i1(comline,move.offset)
 	if(move.offset.LT.0 .OR. (move.offset+nmove).GT.nitems(move.ind2) ) call gs_syntax('Out of range in destination')
 	do ii=0,MAXDET-1
 	  if(move.which(ii).GE.0) move.which(ii)=move.which(ii)+move.offset
@@ -6839,7 +6942,7 @@ cpgi$r opt=1
 #include "gsort.inc"
 	record/move/move
 
-	logical*1 check
+	logical*1 nocheck
 	
 	if(ndet(move.ind1).LT.1) return
 
@@ -7403,6 +7506,10 @@ cpgi$r opt=1
 #include "gsort.inc"
 	record/newid/newid
 	integer dat(0:1)
+#if defined( __GFORTRAN__ )
+	logical*1 inp_yes
+	external inp_yes
+#endif
 
 	if(init_mode.ne.0) return
 
@@ -7552,6 +7659,10 @@ cpgi$r opt=1
 #include "gsort.inc"
 	record/kill/kill
 	record/killdat/dat
+#if defined( __GFORTRAN__ )
+	logical*1 inp_yes
+	external inp_yes
+#endif
 
 	integer datinp(0:MAXDET-1)
 
@@ -11036,6 +11147,12 @@ c	  write(6,'(4i8)') det(ii).id,det(ii).ival(jn1),det(ii).ival(jn2),det(ii).ival
 
 	REAL	  TEMP   (0:MAXDET-1)
 	LOGICAL	  MISSING(0:MAXDET-1)
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+	logical*1 inp_yes
+	external inp_yes
+#endif
+
 
 	if(init_mode.EQ.0) then
 	  if(rcl.run) return
@@ -11090,12 +11207,22 @@ c	  write(6,'(4i8)') det(ii).id,det(ii).ival(jn1),det(ii).ival(jn2),det(ii).ival
 	endif
 
 10	READ(gs2lun,*,ERR=20,END=20) ICTAP,ICADC,JPAR,(TEMP(J),J=1,JPAR)
+#if defined( __GFORTRAN__ )
+	write(dyn_format,'(i4)')jpar
+	dyn_format = adjustl(dyn_format)
+#endif
 	IF(ICTAP.EQ.iio.run .OR. .NOT. rcl.run) THEN
 	  IF(MISSING(ICADC)) THEN
 	    if(j_ind.ne.0) then
+#if defined( __GFORTRAN__ )
+	      WRITE(LU2,'(''ADC#'',I5,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+	      if(jpar.GT.maxRCL_ORD) then
+	        WRITE(LU1,'(''ADC#'',I5,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+#else
 	      WRITE(LU2,4201)ICADC,(TEMP(J),J=1,JPAR)
 	      if(jpar.GT.maxRCL_ORD) then
 	        WRITE(LU1,4201)ICADC,(TEMP(J),J=1,JPAR)
+#endif
 	        stop 'Too high order of recalibration'
 	      endif
 	      dat(ICADC,kk).ord=JPAR
@@ -11103,9 +11230,15 @@ c	  write(6,'(4i8)') det(ii).id,det(ii).ival(jn1),det(ii).ival(jn2),det(ii).ival
 	        dat(ICADC,kk).coef(J)=TEMP(j)
 	      end do
 	    else
+#if defined( __GFORTRAN__ )
+	      WRITE(LU2,'(''FPAR#'',I4,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+	      if(jpar.GT.2) then
+	        WRITE(LU1,'(''FPAR#'',I4,'//dyn_format(1:len(dyn_format))//'G0)')ICADC,(TEMP(J),J=1,JPAR)
+#else
 	      WRITE(LU2,4202)ICADC,(TEMP(J),J=1,JPAR)
 	      if(jpar.GT.2) then
 	        WRITE(LU1,4202)ICADC,(TEMP(J),J=1,JPAR)
+#endif
 	        stop 'Too high order of recalibration'
 	      endif
 	      rcl.offs=temp(1)
@@ -11118,8 +11251,10 @@ c	  write(6,'(4i8)') det(ii).id,det(ii).ival(jn1),det(ii).ival(jn2),det(ii).ival
 	ENDIF
 	GOTO 10
 
+#if !defined( __GFORTRAN__ )
 4201	format(' ADC#',I5,<JPAR>G)
 4202	format(' FPAR#',I4,<JPAR>G)
+#endif
 
 20	CLOSE(gs2lun)
 

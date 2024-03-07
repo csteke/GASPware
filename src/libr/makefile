@@ -38,15 +38,20 @@ P36 = cmtspe
 P40 = autobgmin
 
 
-############################### Linux is the default choice
-linux: FOR = pgf77 -Mextend  -Mdollar,X -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
-linux: CC  = gcc  -c  -mpreferred-stack-boundary=2 -march=i686 $(GS_ONLINE) $(GS_AIO)
-linux: all
+############################### PGI compilers for Linux/ix86 and MacOS
+pgi: FOR = pgf77 -Mextend  -Mdollar,X -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
+pgi: CC  = pgcc  -c  $(GS_ONLINE) $(GS_AIO)
+pgi: all
 
-############################### Intel compilers on Linux/ix86
+############################### Intel compilers on Linux/ix86 and 
 intel: FOR = ifort @../../etc/ifc.cfg  -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
 intel: CC  = icc @../../etc/icc.cfg -c    $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
 intel: all
+
+############################### GCC(>6.x) compilers on Linux/ix86 and MacOS
+gnu: FOR = $(GNU_FOR) -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
+gnu: CC  = $(GNU_CC)  -c    $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
+gnu: all
 
 ############################### Solaris Studio FORTRAN compiler for Linux/ix86
 sstudio: FOR = sunf90 -silent -f77 -ftrap=%none -e -D__sun_c__  -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)

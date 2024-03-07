@@ -51,7 +51,7 @@ CVMS
 
 10	IF(error) THEN
 	  CALL INP_MODE(0)
-	  CALL INP_MSG(' Operation aborted\n')
+	  i1dmmy = INP_MSG(' Operation aborted\n')
 	  ICOUNT=0			! ON ERROR STOP SERVICE
 	ENDIF
 
@@ -187,11 +187,11 @@ CVMS
 	logical*1 cmt_open,cmt_close,cmt_new,cmt_info
 
 	if(opened(nmat)) then
-	  call inp_msg('Matrix is already opened')
+	  i1dmmy = inp_msg('Matrix is already opened')
 	  return
 	endif
 
-	if(prompt.ne.' ') CALL INP_word(prompt,CMATFILE(nmat))
+	if(prompt.ne.' ') i1dmmy = INP_word(prompt,CMATFILE(nmat))
 
 	if(mode.eq.1) then
 	  iomode=1
@@ -200,7 +200,7 @@ CVMS
 	endif
 
 	if(.not.cmt_open(CMATFILE(nmat),iomode,cmt(nmat))) then
-	   call inp_msg('Error opening matrix')
+	   i1dmmy = inp_msg('Error opening matrix')
 	   return
 	endif
 	if(.not.cmt_info(%val(cmt(nmat)),-1,ndim(nmat),matmode(nmat))) return
@@ -234,18 +234,18 @@ CVMS
 	endif
 
 	if(opened(nmat)) then
-	  call inp_msg('Matrix is already opened')
+	  i1dmmy = inp_msg('Matrix is already opened')
 	  return
 	endif
 
-	if(prompt.ne.' ') call inp_ch(prompt,cmatfile(nmat))
+	if(prompt.ne.' ') i1dmmy = inp_ch(prompt,cmatfile(nmat))
 
 	if(.not.cmt_new(cmatfile(nmat),ndim(nmat),res(1,nmat),step(1,nmat),matmode(nmat))) then
-	   call inp_msg('Error creating compressed matrix')
+	   i1dmmy = inp_msg('Error creating compressed matrix')
 	   return
 	endif
 	if(.not.CMT_open(CMATFILE(nmat),1,cmt(nmat))) then
-	   call inp_msg('Error opening matrix')
+	   i1dmmy = inp_msg('Error opening matrix')
 	   return
 	endif
 	if(.not.cmt_info(%val(cmt(nmat)),-1,ndim(nmat),matmode(nmat))) return
@@ -272,7 +272,7 @@ CVMS
 	logical*1 cmt_close
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
@@ -300,11 +300,11 @@ CVMS
 	logical*1 cmt_readsegment,cmt_getchan
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
-	CALL INP_IA(string(1:6*ndim(nmat)-2)//' ',IND0,ndim(nmat))
+	i1dmmy = INP_IA(string(1:6*ndim(nmat)-2)//' ',IND0,ndim(nmat))
 
 	nord=ndim(nmat)
 	do ii=1,nord
@@ -363,7 +363,7 @@ cccccc	write(6,'(''  cmt_getchan ==> '',i6,'' iok='',i3)') llval
 	logical*1 cmt_getproje
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
@@ -413,13 +413,13 @@ cccccc	write(6,'(''  cmt_getchan ==> '',i6,'' iok='',i3)') llval
 	logical*1 cmt_putproje
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
 	if(readonly(nmat)) then
-	  call inp_msg('Matrix is opened READONLY')
-	  call inp_msg('Please open it with RWOPEN')
+	  i1dmmy = inp_msg('Matrix is opened READONLY')
+	  i1dmmy = inp_msg('Please open it with RWOPEN')
 	  return
 	endif
 
@@ -440,7 +440,7 @@ cccccc	write(6,'(''  cmt_getchan ==> '',i6,'' iok='',i3)') llval
 	    endif
 	    ifrm=mod(kv,100)
 	    if(kv/100.ne.res(1,nmat)) then
-	      call inp_msg('incompatible size')
+	      i1dmmy = inp_msg('incompatible size')
 	      return
 	    endif
 	  if(inp_yes('You really want to store this as new projection'))then
@@ -459,7 +459,7 @@ cccccc	write(6,'(''  cmt_getchan ==> '',i6,'' iok='',i3)') llval
 	    endif
 	    ifrm=mod(kv,100)
 	    if(kv/100.ne.res(ii,nmat)) then
-	      call inp_msg('incompatible size')
+	      i1dmmy = inp_msg('incompatible size')
 	      return
 	    endif
 	  end do
@@ -499,7 +499,7 @@ cccccc	write(6,'(''  cmt_getchan ==> '',i6,'' iok='',i3)') llval
 	logical*1 cmt_info,cmt_readsegment
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
@@ -509,7 +509,7 @@ cccccc	write(6,'(''  cmt_getchan ==> '',i6,'' iok='',i3)') llval
 	  nwords=nwords*step(ii,nmat)
 	end do
 
-	call inp_i2('Segment number from, to (-1 if all) ',numseg1,numseg2)
+	i1dmmy = inp_i2('Segment number from, to (-1 if all) ',numseg1,numseg2)
 	if(numseg1.lt.0) then
 	  numseg1=0
 	  numseg2=nsegs-1
@@ -521,7 +521,7 @@ cccccc	write(6,'(''  cmt_getchan ==> '',i6,'' iok='',i3)') llval
 	jblo1=numseg1
 	jblo2=numseg2
 
-	call inp_ask('Want to have the frequency distribution of counts',frequenze)
+	i1dmmy = inp_ask('Want to have the frequency distribution of counts',frequenze)
 	if(frequenze) then
 	  do ii=0,MAXFREQ+1
 	    fdistr(ii)=0
@@ -679,12 +679,12 @@ cccccc	write(6,'(''  cmt_getchan ==> '',i6,'' iok='',i3)') llval
 	logical*1 cmt_readspec,cmt_getproje
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
 	if(ndim(nmat).ne.2) then
-	  call inp_msg('This command valid only for 2D Matrices')
+	  i1dmmy = inp_msg('This command valid only for 2D Matrices')
 	  return
 	endif
 
@@ -696,7 +696,7 @@ cccccc	write(6,'(''  cmt_getchan ==> '',i6,'' iok='',i3)') llval
 	end do
 
 	if(matmode(nmat).eq.0)then
-	  CALL INP_i2('Order of indexes',ind1,ind2)
+	  i1dmmy = INP_i2('Order of indexes',ind1,ind2)
 	  if(ind1.lt.1 .or. ind1.gt.2) return
 	  if(ind2.lt.1 .or. ind2.gt.2) return
 	  if(ind1.eq.ind2) return
@@ -705,10 +705,10 @@ cccccc	write(6,'(''  cmt_getchan ==> '',i6,'' iok='',i3)') llval
 	  ind2=2
 	endif
 
-	call inp_i1('How many bytes per channel (1|2|4) ',nbch)
+	i1dmmy = inp_i1('How many bytes per channel (1|2|4) ',nbch)
 	if(nbch.ne.1 .AND. nbch.ne.2 .AND. nbch.ne.4) return
 
-30	CALL INP_CH('File_name of the deCompressed Matrix',MATFILE)
+30	i1dmmy = INP_CH('File_name of the deCompressed Matrix',MATFILE)
 
 	ires1=((res(ind1,nmat)+1023)/1024)*1024
 
@@ -723,15 +723,15 @@ CVMS	WRITE(6,*) ' For a total of  ',MATSIZE      ,'  disk blocks'
 
 	if(lunmat.le.0) call LIB$GET_LUN(lunmat)
 	if(lunmat.le.0) then
-	  call inp_msg('Could not get a LUN')
+	  i1dmmy = inp_msg('Could not get a LUN')
 	  return
 	endif
 
-CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',STATUS='OLD',
+CVMS	OPEN(UNIT=LUNMAT,FILE=MATFILE,ACCESS='DIRECT',STATUS='OLD',
 
 CVMS	1    ORGANIZATION='sequential',RECL=LREC,MAXREC=MATSIZE,ERR=40)
-	OPEN(UNIT=LUNMAT,NAME=MATFILE,STATUS='OLD',ERR=40)
-	call inp_msg('A compatible matrix with this name already exists')
+	OPEN(UNIT=LUNMAT,FILE=MATFILE,STATUS='OLD',ERR=40)
+	i1dmmy = inp_msg('A compatible matrix with this name already exists')
 	if(inp_not('Create a new matrix')) then
 	  CLOSE(LUNMAT)
 	
@@ -743,16 +743,16 @@ CVMS	  goto 60
 	endif
 
 40	WRITE(6,*) ' Creating a decompressed matrix file ...'
-CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STATUS='NEW',
+CVMS	OPEN(UNIT=LUNMAT,FILE=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STATUS='NEW',
 CVMS	1    RECL=LREC,MAXREC=MATSIZE,INITIALSIZE=MATSIZE,err=50)
 #if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER)
-	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',STATUS='NEW',RECL=LREC,err=50)
+	OPEN(UNIT=LUNMAT,FILE=MATFILE,ACCESS='DIRECT',STATUS='NEW',RECL=LREC,err=50)
 #else
-	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',STATUS='NEW',RECL=4*LREC,err=50)
+	OPEN(UNIT=LUNMAT,FILE=MATFILE,ACCESS='DIRECT',STATUS='NEW',RECL=4*LREC,err=50)
 #endif
 	goto 60
 
-50	call inp_msg('Error creating the deCompressed matrix')
+50	i1dmmy = inp_msg('Error creating the deCompressed matrix')
 	return
 
 60	do ii=0,MAXRES-1
@@ -811,7 +811,11 @@ CVMS	1    RECL=LREC,MAXREC=MATSIZE,INITIALSIZE=MATSIZE,err=50)
 	    WRITE(LUNMAT,rec=(ii2+1)) (lspec(ii1),ii1=0,ires1-1)
 	  endif
 	  lproje(ii2,ind2)=isum
+#if defined( __GFORTRAN__ )
+	  WRITE(6,'(a3,''Rec#'',I8,I16)')GO_UP_ONE_LINE, ii2,isum
+#else
 	  WRITE(6,'(a3,''Rec#'',I8,I)')GO_UP_ONE_LINE, ii2,isum
+#endif
 	  call flush(6)
 	end do
 
@@ -871,37 +875,37 @@ CVMS	1    RECL=LREC,MAXREC=MATSIZE,INITIALSIZE=MATSIZE,err=50)
 
 	logical*1 getmem,freemem
 
-	CALL INP_CH('File_name of the deCompressed matrix ',MATFILE)
+	i1dmmy = INP_CH('File_name of the deCompressed matrix ',MATFILE)
 
-	CALL INP_I2('Matrix dimensions',IRES1,IRES2)
+	i1dmmy = INP_I2('Matrix dimensions',IRES1,IRES2)
 	IF(IRES1.GT.MAXRES .OR. IRES1.LT.1) then
-	  call inp_msg('Wrong Matrix dimension_1')
+	  i1dmmy = inp_msg('Wrong Matrix dimension_1')
 	  return
 	endif
 	IF(IRES2.GT.MAXRES .OR. IRES2.LT.1) then
-	  call inp_msg('Wrong Matrix dimension_2')
+	  i1dmmy = inp_msg('Wrong Matrix dimension_2')
 	  return
 	endif
 
 	if(lunmat.le.0) call LIB$GET_LUN(lunmat)
 	if(lunmat.le.0) then
-	  call inp_msg('Could not get a LUN')
+	  i1dmmy = inp_msg('Could not get a LUN')
 	  return
 	endif
 
-	call inp_i1('How many bytes per channel (1|2|4) ',nbch)
+	i1dmmy = inp_i1('How many bytes per channel (1|2|4) ',nbch)
 	if(nbch.ne.1 .AND. nbch.ne.2 .AND. nbch.ne.4) return
 	irecl=(nbch*ires1)/4
 
-CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STATUS='OLD',RECL=irecl,READONLY,ERR=140)
+CVMS	OPEN(UNIT=LUNMAT,FILE=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STATUS='OLD',RECL=irecl,READONLY,ERR=140)
 #if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER)
-	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',STATUS='OLD',RECL=irecl,READONLY,ERR=140)
+	OPEN(UNIT=LUNMAT,FILE=MATFILE,ACCESS='DIRECT',STATUS='OLD',RECL=irecl,READONLY,ERR=140)
 
-#elif defined(__sun_c__)
-	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',STATUS='OLD',RECL=4*irecl,READONLY,ERR=140)
+#elif defined(__sun_c__) || defined( __GFORTRAN__ )
+	OPEN(UNIT=LUNMAT,FILE=MATFILE,ACCESS='DIRECT',STATUS='OLD',RECL=4*irecl,READONLY,ERR=140)
 
 #elif defined( __PGI )
-	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',STATUS='OLD',RECL=4*irecl,ERR=140)
+	OPEN(UNIT=LUNMAT,FILE=MATFILE,ACCESS='DIRECT',STATUS='OLD',RECL=4*irecl,ERR=140)
 #else
 #   error "Unknown FORTRAN compiler"
 #endif
@@ -909,7 +913,7 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 
 	symmetrized=.false.
 	if(ires1.eq.ires2) then
-	  call inp_ask('Is this a symmetrized matrix',symmetrized)
+	  i1dmmy = inp_ask('Is this a symmetrized matrix',symmetrized)
 	endif
 
 	if(opened(nmat)) call MADD_close(nmat)
@@ -922,7 +926,7 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 
 	matmode(nmat)=0
 	if(symmetrized) then
-6	  call inp_i1('STEP of the compressed matrix',step(1,nmat))
+6	  i1dmmy = inp_i1('STEP of the compressed matrix',step(1,nmat))
 	  step(1,nmat)=abs(step(1,nmat))
 	  step(2,nmat)=step(1,nmat)
 	  if(step(1,nmat)*step(2,nmat).gt. MAXSEGSIZE) then
@@ -933,7 +937,7 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 	  ntile2=ntile1
 	  matmode(nmat)=1
 	else
-	  call inp_i2('STEP_1, STEP_2 of the compressed matrix',step(1,nmat),step(2,nmat))
+	  i1dmmy = inp_i2('STEP_1, STEP_2 of the compressed matrix',step(1,nmat),step(2,nmat))
 	  if(step(2,nmat).gt.MAXSTEP2) then
 	    write(6,*) 'Step_2 should not be bigger than',MAXSTEP2
 	    goto 130
@@ -974,7 +978,7 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 130	close(LUNMAT)
 	return
 
-140	call inp_MSG('Error opening the deCompressed matrix')
+140	i1dmmy = inp_MSG('Error opening the deCompressed matrix')
 	return
 
 	END
@@ -1209,7 +1213,7 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 	  if(opened(ii)) call MADD_close(ii)
 	end do
 	
-	call inp_i1('How many matrices to sum',ntosum)
+	i1dmmy = inp_i1('How many matrices to sum',ntosum)
 	if(ntosum.lt.1) return
 	if(ntosum.ge.MAXNMAT) then
 	  write(6,*) 'Maximum number is',MAXNMAT
@@ -1225,7 +1229,7 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 	  error=.true.
 	  do ii=1,ndim(mm)	
 	    IF(RES(ii,1).GT.MAXRES) then
-	      call inp_msg('Matrix dimension is too big')
+	      i1dmmy = inp_msg('Matrix dimension is too big')
 	      return
 	    endif
 	  end do
@@ -1262,7 +1266,7 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 	end do
 	
 	CALL MADD_NEW(mms,'File_name  of the summed matrix ')
-	call INP_WORD_RESET
+	i1dmmy = INP_WORD_RESET
 	if(error) return
 	error=.true.
 
@@ -1273,8 +1277,8 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 
 	write(prompt,'(a,i3,a)')'Factors to multiply the',ntosum,'  matrices'
 	lprompt=lengthc(prompt)
-	call inp_ra(prompt(1:lprompt),f,ntosum)
-	call inp_r1('Factor to multiply the summed matrix ',f(mms))
+	i1dmmy = inp_ra(prompt(1:lprompt),f,ntosum)
+	i1dmmy = inp_r1('Factor to multiply the summed matrix ',f(mms))
 
 	write(6,*)					! somma blocco a blocco
 	write(nm_fmt,'(i2)')ntosum+1
@@ -1349,7 +1353,7 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 	logical*1 cmt_readsegment,cmt_writesegment,cmt_getproje,cmt_putproje
 
 	if(.not.opened(m1)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
@@ -1368,16 +1372,16 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 	end do
 	reduce=.FALSE.
 	if(matmode(m1).gt.0) then
-	  call inp_i1('# of channels to pack together        ',npack(1))
+	  i1dmmy = inp_i1('# of channels to pack together        ',npack(1))
 	  npack(1)=max(1,npack(1))
 	  reduce=reduce .OR. npack(1).gt.1
-	  call inp_i1('# of channels to shift the packed data',nshif(1))
+	  i1dmmy = inp_i1('# of channels to shift the packed data',nshif(1))
 	  reduce=reduce .OR. nshif(1).ne.0
 	  res(1,m2)=res(1,m1)/npack(1)+nshif(1)
-	  call inp_i1('Dimension of the packed matrix',res(1,m2))
+	  i1dmmy = inp_i1('Dimension of the packed matrix',res(1,m2))
 	  reduce=reduce .OR. (res(1,m2).ne.res(1,m1))
 	  step(1,m2)=step(1,m1)
-	  call inp_i1('Step of the packed matrix',step(1,m2))
+	  i1dmmy = inp_i1('Step of the packed matrix',step(1,m2))
 	  reduce=reduce .OR. (step(1,m2).ne.step(1,m1))
 	  nwords2=1
 	  do ii=1,nndim
@@ -1392,22 +1396,22 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 	    return
 	  endif
 	else
-	  call inp_ia('# of channels to pack together on each axis ',npack,nndim)
+	  i1dmmy = inp_ia('# of channels to pack together on each axis ',npack,nndim)
 	  do ii=1,nndim
 	    npack(ii)=max(1,npack(ii))
 	    reduce=reduce .OR. (npack(ii).gt.1)
 	  end do
-	  call inp_ia('# of channels to shift the packed data on each axis',nshif,nndim)
+	  i1dmmy = inp_ia('# of channels to shift the packed data on each axis',nshif,nndim)
 	  do ii=1,nndim
 	    reduce=reduce .OR. (nshif(ii).ne.0)
 	    res(ii,m2)=res(ii,m1)/npack(ii)+nshif(ii)
 	  end do
-	  call inp_ia('Dimension of each axis of the packed matrix',res(1,m2),nndim)
+	  i1dmmy = inp_ia('Dimension of each axis of the packed matrix',res(1,m2),nndim)
 	  do ii=1,nndim
 	    reduce=reduce .OR. (res(ii,m2).ne.res(ii,m1))
 	    step(ii,m2)=step(ii,m1)
 	  end do
-	  call inp_ia('Step of each axis of the packed matrix',step(1,m2),nndim)
+	  i1dmmy = inp_ia('Step of each axis of the packed matrix',step(1,m2),nndim)
 	  reduce=reduce .OR. (step(1,m2).ne.step(1,m1))
 	  nwords2=1
 	  do ii=1,nndim
@@ -1777,12 +1781,12 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 	logical*1 cmt_readsegment,cmt_writesegment,cmt_getproje,cmt_putproje
 
 	if(.not.opened(m1)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
 	if(matmode(m1).gt.0) then
-	  call inp_msg('This is meaningless for symmetrized matrices')
+	  i1dmmy = inp_msg('This is meaningless for symmetrized matrices')
 	  return
 	endif
 
@@ -1790,7 +1794,7 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 	  ind1=1
 	  ind2=2
 	else
-	  call inp_i2('The two indexes to transpose',ind1,ind2)
+	  i1dmmy = inp_i2('The two indexes to transpose',ind1,ind2)
 	  if(ind1.le.0 .or. ind1.gt.ndim(m1)) return
 	  if(ind2.le.0 .or. ind2.gt.ndim(m1)) return
 	  if(ind1.eq.ind2) return
@@ -1905,7 +1909,7 @@ CVMS	OPEN(UNIT=LUNMAT,NAME=MATFILE,ACCESS='DIRECT',ORGANIZATION='sequential',STA
 	integer iform	/4/
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 	if(ndim(nmat).lt.2 .or. ndim(nmat).gt.4) return
@@ -2128,7 +2132,7 @@ c	call madd_gate_4dh()
 
 	logical*1 cmt_readspecs
 
-	call inp_ask('Are these supposed to be spherical gates',spherical)
+	i1dmmy = inp_ask('Are these supposed to be spherical gates',spherical)
 c	if(spherical) call inp_r1('Level of acceptance',livello)
 
 	cres=res(1,nmat)
@@ -2279,7 +2283,7 @@ c	if(spherical) call inp_r1('Level of acceptance',livello)
 
 	logical*1 cmt_readspecs
 
-	call inp_ask('Are these supposed to be spherical gates',spherical)
+	i1dmmy = inp_ask('Are these supposed to be spherical gates',spherical)
 c	if(spherical) call inp_r1('Level of acceptance',livello)
 
 	cres=res(1,nmat)
@@ -2354,12 +2358,12 @@ c	if(spherical) call inp_r1('Level of acceptance',livello)
 
 	ngates=0
 
-	call inp_ask('Gates from file',filein)
+	i1dmmy = inp_ask('Gates from file',filein)
 	if(filein) then
-	  call inp_ch('Filename',gatefile)
+	  i1dmmy = inp_ch('Filename',gatefile)
 	  if(LUNIN.le.0) call LIB$GET_LUN(LUNIN)
 	  if(LUNIN.le.0) then
-	    call inp_msg('Could not get a LUN')
+	    i1dmmy = inp_msg('Could not get a LUN')
 	    return
 	  endif
 	  call filetype(gatefile,'gates')
@@ -2417,7 +2421,7 @@ c	if(spherical) call inp_r1('Level of acceptance',livello)
 	integer ntimes /20/
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 	if(ndim(nmat).lt.2 .or. ndim(nmat).gt.4) return
@@ -2433,7 +2437,7 @@ c	if(spherical) call inp_r1('Level of acceptance',livello)
 	end do
 	if(.not.inp_yes('OK')) goto 10
 
-	call inp_i2('Delta, times',idelta,ntimes)
+	i1dmmy = inp_i2('Delta, times',idelta,ntimes)
 	cres=res(cside,nmat)
 	DO II=0,MAXRES-1
 	  SPETTRO(II)=0
@@ -2825,12 +2829,12 @@ c	  write(6,'(4i3,8i8)') ww,ntotp,itotp,ntotb,itotb,int(apart)
 	logical*1 getmem,freemem
 
 	if(.not.opened(m1)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
 	if(ndim(m1).ne.3 .AND. ndim(m1).ne.4 ) then
-	  call inp_msg('This command only for a 3D/4D matrix')
+	  i1dmmy = inp_msg('This command only for a 3D/4D matrix')
 	  return
 	endif
 
@@ -3778,19 +3782,19 @@ c	endif
 	logical*1 getmem,freemem
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
 	if(ndim(nmat).ne.2 .OR. matmode(nmat).ne.1) then
-	  call inp_msg('This command valid only for 2D symmetrized  Matrices')
+	  i1dmmy = inp_msg('This command valid only for 2D symmetrized  Matrices')
 	  return
 	endif
 
 	ires=res(1,nmat)
 	istep=step(1,nmat)
 
-	call INP_I2('Gate From, To (counting channels on main axis) ',iwl,iwh)
+	i1dmmy = INP_I2('Gate From, To (counting channels on main axis) ',iwl,iwh)
 	iwl=abs(iwl)
 	iwh=abs(iwh)
 	if(iwl.gt.iwh) call swapl(iwl,iwh)
@@ -3798,14 +3802,14 @@ c	endif
 	iwh=min(iwh,ires-1)
 	if(iwl.eq.0 .and. iwh.eq.0) iwh=ires-1
 
-	call inp_i1('Max. distance from diagonal ( 0 if all )',idmax)
+	i1dmmy = inp_i1('Max. distance from diagonal ( 0 if all )',idmax)
 	idmax=min(abs(idmax),ires-1)
 
-	call inp_i1('Number of channels to pack together',npack)
+	i1dmmy = inp_i1('Number of channels to pack together',npack)
 	npack=max(abs(npack),1)
 	jres=ires/npack
 
-	call INP_I2('For multiple cuts give Step, Count ',istp,ncicli)
+	i1dmmy = INP_I2('For multiple cuts give Step, Count ',istp,ncicli)
 	if(ncicli.lt.1) ncicli=1
 	if(istp.le.0) istp=iwh-iwl+1
 
@@ -3823,11 +3827,11 @@ c	endif
 	error=.true.
 
 	if(ncicli.gt.1) then
-	  call inp_ask('Write partial spectra',write_part)
+	  i1dmmy = inp_ask('Write partial spectra',write_part)
 	  if(.not.write_part) then
 	    write_tot=.TRUE.
 	  else
-	    call inp_ask('Write total spectrum',write_tot)
+	    i1dmmy = inp_ask('Write total spectrum',write_tot)
 	  endif
 	else
 	  write_part=.true.
@@ -3883,7 +3887,11 @@ c	endif
 	    endif
 	  else
 	    WRITE(6,'(a3,70x,a)')GO_UP_ONE_LINE,'                                  '
+#if defined( __GFORTRAN__ )
+	    write(6,'(a3,3i8)')GO_UP_ONE_LINE, icicli,jwl,jwh
+#else
 	    write(6,'(a3,3i)')GO_UP_ONE_LINE, icicli,jwl,jwh
+#endif
 	    call flush(6)
 	  endif
 	  write(6,*)
@@ -3959,22 +3967,26 @@ c	endif
 	logical*1 getmem,freemem
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
+#if defined( __GFORTRAN__ )
+	if(ndim(nmat).ne.2 .OR. matmode(nmat).ne.1) then
+#else
 	if(ndim(nmat).ne.2 .OR. .NOT.matmode(nmat)) then
-	  call inp_msg('This command valid only for 2D symmetrized  Matrices')
+#endif
+	  i1dmmy = inp_msg('This command valid only for 2D symmetrized  Matrices')
 	  return
 	endif
 
 	ires=res(1,nmat)
 	istep=step(1,nmat)
 
-	call inp_ch('Input File with gates',gatefile)
+	i1dmmy = inp_ch('Input File with gates',gatefile)
 	if(LUNIN.le.0) call LIB$GET_LUN(LUNIN)
 	if(LUNIN.le.0) then
-	  call inp_msg('Could not get a LUN')
+	  i1dmmy = inp_msg('Could not get a LUN')
 	  return
 	endif
 
@@ -3983,18 +3995,18 @@ c	endif
 	call filetype(gatefile,'gates')
 	open(unit=LUNIN,file=gatefile,status='old',err=200)
 
-	call inp_i1('Max. distance from diagonal ( 0 if all )',idmax)
+	i1dmmy = inp_i1('Max. distance from diagonal ( 0 if all )',idmax)
 	idmax=min(abs(idmax),ires-1)
 
-	call inp_i1('Number of channels to pack together',npack)
+	i1dmmy = inp_i1('Number of channels to pack together',npack)
 	npack=max(abs(npack),1)
 	jres=ires/npack
 
-	call inp_ask('Write partial spectra',write_part)
+	i1dmmy = inp_ask('Write partial spectra',write_part)
 	if(.not.write_part) then
 	  write_tot=.TRUE.
 	else
-	  call inp_ask('Write total spectrum',write_tot)
+	  i1dmmy = inp_ask('Write total spectrum',write_tot)
 	endif
 
 	call inp_setlun(LUNIN,0)		!  NO input prompts
@@ -4062,7 +4074,11 @@ c	endif
 	  endif
 	else
 	  WRITE(6,'(a3,70x,a)')GO_UP_ONE_LINE,'      '
+#if defined( __GFORTRAN__ )
+	  write(6,'(a3,2i8)')GO_UP_ONE_LINE, jwl,jwh
+#else
 	  write(6,'(a3,2i)')GO_UP_ONE_LINE, jwl,jwh
+#endif
 	  call flush(6)
 	endif
 	write(6,*)
@@ -4197,19 +4213,19 @@ C	indici contati da zero
 	logical*1 getmem,freemem
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
 	if(ndim(nmat).ne.2 .OR. matmode(nmat).ne.1) then
-	  call inp_msg('This command valid only for 2D symmetrized  Matrices')
+	  i1dmmy = inp_msg('This command valid only for 2D symmetrized  Matrices')
 	  return
 	endif
 
 	ires=res(1,nmat)
 	istep=step(1,nmat)
 
-	call INP_I2('Distance from diagonal From, To',idl,idh)
+	i1dmmy = INP_I2('Distance from diagonal From, To',idl,idh)
 	idl=(abs(idl)/2)*2
 	idh=(abs(idh)/2)*2
 	if(idl.gt.idh) call swapl(idl,idh)
@@ -4217,18 +4233,18 @@ C	indici contati da zero
 	idh=min(idh,ires-1)
 	if(idl.eq.0 .and.idh.eq.0) idh=ires-1
 
-	call inp_i2('Cut limits ',iwl,iwh)
+	i1dmmy = inp_i2('Cut limits ',iwl,iwh)
 	iwl=(abs(iwl)/2)*2
 	iwh=(abs(iwh)/2)*2
 	if(iwl.gt.iwh) call swapl(iwl,iwh)
 	iwh=min(iwh,2*ires-1)
 	if(iwh.le.iwl) iwh=2*ires-1
 
-	call inp_i1('Number of channels to pack together',npack)
+	i1dmmy = inp_i1('Number of channels to pack together',npack)
 	npack=max(npack,1)
 	jres=(2*ires)/npack
 
-	call INP_I2('For multiple cuts give Step, Count ',istp,ncicli)
+	i1dmmy = INP_I2('For multiple cuts give Step, Count ',istp,ncicli)
 	istp=(istp/2)*2
 	if(ncicli.lt.1) ncicli=1
 	if(istp.le.0) istp=iwh-iwl+1
@@ -4247,11 +4263,11 @@ C	indici contati da zero
 	error=.true.
 
 	if(ncicli.gt.1) then
-	  call inp_ask('Write partial spectra',write_part)
+	  i1dmmy = inp_ask('Write partial spectra',write_part)
 	  if(.not.write_part) then
 	    write_tot=.TRUE.
 	  else
-	    call inp_ask('Write total spectrum',write_tot)
+	    i1dmmy = inp_ask('Write total spectrum',write_tot)
 	  endif
 	else
 	  write_part=.true.
@@ -4301,7 +4317,11 @@ C	indici contati da zero
 	    endif
 	  else
 	    WRITE(6,'(a3,70x,a)')GO_UP_ONE_LINE,'      '
+#if defined( __GFORTRAN__ )
+	    write(6,'(a3,i16,2i8)')GO_UP_ONE_LINE, icicli,jdl,jdh
+#else
 	    write(6,'(a3,3i)')GO_UP_ONE_LINE, icicli,jdl,jdh
+#endif
 	  endif
 	  call flush(6)
 	  if(write_tot) then
@@ -4426,16 +4446,16 @@ C	indici contati da zero
 	logical*1 cmt_readspec
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 
 	if(ndim(nmat).ne.2) then
-	  call inp_msg('This command valid only for 2D Matrices')
+	  i1dmmy = inp_msg('This command valid only for 2D Matrices')
 	  return
 	endif
 
-	call inp_i1('Axis to analyze in terms of moments',cside)
+	i1dmmy = inp_i1('Axis to analyze in terms of moments',cside)
 	if(cside.eq.1) then
 	  gside=2
 	elseif(cside.eq.2) then
@@ -4448,9 +4468,9 @@ C	indici contati da zero
 	gres=res(gside,nmat)
 	ich1=max(ich1,0)
 	ich2=min(ich2,cres-1)
-	call inp_i2('Region to analyze',ich1,ich2)
+	i1dmmy = inp_i2('Region to analyze',ich1,ich2)
 	ncan=ich2-ich1+1
-	call inp_i1('Number of channels (inside this region) for background',nfon)
+	i1dmmy = inp_i1('Number of channels (inside this region) for background',nfon)
 	nfon=min(nfon,ncan/2)
 
 	do ii=0,maxres-1
@@ -4550,12 +4570,12 @@ C	indici contati da zero
 	logical*1 getmem,freemem
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 	if(ndim(nmat).lt.2 .or. ndim(nmat).gt.4) return
 	if(matmode(nmat).gt.0)then
-	  call inp_msg('Not inplemented for symmetrized matrices')
+	  i1dmmy = inp_msg('Not inplemented for symmetrized matrices')
 	  return
 	endif
 
@@ -4565,12 +4585,12 @@ C	indici contati da zero
 	  isize=isize*step(nn,nmat)
 	end do
 	if(isize.gt.MAXSEGSIZE) then
-	  call inp_msg('Buffer size too large')
+	  i1dmmy = inp_msg('Buffer size too large')
 	  return
 	endif
 
 10	if(ndim(nmat).ge.3) then
-	  call inp_i2('The 2 axes you want to process',indx,indy)
+	  i1dmmy = inp_i2('The 2 axes you want to process',indx,indy)
 	  if(indx.lt.1 .or. indx.gt.ndim(nmat)) return
 	  if(indy.lt.1 .or. indy.gt.ndim(nmat)) return
 	  if(indx.eq.indy) return
@@ -4587,7 +4607,7 @@ C	indici contati da zero
           indg1=3
           indg2=4
 	endif
-	call inp_i2('# of channels to pack together X, Y',pack(indx),pack(indy))
+	i1dmmy = inp_i2('# of channels to pack together X, Y',pack(indx),pack(indy))
 	pack(indg1)=1
 	pack(indg2)=1
 	pack(indx)=max(1,min(pack(indx),res(indx,nmat)))
@@ -4598,15 +4618,15 @@ C	indici contati da zero
 	  goto 10
 	endif
 	if( istop .eq. 0 ) istop = res(indy,nmat)/pack(indy)-1
-	call inp_i2('Limits of the analysis region on axis '//chh(indy:indy),istart,istop)
+	i1dmmy = inp_i2('Limits of the analysis region on axis '//chh(indy:indy),istart,istop)
 	if(ndim(nmat).ge.3) then
-	  call inp_i2('Gate on side '//chh(indg1:indg1),wl1,wh1)
+	  i1dmmy = inp_i2('Gate on side '//chh(indg1:indg1),wl1,wh1)
 	  if(wl1.lt.0 .or. wl1.ge.res(indg1,nmat))return
 	  if(wh1.lt.0 .or. wh1.ge.res(indg1,nmat))return
 	  if(wl1.gt.wh1) call swapl(wl1,wh1)
 	endif
 	if(ndim(nmat).ge.4) then
-	  call inp_i2('Gate on side '//chh(indg2:indg2),wl2,wh2)
+	  i1dmmy = inp_i2('Gate on side '//chh(indg2:indg2),wl2,wh2)
 	  if(wl2.lt.0 .or. wl2.ge.res(indg2,nmat))return
 	  if(wh2.lt.0 .or. wh2.ge.res(indg2,nmat))return
 	  if(wl2.gt.wh2) call swapl(wl2,wh2)
@@ -4732,12 +4752,12 @@ C	indici contati da zero
 	logical*1 cmt_readspec,cmt_getproje
 
         if(.not.opened(nmat)) then
-          call inp_msg('Matrix is not opened')
+          i1dmmy = inp_msg('Matrix is not opened')
           return
         endif
 
         if(ndim(nmat).ne.2) then
-          call inp_msg('This command valid only for 2D Matrices')
+          i1dmmy = inp_msg('This command valid only for 2D Matrices')
           return
         endif
 
@@ -4751,8 +4771,8 @@ C	indici contati da zero
 	tmin_abs = res(2,nmat) *0.1
 	tmax_abs = res(2,nmat) *0.9
 	
-	call inp_i2('Region to search on 2nd axis  min, max  ',tmin_abs,tmax_abs)
-	call inp_r2('Fraction of intensity (%)     low, high ',frac_low,frac_high)
+	i1dmmy = inp_i2('Region to search on 2nd axis  min, max  ',tmin_abs,tmax_abs)
+	i1dmmy = inp_r2('Fraction of intensity (%)     low, high ',frac_low,frac_high)
 
 60      do ii=0,MAXRES-1
           lspec(ii)=0
@@ -4844,12 +4864,12 @@ C	indici contati da zero
 	logical*1 getmem,freemem
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 	if(ndim(nmat).lt.2 .or. ndim(nmat).gt.4) return
 	if(matmode(nmat).gt.0)then
-	  call inp_msg('Not inplemented for symmetrized matrices')
+	  i1dmmy = inp_msg('Not inplemented for symmetrized matrices')
 	  return
 	endif
 
@@ -4859,12 +4879,12 @@ C	indici contati da zero
 	  isize=isize*step(nn,nmat)
 	end do
 	if(isize.gt.MAXSEGSIZE) then
-	  call inp_msg('Buffer size too large')
+	  i1dmmy = inp_msg('Buffer size too large')
 	  return
 	endif
 
 10	if(ndim(nmat).ge.3) then
-	  call inp_i2('The 2 axes you want to present',indx,indy)
+	  i1dmmy = inp_i2('The 2 axes you want to present',indx,indy)
 	  if(indx.lt.1 .or. indx.gt.ndim(nmat)) return
 	  if(indy.lt.1 .or. indy.gt.ndim(nmat)) return
 	  if(indx.eq.indy) return
@@ -4881,7 +4901,7 @@ C	indici contati da zero
           indg1=3
           indg2=4
 	endif
-	call inp_i2('# of channels to pack together X, Y',pack(indx),pack(indy))
+	i1dmmy = inp_i2('# of channels to pack together X, Y',pack(indx),pack(indy))
 	pack(indg1)=1
 	pack(indg2)=1
 	pack(indx)=max(1,min(pack(indx),res(indx,nmat)))
@@ -4892,13 +4912,13 @@ C	indici contati da zero
 	  goto 10
 	endif
 	if(ndim(nmat).ge.3) then
-	  call inp_i2('Gate on side '//chh(indg1:indg1),wl1,wh1)
+	  i1dmmy = inp_i2('Gate on side '//chh(indg1:indg1),wl1,wh1)
 	  if(wl1.lt.0 .or. wl1.ge.res(indg1,nmat))return
 	  if(wh1.lt.0 .or. wh1.ge.res(indg1,nmat))return
 	  if(wl1.gt.wh1) call swapl(wl1,wh1)
 	endif
 	if(ndim(nmat).ge.4) then
-	  call inp_i2('Gate on side '//chh(indg2:indg2),wl2,wh2)
+	  i1dmmy = inp_i2('Gate on side '//chh(indg2:indg2),wl2,wh2)
 	  if(wl2.lt.0 .or. wl2.ge.res(indg2,nmat))return
 	  if(wh2.lt.0 .or. wh2.ge.res(indg2,nmat))return
 	  if(wl2.gt.wh2) call swapl(wl2,wh2)
@@ -5140,7 +5160,7 @@ C	indici contati da zero
 	PARAMETER (IY1=561)
 	PARAMETER (ISP=180)
 
-	call inp_ch('Please set the terminal to graphic mode and type <RET>',gch)
+	i1dmmy = inp_ch('Please set the terminal to graphic mode and type <RET>',gch)
 
 	call tekanmode
 
@@ -5603,8 +5623,8 @@ CVMS	write(6,'(1h+,i4)') iy_2
 *	  CALL MOVABS(0,500)
 	  call textmode
 	  write(6,*)
-	  call inp_r2('Xa, Xb',ax,bx)
-	  call inp_r2('Ya, Yb',ay,by)
+	  i1dmmy = inp_r2('Xa, Xb',ax,bx)
+	  i1dmmy = inp_r2('Ya, Yb',ay,by)
 	  mapped=.true.
 	  CALL tekANMODE
 	  goto 12
@@ -5614,9 +5634,9 @@ CVMS	write(6,'(1h+,i4)') iy_2
 *	  CALL MOVABS(0,500)
 	  call textmode
 	  write(6,*)
-	  call inp_r1('Angle (degrees)',angle)
+	  i1dmmy = inp_r1('Angle (degrees)',angle)
 	  rotate = angle .NE. 0.
-	  if(rotate) call inp_r2('Centered on',rx0,ry0)
+	  if(rotate) i1dmmy = inp_r2('Centered on',rx0,ry0)
 	  CALL tekANMODE
 	  goto 12
 
@@ -5740,8 +5760,8 @@ CVMS	write(6,'(1h+,i4)') iy_2
 	      CALL MOVABS(ixc,iyc)
 	      iyc=iyc-15
 	      CALL ANMODE
-	      if(nban.eq.1) write(6,'('' b1 = '',i )') iarea
-	      if(nban.eq.2) write(6,'('' b2 = '',i )') iarea
+	      if(nban.eq.1) write(6,'('' b1 = '',i16 )') iarea
+	      if(nban.eq.2) write(6,'('' b2 = '',i16 )') iarea
 	      call tekANMODE
 	    endif
 	  end do
@@ -5764,8 +5784,8 @@ CVMS	write(6,'(1h+,i4)') iy_2
 
 	elseif(gch.eq.'D') then
 	  call textmode
-	  call inp_i2('Xmin,Xmax',ix_l,ix_r)
-	  call inp_i2('Ymin,Ymax',iy_u,iy_o)
+	  i1dmmy = inp_i2('Xmin,Xmax',ix_l,ix_r)
+	  i1dmmy = inp_i2('Ymin,Ymax',iy_u,iy_o)
 	  ix_l=max(ix_l,0)
 	  iy_u=max(iy_u,0)
 	  if(transposed) then
@@ -5805,13 +5825,13 @@ CVMS	write(6,'(1h+,i4)') iy_2
 
 	elseif(gch.eq.'Z') then
 	  call textmode
-	  call inp_i1('z_offset',izoff)
+	  i1dmmy = inp_i1('z_offset',izoff)
 	  call tekanmode
 	  goto 10
 	
 	elseif(gch .eq. 'S') then
 	  call textmode
-	  call inp_i1('Color scale --> (1)Lin  (2)Log  (3)Sqrt',isctyp)
+	  i1dmmy = inp_i1('Color scale --> (1)Lin  (2)Log  (3)Sqrt',isctyp)
 	  call tekanmode
 	  goto 12
 
@@ -5978,11 +5998,11 @@ c	error = .false.
 *	save ban,nbans,gside1,gside2
 
 	if(.not.opened(nmat)) then
-	  call inp_msg('Matrix is not opened')
+	  i1dmmy = inp_msg('Matrix is not opened')
 	  return
 	endif
 	if(ndim(nmat).ne.3)then
-	 call inp_msg('This command works only for cubes')
+	 i1dmmy = inp_msg('This command works only for cubes')
 	 return
 	endif
 
@@ -6084,7 +6104,7 @@ c	error = .false.
 	luncheck = 0
 	call LIB$GET_LUN(luncheck)
 	if(luncheck.le.0) then
-	  call inp_msg('Could not get a LUN')
+	  i1dmmy = inp_msg('Could not get a LUN')
 	  MADD_GETBANANAS=0
 	  return
 	endif
@@ -6098,12 +6118,12 @@ c	error = .false.
 	    call filetype(ban(ii).banfname,'ban')
 	    open(unit=luncheck,file=ban(ii).banfname,status='old',err=11)
 	    goto 12
-11	    call inp_msg('Cannot open banana file')
+11	    i1dmmy = inp_msg('Cannot open banana file')
             goto 10
 12	    close(luncheck)	    
 	    call ban_getbanomap(6,ban(ii).banfname,-1,-1,ban(ii).limit(1,0),res(gside1,nmat),res(gside2,nmat),nbpoints)
 	    if(nbpoints.le.0)then
-	       call inp_msg('Cannot read banana from file')
+	       i1dmmy = inp_msg('Cannot read banana from file')
 	       goto 10
 	    endif
 	    nbans = ii
@@ -6133,7 +6153,7 @@ c	error = .false.
 	tmp(2)=autobg.FSTEP
 	tmp(3)=autobg.ITMAX
 	
-	call inp_r3('    ---> [ win_size, frac_step, max_iter_no ]',tmp(1), tmp(2),tmp(3))
+	i1dmmy = inp_r3('    ---> [ win_size, frac_step, max_iter_no ]',tmp(1), tmp(2),tmp(3))
 
 	autobg.M       = nint(tmp(1))
 	autobg.FSTEP   = tmp(2)
@@ -6178,25 +6198,25 @@ c	error = .false.
 	call AUTOBG_CmatChangeNotify
 	
 	if( .not. autobg.INITIALISED )then
-		call inp_msg('Automatic background not initialized, call SET_BACKGROUND command')
+		i1dmmy = inp_msg('Automatic background not initialized, call SET_BACKGROUND command')
 		error = .TRUE.
 		return
 	endif
 	
 	if( .not.opened(1) )then
-		call inp_msg('Compressed matrix not opened')
+		i1dmmy = inp_msg('Compressed matrix not opened')
 		error = .TRUE.
 		return
 	endif
 	
 	if(.not.cmt_info(%val(cmt(1)),-1,mdim,mmode))then
-		call inp_msg('Compressed matrix of unknown type')
+		i1dmmy = inp_msg('Compressed matrix of unknown type')
 		error = .TRUE.
 		return
 	endif
 	
 	if( mdim .ne. 2 .or. mmode .eq. 0 )then
-		call inp_msg('Automatic background implemented only for 2d-symm matrices')
+		i1dmmy = inp_msg('Automatic background implemented only for 2d-symm matrices')
 		error = .TRUE.
 		return
 	endif
@@ -6210,14 +6230,14 @@ c	error = .false.
 	call cmt_readspec_reset		 ! reset internal buffers
 
 	if(.not.cmt_info(%val(cmt(1)),-2,mres,mstep))then
-		call inp_msg('Errror reading from compressed matrix')
+		i1dmmy = inp_msg('Errror reading from compressed matrix')
 		error = .TRUE.
 		return
 	endif
 	autobg.RES = mres(1)
 	
 	if(.not.cmt_getproje(%val(cmt(1)),1,mproj))then
-		call inp_msg('Errror reading projection from compressed matrix')
+		i1dmmy = inp_msg('Errror reading projection from compressed matrix')
 		error = .TRUE.
 		return
 	endif
@@ -6277,7 +6297,7 @@ c	error = .false.
 
 	
 	if( NMarkers .lt. 2 )then
-		call inp_msg('At least a couple of valid markers must be given')
+		i1dmmy = inp_msg('At least a couple of valid markers must be given')
 		error = .TRUE.
 		return
 	endif
@@ -6308,7 +6328,7 @@ c	error = .false.
 	enddo
 
 	if( ngates(gside) .lt. 1 )then
-		call inp_msg('At least a couple of valid markers must be given')
+		i1dmmy = inp_msg('At least a couple of valid markers must be given')
 		error = .TRUE.
 		return
 	endif

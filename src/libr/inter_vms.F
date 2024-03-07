@@ -44,7 +44,9 @@ cCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 cCCC
 	subroutine lib$wait(time)
 ccCCC
+#if !defined( __GFORTRAN__ )
 	external 	sleep
+#endif
 	real 		time
 	integer*4	itime
 cC

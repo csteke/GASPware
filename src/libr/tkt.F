@@ -321,7 +321,12 @@ CVMS	write(6,'(1h+,<ipunt>a,$)') (char(buf(ii)),ii=1,ipunt)
 	integer ii,ich,ix,iy,ii1,ii2
 	integer ichar
 	ich=0
+#if defined( __GFORTRAN__ )
+	read(5,'(a)',err=100,end=100) chbuf
+	ii = len(chbuf)
+#else
 	read(5,'(q,a)',err=100,end=100) ii,chbuf
+#endif
 	if(ii.ne.5) return
 	ii1=ichar(chbuf(1:1))
 	ich=iand(ii1,127)

@@ -15,6 +15,10 @@
 
 	character*1 apparato /'G'/
 
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
+
 	call xinpmode(1)
 	call getenv('GSDIR',gsdir)
 	lgsdir=lengthc(gsdir)
@@ -50,7 +54,12 @@ C	if(dispersion.le.0) stop 'Please give a sensible value'
 	NlORD=NlCO-1
 	if(IlADC.ge.0 .and. IlADC.lt.MAXGER) then
 	if(NlORD.gt.0 .and. NlORD.le.MAXORD) then
+#if defined( __GFORTRAN__ )
+	   write(dyn_format,'(a,i0,a)')'(I5,I5,I4,F10.3,F10.6,',NlORD,'G13.5)'
+	   write(6,dyn_format(1:len(dyn_format))) IlTAP,IlADC,NlCO,(Temp(j),j=0,NlORD)
+#else
 	   write(6,'(I5,I5,I4,F10.3,F10.6,<NlORD>G13.5)') IlTAP,IlADC,NlCO,(Temp(j),j=0,NlORD)
+#endif
 C	   cfact=(1+avsuc*cosd(theta(iladc)))				! non relativistic
 	   cfact=sqrt(1-avsuc*avsuc)/(1-avsuc*cosd(theta(iladc)))	! relativistic
 	   cfact=cfact*dispersion
@@ -58,8 +67,15 @@ C	   cfact=(1+avsuc*cosd(theta(iladc)))				! non relativistic
 	   do ii=0,NlCo-1
 		temp(ii)=temp(ii)*cfact
 	   enddo
+#if defined( __GFORTRAN__ )
+	   write(dyn_format,'(a,i0,a)')'(14x,F10.3,F10.6,',NlORD,'G13.5)'
+	   write(6,dyn_format(1:len(dyn_format))) (Temp(j),j=0,NlORD)
+	   write(dyn_format,'(a,i0,a)')'(I5,I5,I3,F10.3,F10.6,',nlco,'G14.6)'
+	   WRITE(LUNO,dyn_format(1:len(dyn_format))) IlTAP,IlADC,NlCO,(temp(J),J=0,NlCo-1)
+#else
 	   write(6,'(14x,F10.3,F10.6,<NlORD>G13.5)') (Temp(j),j=0,NlORD)
 	   WRITE(LUNO,'(I5,I5,I3,F10.3,F10.6,<nlco>G14.6)') IlTAP,IlADC,NlCO,(temp(J),J=0,NlCo-1)
+#endif
 	endif
 	endif
 	goto 20

@@ -6,7 +6,7 @@
 	DIMENSION SIMBOLI(92),ZETA(92)
 	EQUIVALENCE (SIMBOLI(1),SIMBH(1)),(ZETA(1),ZETAH(1))
 	INTEGER ZETA, ZETAH, ZETAHE
-	DIMENSION EVET(100),COEFVET(100)
+*	DIMENSION EVET(100),COEFVET(100)
 
 	character*128 gsdir
 	integer*4 lgsdir
@@ -34,7 +34,7 @@ C	(DATI$TLGD) con un'interpolazione se il bersaglio e` il Gadolinio.
 
 	IF(INIT.EQ.0) GOTO 10	! Coefficienti gia letti
 
-        OPEN(UNIT=1,STATUS='OLD',NAME=gsdir(1:lgsdir)//'ziegdat.dat')
+        OPEN(UNIT=1,STATUS='OLD',FILE=gsdir(1:lgsdir)//'ziegdat.dat')
 *	DO J=1,4
 *		READ(1,*)
 *	ENDDO	
@@ -52,9 +52,9 @@ C	(DATI$TLGD) con un'interpolazione se il bersaglio e` il Gadolinio.
 	ENDDO
 	CLOSE(UNIT=1)
 
-        OPEN(UNIT=1,STATUS='OLD',NAME=gsdir(1:lgsdir)//'scoef.dat')
-	READ(1,*)NDIM,(EVET(I),I=1,NDIM),(COEFVET(I),I=1,NDIM)
-	CLOSE(UNIT=1)
+*NM        OPEN(UNIT=1,STATUS='OLD',FILE=gsdir(1:lgsdir)//'scoef.dat')
+*NM	READ(1,*)NDIM,(EVET(I),I=1,NDIM),(COEFVET(I),I=1,NDIM)
+*NM	CLOSE(UNIT=1)
 
 	INIT=0
 
@@ -146,10 +146,10 @@ C	Calcolo dello stopping nucleare (Ziegler J. of App. Phys.31 (1977) 544)
 	COEFLSS=8.462*ZP*ZB*AP/((AP+AB)*SQRT(Z2TERZI))
 	STNUC=STNUC*COEFLSS
 
-	IF(ABS(ZB-64.).LT.0.1 .AND. EMEVAMU.LE.4.) THEN	! Interpolazione se Gd
-		CALL INTERPOL(NDIM,3,EMEVAMU,COEFFIC,EVET,COEFVET)
-		STE=STE*COEFFIC
-	ENDIF
+*NM	IF(ABS(ZB-64.).LT.0.1 .AND. EMEVAMU.LE.4.) THEN	! Interpolazione se Gd
+*NM		CALL INTERPOL(NDIM,3,EMEVAMU,COEFFIC,EVET,COEFVET)
+*NM		STE=STE*COEFFIC
+*NM	ENDIF
 
 	STLSS=(STNUC+STE)/COEFLSS
 	RETURN

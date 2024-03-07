@@ -267,7 +267,7 @@ CVMS	  OPEN(UNIT=MLUN,FILE=filename,ACCESS='DIRECT',ORGANIZATION='sequential',ST
 #endif
 	endif
 
-#elif defined( __sun_c__ )
+#elif defined( __sun_c__ ) || defined( __GFORTRAN__ )
 	if(readonly) then
 	  OPEN(UNIT=MLUN,FILE=filename,STATUS='OLD',ACCESS='DIRECT',RECL=DRECBYTE,err=100,READONLY)
 	else

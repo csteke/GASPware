@@ -59,9 +59,9 @@ C
 
 	logical*1 connected	/.false./
 
-	integer  EBH_connect_to_bridge,EBH_read_spectrum
-	external EBH_connect_to_bridge,EBH_read_spectrum
-	integer*4 EBH_read
+*	integer  EBH_connect_to_bridge,EBH_read_spectrum
+*	external EBH_connect_to_bridge,EBH_read_spectrum
+*	integer*4 EBH_read
 
 	ENTRY READSPECR(FNAME,SPEK,FORM,NCAN,KV)
 	DATATYPE=1
@@ -89,11 +89,11 @@ C
 	endif
 
 10	IF(CH.EQ.'U') THEN			! UUUUUUUUUUUUUUUUUUUUUUUUUU
-#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER)
-	  OPEN(UNIT=1,STATUS='OLD',READONLY,NAME=LOCFNAME,ACCESS='DIRECT',RECL=128,ERR=7)
+#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER) 
+	  OPEN(UNIT=1,STATUS='OLD',READONLY,FILE=LOCFNAME,ACCESS='DIRECT',RECL=128,ERR=7)
 
-#elif defined( __sun_c__ )
-	  OPEN(UNIT=1,STATUS='OLD',READONLY,NAME=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
+#elif defined( __sun_c__ ) || defined( __GFORTRAN__ )
+	  OPEN(UNIT=1,STATUS='OLD',READONLY,FILE=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
 
 #elif defined(__PGI)
 	  OPEN(UNIT=1,status='OLD',file=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
@@ -122,11 +122,11 @@ C
 	  if(datatype.eq.0) call real_to_lint(spek,ncan)
 
 	ELSEIF(CH.EQ.'I') THEN			! IIIIIIIIIIIIIIIIIIIIIIIIII
-#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER)
-	  OPEN(UNIT=1,STATUS='OLD',READONLY,NAME=LOCFNAME,ACCESS='DIRECT',RECL=128,ERR=7)
+#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER) 
+	  OPEN(UNIT=1,STATUS='OLD',READONLY,FILE=LOCFNAME,ACCESS='DIRECT',RECL=128,ERR=7)
 
-#elif defined( __sun_c__ )
-	  OPEN(UNIT=1,STATUS='OLD',READONLY,NAME=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
+#elif defined( __sun_c__ ) || defined( __GFORTRAN__ )
+	  OPEN(UNIT=1,STATUS='OLD',READONLY,FILE=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
 
 #elif defined(__PGI)
 	  OPEN(UNIT=1,status='OLD',file=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
@@ -153,11 +153,11 @@ C
 	  if(datatype.eq.0) call real_to_lint(spek,ncan)
 
 	ELSEIF(CH.EQ.'R') THEN			! RRRRRRRRRRRRRRRRRRRRRRRRRRR
-#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER)
-	  OPEN(UNIT=1,STATUS='OLD',READONLY,NAME=LOCFNAME,ACCESS='DIRECT',RECL=128,ERR=7)
+#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER) 
+	  OPEN(UNIT=1,STATUS='OLD',READONLY,FILE=LOCFNAME,ACCESS='DIRECT',RECL=128,ERR=7)
 
-#elif defined( __sun_c__ )
-	  OPEN(UNIT=1,STATUS='OLD',READONLY,NAME=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
+#elif defined( __sun_c__ )|| defined( __GFORTRAN__ )
+	  OPEN(UNIT=1,STATUS='OLD',READONLY,FILE=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
 
 #elif defined(__PGI)
 	  OPEN(UNIT=1,status='OLD',file=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
@@ -183,11 +183,11 @@ C
 #endif	  
 
 	ELSEIF(CH.EQ.'L') THEN			! LLLLLLLLLLLLLLLLLLLLLLLLLLLL
-#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER)
-	  OPEN(UNIT=1,STATUS='OLD',READONLY,NAME=LOCFNAME,ACCESS='DIRECT',RECL=128,ERR=7)
+#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER) 
+	  OPEN(UNIT=1,STATUS='OLD',READONLY,FILE=LOCFNAME,ACCESS='DIRECT',RECL=128,ERR=7)
 
-#elif defined( __sun_c__ )
-	  OPEN(UNIT=1,STATUS='OLD',READONLY,NAME=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
+#elif defined( __sun_c__ ) || defined( __GFORTRAN__ )
+	  OPEN(UNIT=1,STATUS='OLD',READONLY,FILE=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
 
 #elif defined(__PGI)
 	  OPEN(UNIT=1,status='OLD',file=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
@@ -307,24 +307,24 @@ C
 	  call inp_setlun(jl1,jl2)
 	  goto 7
 
-	ELSEIF(CH.EQ.'E') THEN		! EEEEEEEEEEEEEEEEEEEEEEEEEEEE
-	  if(.not.connected) then
-CONLINE	    istat=EBH_connect_to_bridge()
-	    connected=.true.
-	  endif
-	  locfname=fname     ! per rimettere la parte #nn
-	  llocfname=lengthc(locfname)
-	  call char_to_bytes(LOCFNAME,cchz,lLOCFNAME)
-	  cchz(lLOCFNAME+1)=0
-CONLINE	  istat=EBH_read_spectrum(cchz, spek)
-	  istat=EBH_read(cchz, spek)
-	  if(istat.gt.0) then
-	    if(datatype.eq.1) call lint_to_real(spek,istat)
-	    kv=istat
-	  else
-	    kv=-5
-	  endif
-	  goto 300
+*	ELSEIF(CH.EQ.'E') THEN		! EEEEEEEEEEEEEEEEEEEEEEEEEEEE
+*	  if(.not.connected) then
+*CONLINE	    istat=EBH_connect_to_bridge()
+*	     connected=.true.
+*	   endif
+*	   locfname=fname     ! per rimettere la parte #nn
+*	   llocfname=lengthc(locfname)
+*	   call char_to_bytes(LOCFNAME,cchz,lLOCFNAME)
+*	   cchz(lLOCFNAME+1)=0
+*CONLINE   istat=EBH_read_spectrum(cchz, spek)
+*	   istat=EBH_read(cchz, spek)
+*	   if(istat.gt.0) then
+*	     if(datatype.eq.1) call lint_to_real(spek,istat)
+*	     kv=istat
+*	   else
+*	     kv=-5
+*	   endif
+*	   goto 300
 
 	ELSE					! ERROR
 	  KV=-2					! INVALID FORMAT
@@ -423,15 +423,15 @@ C
 
 	ELSEIF(CH.EQ.'R') then			! RRRRRRRRRRRRRRRRRRRRRRRRRRR
 	  NBLO=NKAP*8
-#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER)
-	  OPEN(UNIT=1,STATUS=FILESTAT,NAME=LOCFNAME,ACCESS='DIRECT',RECL=128,
+#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER) 
+	  OPEN(UNIT=1,STATUS=FILESTAT,FILE=LOCFNAME,ACCESS='DIRECT',RECL=128,
 #if defined(Digital)
 	1  INITIALSIZE=NBLO,
 #endif
 	2  ERR=7)
 
-#elif defined( __sun_c__ )
-	  OPEN(UNIT=1,STATUS=FILESTAT,NAME=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
+#elif defined( __sun_c__ ) || defined( __GFORTRAN__ )
+	  OPEN(UNIT=1,STATUS=FILESTAT,FILE=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
 
 #elif defined(__PGI)
 	  OPEN(UNIT=1,status=FILESTAT,file=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
@@ -457,15 +457,15 @@ C
 
 	ELSEIF(CH.EQ.'L' ) THEN			! LLLLLLLLLLLLLLLLLLLLLLLLLLLL
 	  NBLO=NKAP*8
-#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER)
-	  OPEN(UNIT=1,STATUS=FILESTAT,NAME=LOCFNAME,ACCESS='DIRECT',RECL=128,
+#if defined(Digital) || defined(__IFC) || defined(__INTEL_COMPILER) 
+	  OPEN(UNIT=1,STATUS=FILESTAT,FILE=LOCFNAME,ACCESS='DIRECT',RECL=128,
 #if defined(Digital)
 	1  INITIALSIZE=NBLO,
 #endif
 	2  ERR=7)
 
-#elif defined( __sun_c__ )
-	  OPEN(UNIT=1,STATUS=FILESTAT,NAME=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
+#elif defined( __sun_c__ ) || defined( __GFORTRAN__ )
+	  OPEN(UNIT=1,STATUS=FILESTAT,FILE=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)
 
 #elif defined(__PGI)
 	  OPEN(UNIT=1,status=FILESTAT,file=LOCFNAME,ACCESS='DIRECT',RECL=512,ERR=7)

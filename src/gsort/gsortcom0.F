@@ -25,7 +25,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCC Format e definizioni CCCCCCCCCCCCCCCCCCCCCCCCC
 	if( lengthn(comline) .eq. 0 )call gs_syntax('Must give the format type')
 	if( lengthn(comline) .gt. 0 )call gs_syntax('Must give a valid format type string')
 	
-	jj=istr_ch2up(comline,comsort)
+	jjdmmy = istr_ch2up(comline,comsort)
 	
 		
 	if( comsort(1:5) .eq. 'GASP2' )then
@@ -617,7 +617,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCC Format e definizioni CCCCCCCCCCCCCCCCCCCCCCCCC
 
 	ii=lengthn(comline)
 	if(ii.ne.-1) call gs_syntax('A single character for the name expected here')
-	call istr_ch2up(comline,comsort)
+	jjdmmy = istr_ch2up(comline,comsort)
 	if(comsort(1:1).eq.'H') call gs_syntax('Identifier H is reserved for HGATE')
 	if(comsort(1:1).eq.'P') call gs_syntax('Identifier P is reserved for PAIRS')
 	do ii=0,ntipi-1
@@ -640,7 +640,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCC Format e definizioni CCCCCCCCCCCCCCCCCCCCCCCCC
 	if(ii.gt.0) then
 	  call gs_syntax('PLUS expected here')
 	elseif(ii.lt.0) then
-	  call istr_ch2up(comline,comsort)
+	  jjdmmy = istr_ch2up(comline,comsort)
 	  lcomsort=lengthc(comsort)
 	  if(comsort(1:lcomsort).ne.'PLUS') call gs_syntax('PLUS expected here')
 	  ii=istr_i1(comline,MDPAR(0))
@@ -676,7 +676,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCC Format e definizioni CCCCCCCCCCCCCCCCCCCCCCCCC
 
 	ii=lengthn(comline)
 	if(ii.ne.-1) call gs_syntax('A single character for the name expected here')
-	call istr_ch2up(comline,comsort)
+	jjdmmy = istr_ch2up(comline,comsort)
 	if(comsort(1:1).eq.'H') call gs_syntax('Identifier H is reserved for HGATE')
 	if(comsort(1:1).eq.'P') call gs_syntax('Identifier P is reserved for PAIRS')
 	do ii=0,ntipi
@@ -707,7 +707,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCC Format e definizioni CCCCCCCCCCCCCCCCCCCCCCCCC
 	if(ii.gt.0) then
 	  call gs_syntax('PLUS expected here')
 	elseif(ii.lt.0) then
-	  call istr_ch2up(comline,comsort)
+	  jjdmmy = istr_ch2up(comline,comsort)
 	  lcomsort=lengthc(comsort)
 	  if(comsort(1:lcomsort).ne.'PLUS') call gs_syntax('PLUS expected here')
 	  ii=istr_i1(comline,MDPAR(ntipi))
@@ -757,7 +757,7 @@ C	if(dataformat .NE. EURO) call gs_syntax('Composite detectors only for EUROBALL
 
 	ii=lengthn(comline)
 	if(ii.ne.-1) call gs_syntax('A single character for the name expected here')
-	call istr_ch2up(comline,comsort)
+	jjdmmy = istr_ch2up(comline,comsort)
 	if(comsort(1:1).eq.'H') call gs_syntax('Identifier H is reserved for HGATE')
 	if(comsort(1:1).eq.'P') call gs_syntax('Identifier P is reserved for PAIRS')
 	do ii=0,ntipi
@@ -777,7 +777,7 @@ C	if(dataformat .NE. EURO) call gs_syntax('Composite detectors only for EUROBALL
 		ii=istr_ia(comline,PARRES(0,ntipi),N_COMM_P)
 		if(ii.ne.N_COMM_P) call gs_syntax('Wrong number of resolution parameters')
 	endif
-	call istr_ch2up(comline,comsort)
+	jjdmmy = istr_ch2up(comline,comsort)
 	lcomsort = lengthc( comsort )
 	if(comsort(1:lcomsort).ne.'SEG') call gs_syntax('SEG expected here')
 	
@@ -806,7 +806,7 @@ C	if(dataformat .NE. EURO) call gs_syntax('Composite detectors only for EUROBALL
 	if(ii.gt.0) then
 	  call gs_syntax('PLUS expected here')
 	elseif(ii.lt.0) then
-	  call istr_ch2up(comline,comsort)
+	  jjdmmy = istr_ch2up(comline,comsort)
 	  lcomsort=lengthc(comsort)
 	  if(comsort(1:lcomsort).ne.'PLUS') call gs_syntax('PLUS expected here')
 	  ii=istr_i1(comline,MDPAR(ntipi))
@@ -897,7 +897,7 @@ c	pointer (hashpnt,dat)
 	if(HPAR.lt.0 .or. HPAR .ge. TDPAR(HIND)) call gs_syntax('Non existing parameter')
 	iin=lengthn(comline)
 	if(iin.gt.0) then
-	  call istr_i1(comline,hngates)
+	  jjdmmy = istr_i1(comline,hngates)
 	  IF(hngates.LT.1) call gs_syntax('Wrong number of gates')
 	  hsameforall=.true.
 	  hfromfile=.false.
@@ -924,7 +924,7 @@ c	pointer (hashpnt,dat)
 	  hsameforall=.true.
 	  iin=lengthn(comline)
 	  do while(iin.lt.0)
-	    call istr_ch2up(comline,comsort)
+	    jjdmmy = istr_ch2up(comline,comsort)
 	    if(comsort(1:2).EQ.'I') then
 	      hsameforall=.false.
 	    elseif(comsort(1:2).EQ.'S') then
@@ -974,13 +974,21 @@ c	endif
 #include "gsort.inc"
 	
 	record/hashdat/dat
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 
 	list=' '
 	lgh=1
 	if(dat.which .GE. 10) lgh=2
+#if defined( __GFORTRAN__ )
+	write(dyn_format,'(i4)')lgh
+	dyn_format = adjustl(dyn_format)
+	write(list,dyn_format)' HGATE   H',dat.which,'  on'
+#else
 	write(list,4201)' HGATE   H',dat.which,'  on'
 4201	format(A,i<lgh>,A)
-
+#endif
 	llist=lengthc(list)+3
 	call gs_putindpar(dat.ind,dat.par)
 
@@ -1010,6 +1018,11 @@ c	endif
 #include "gsort.inc"
 	
 	record/hashdat/dat
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+	logical*1 inp_yes
+	external inp_yes
+#endif
 
 	if(init_mode.ne.0) return
 
@@ -1018,11 +1031,20 @@ c	endif
 	lfile=lengthc(dat.file)
 	lgp=1
 	if(dat.which .GE. 10) lgp=2
+#if defined( __GFORTRAN__ )
+	write(dyn_format,'(i4)')lgp
+	dyn_format = adjustl(dyn_format)
+	WRITE(LU1,*)
+	WRITE(LU1,dyn_format) ' Reading HGATE data for H',dat.which,'  from '//dat.file(1:lfile)
+	WRITE(LU2,*)
+	WRITE(LU2,dyn_format) ' HGATE data for H',dat.which,' taken from '//dat.file(1:lfile)
+#else
 4201	format(A,I<lgp>,A)
 	WRITE(LU1,*)
 	WRITE(LU1,4201) ' Reading HGATE data for H',dat.which,'  from '//dat.file(1:lfile)
 	WRITE(LU2,*)
 	WRITE(LU2,4201) ' HGATE data for H',dat.which,' taken from '//dat.file(1:lfile)
+#endif
 10	open(unit=gs2lun,file=dat.file,status='old',readonly,err=120)
 	if(dat.sameforall) then
 	  call gs_findrunadc(gs2lun,-1,-1,iok)
@@ -1267,14 +1289,22 @@ c	dat.file=pfile
 
 	integer nn
 	record/pairsdat/dat
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+#endif
 
 	write(LLUN,*)
 	lgp=1
 	if(nn.ge.10) lgp=2
 	lfile=lengthc(dat.file)
+#if defined( __GFORTRAN__ )
+	write(dyn_format,'(i4)')lgp
+	dyn_format = adjustl(dyn_format)
+	write(LLUN,dyn_format) ' PAIRS  (P',nn,')    taken from   '//dat.file(1:lfile)
+#else
 4201	format(A,I<lgp>,A)
 	write(LLUN,4201) ' PAIRS  (P',nn,')    taken from   '//dat.file(1:lfile)
-
+#endif
 	return
 
 	end
@@ -1285,6 +1315,11 @@ c	dat.file=pfile
 
 	integer nn
 	record/pairsdat/dat
+#if defined( __GFORTRAN__ )
+	character*64 dyn_format
+	logical*1 inp_yes
+	external inp_yes
+#endif
 
 	if(init_mode.ne.0) return
 
@@ -1292,11 +1327,20 @@ c	dat.file=pfile
 	lgp=1
 	if(nn.ge.10) lgp=2
 
+#if defined( __GFORTRAN__ )
+	write(dyn_format,'(i4)')lgp
+	dyn_format = adjustl(dyn_format)
+	WRITE(LU1,*)
+	WRITE(LU1,'(A,I'//dyn_format//',A)') ' Reading PAIRS data for P',nn,'  from '//dat.file(1:lfile)
+	WRITE(LU2,*)
+	WRITE(LU2,'(A,I'//dyn_format//',A)') ' PAIRS data for P',nn,' taken from '//dat.file(1:lfile)
+#else
 4201	format(A,I<lgp>,A)
 	WRITE(LU1,*)
 	WRITE(LU1,4201) ' Reading PAIRS data for P',nn,'  from '//dat.file(1:lfile)
 	WRITE(LU2,*)
 	WRITE(LU2,4201) ' PAIRS data for P',nn,' taken from '//dat.file(1:lfile)
+#endif
 
 10	open(unit=gs2lun,file=dat.file,status='old',readonly,err=120)
 	do i2=0,MAXDET-1

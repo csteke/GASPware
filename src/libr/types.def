@@ -28,6 +28,24 @@
 #   define _GW_LITTLE_ENDIAN
 #   define _GW_64_BYTES
 
+#elif defined( __GFORTRAN__ ) 
+#   if(    __SIZEOF_POINTER__ == 4 )
+#      define MACHINE_POINTERSIZE integer*4
+#      define _GW_32_BYTES
+#   elif( __SIZEOF_POINTER__ == 8 )
+#      define MACHINE_POINTERSIZE integer*8
+#      define _GW_64_BYTES
+#   else
+#      error "Undefined pointer size in GFORTRAN system"
+#   endif
+#   if(    __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#     define _GW_LITTLE_ENDIAN
+#   elif(__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#     define _GW_BIG_ENDIAN
+#   else
+#      error "Invalid endian in GFORTRAN system"
+#   endif
+
 #else
 #   error "Undefined platform"
 #endif

@@ -15,7 +15,7 @@
 	character Tfname*60
 	character*78 comment,labinfo
 
-	CHARACTER CDATE*11,CTIME*8
+	CHARACTER CDATE*11,CTIME*10
 
 	logical*1 graphics	/.FALSE./
 
@@ -68,6 +68,10 @@
 
 *	call inp_ask('Graphics',graphics)
 
+#if defined(__GFORTRAN__)
+	call date_and_time(DATE=cdate, TIME=ctime)
+#else
+
 #if defined(__IFC) || defined(__INTEL_COMPILER)
 	CALL DATE4(CDATE)
 #else
@@ -75,6 +79,7 @@
 #endif
 	CALL TIME(CTIME)
 
+#endif
 	do nspec=1,nspectra
 10	  if(graphics) call disp_initt
 	  call readdat(0,FNAME,spek,nchan,iform,kv)
@@ -302,6 +307,9 @@
 
 	real dwin0(4),dwin1(4),dwin2(4)
 	real XSCA0,YSCA0,XSCA1,YSCA1,XSCA2,YSCA2
+#if defined( __GFORTRAN__ )
+	character*128 dyn_format
+#endif
 	
 	spek(0)=0
 	spek(1)=0
@@ -544,13 +552,21 @@ C  trova il secondo picco piu' alto
 
 	if(lun1.gt.0) then
 	  lfname=lengthc(fname)
+#if defined( __GFORTRAN__ )
+	  write(dyn_format,'(a,i0,a)')'(',lfname+1,'x,f8.1,f10.0,f6.2,1x,1H(,f4.2,1H-,f4.2,1h),f5.1,f6.1,f5.1,f5.1)'
+#endif
 	  if(graphics) then
 	    call disp_posabs(0.,twin2(3)-10)
 	    write(lun1,*)
 	    write(lun1,'(1x,a       ,f8.1,f10.0,f6.2,1x,1H(,f4.2,1H-,f4.2,1h),f5.1,f6.1,f5.1,f5.1)')
  	1	fname(1:lfname),xpos1,area1,fwhm1,wtml1,wtmr1,min(99.9,chi1)
+#if defined( __GFORTRAN__ )
+	    write(lun1,dyn_format(1:len(dyn_format)))
+ 	1	                xpos2,area2,fwhm2,wtml2,wtmr2,min(99.9,chi2),pt050,pt100,pt200
+#else
 	    write(lun1,'(<lfname+1>x,f8.1,f10.0,f6.2,1x,1H(,f4.2,1H-,f4.2,1h),f5.1,f6.1,f5.1,f5.1)')
  	1	                xpos2,area2,fwhm2,wtml2,wtmr2,min(99.9,chi2),pt050,pt100,pt200
+#endif
 	  else
 	    write(lun1,'(1x,a,f8.1,f10.0,f6.2,1x,1H(,f4.2,1H-,f4.2,1h),f5.1,f6.1,f5.1,f5.1)')
  	1	fname(1:lfname),xpos2,area2,fwhm2,wtml2,wtmr2,min(99.9,chi2),pt050,pt100,pt200

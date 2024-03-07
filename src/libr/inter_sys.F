@@ -55,7 +55,24 @@ C
 
 	end
 
+#if defined(__GFORTRAN__)
+	SUBROUTINE TIMESTAMP(LUN,string)
 
+	CHARACTER CDATE*11,CTIME*10
+	character*(*) string
+	
+	call date_and_time(DATE=cdate, TIME=ctime)
+	lstring=lengthc(string)
+	if(lstring.gt.0) then
+	  WRITE(LUN,'(1X,A,2X,A,2X,A)') CDATE,CTIME,string(1:lstring)
+	else
+	  WRITE(LUN,'(1X,A,2X,A)') CDATE,CTIME
+	endif
+
+	return
+
+	end
+#else
 	SUBROUTINE TIMESTAMP(LUN,string)
 
 	CHARACTER CDATE*11,CTIME*8
@@ -77,7 +94,7 @@ C
 	return
 
 	end
-
+#endif
 
 c	SUBROUTINE CPU_SECONDS(TIME)
 c

@@ -25,6 +25,8 @@ c	end
 
 	subroutine ban_getbanana(iol,banfile,irun,iadc,banana,bres1,bres2,np)
 
+	logical*1 inp_yes
+	external inp_yes
 	integer iol,irun,iadc,bres1,bres2,np
 	character banfile*(*)
 	integer banana(2,0:bres1-1)
@@ -71,6 +73,8 @@ cvax	open(unit=lun,file=banfile,status='old',defaultfile='.ban',readonly,err=20)
 
 	subroutine ban_getbanomap(iol,banfile,irun,iadc,banana,bres1,bres2,np)
 
+	logical*1 inp_yes
+	external inp_yes
 	integer iol,irun,iadc,bres1,bres2,np
 	character banfile*(*)
 	integer banana(2,0:bres1-1)

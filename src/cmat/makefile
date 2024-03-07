@@ -35,17 +35,23 @@ endif
 INCLUDE = $(OPTX11) -I../Ygl-4.0
 
 
-############################### Linux is the default choice
-linux: FOR = pgf77
-linux: CC  = gcc  -mpreferred-stack-boundary=2 -march=i686
-linux: OPT = -Mextend  -Mdollar,X $(GS_OPT)
-linux : $(P00)
+############################### PGI compilers for Linux/ix86 and MacOS
+pgi: FOR = pgf77
+pgi: CC  = pgcc  
+pgi: OPT = -Mextend  -Mdollar,X $(GS_OPT)
+pgi: $(P00)
 
-################################ Intel compilers for Linux/ix86 
+################################ Intel compilers for Linux/ix86 and MacOS
 intel: FOR = ifort @../../etc/ifc.cfg 
 intel: CC  = icc @../../etc/icc.cfg  $(GS_OPT) 
 intel: OPT =  $(GS_OPT)
 intel: $(P00)
+
+############################### GCC(>6.x) compilers on Linux/ix86 and MacOS
+gnu: FOR = $(GNU_FOR)  
+gnu: CC  = $(GNU_CC)    $(GS_OPT) 
+gnu: OPT = $(GS_OPT)
+gnu: $(P00)
 
 ############################### Solaris Studio FORTRAN compiler for Linux/ix86
 sstudio: FOR = sunf90 -silent -f77 -ftrap=%none

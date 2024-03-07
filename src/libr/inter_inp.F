@@ -246,7 +246,11 @@ C$-
 2	II(2)=II2
 1	II(1)=II1
 
+#if defined( __GFORTRAN__ )
+	idmmy = INP_IA(TEXT,II,NII)
+#else
 	CALL INP_IA(TEXT,II,NII)
+#endif
 	GOTO IGO
 
 108	II8=II(8)
@@ -343,7 +347,11 @@ C$-
 2	RR(2)=RR2
 1	RR(1)=RR1
 
+#if defined( __GFORTRAN__ )
+	idmmy = INP_RA(TEXT,RR,NRR)
+#else
 	CALL INP_RA(TEXT,RR,NRR)
+#endif
 	GOTO IGO
 
 108	RR8=RR(8)
@@ -441,7 +449,11 @@ C$-
 2	DD(2)=DD2
 1	DD(1)=DD1
 
+#if defined( __GFORTRAN__ )
+	idmmy = INP_DA(TEXT,DD,NDD)
+#else
 	CALL INP_DA(TEXT,DD,NDD)
+#endif
 	GOTO IGO
 
 108	DD8=DD(8)
@@ -938,7 +950,13 @@ C$-
 	endif
 	
 	IF(MODE.EQ.0) LBB=0
+	
+#if defined( __GFORTRAN__ )
+        IF(LBB.LE.0) READ(LUIN,'(A)',END=99,ERR=99) BB	
+	LBB = len(BB)
+#else
 	IF(LBB.LE.0) READ(LUIN,'(Q,A)',END=99,ERR=99) LBB,BB
+#endif
 	IFLAG=0
 	RETURN
 
@@ -1055,7 +1073,11 @@ C$-
 
 	IIC=0
 	IF(LBB.EQ.1 .AND. BB(1:1).EQ.'?') THEN
+#if defined( __GFORTRAN__ )
+		IF(LUOUT.GT.0) WRITE(LUOUT,'(1X,4I10)') (IA(II),II=1,N)
+#else
 		IF(LUOUT.GT.0) WRITE(LUOUT,'(1X,4I)') (IA(II),II=1,N)
+#endif
 		IFLAG=-1
 		LBB=0
 		RETURN
@@ -1091,7 +1113,11 @@ C$-
 
 	IIC=0
 	IF(LBB.EQ.1 .AND. BB(1:1).EQ.'?') THEN
+#if defined( __GFORTRAN__ )
+		IF(LUOUT.GT.0) WRITE(LUOUT,'(1X,4G16.3)') (RA(II),II=1,N)
+#else
 		IF(LUOUT.GT.0) WRITE(LUOUT,'(1X,4G)') (RA(II),II=1,N)
+#endif
 		IFLAG=-1
 		LBB=0
 		RETURN
@@ -1150,7 +1176,11 @@ C$-
 		RETURN
 	ENDIF
 
+#if defined( __GFORTRAN__ )
+	READ(CC(1:LCC),*,ERR=200) I4
+#else
 	READ(CC(1:LCC),'(I)',ERR=200) I4
+#endif
 	DDD=I4
 	RETURN
 
@@ -1158,7 +1188,11 @@ C$-
 		LCC=LCC+1
 		CC(LCC:LCC)='.'
 	ENDIF
+#if defined( __GFORTRAN__ )
+	READ(CC(1:LCC),*,ERR=300) DDD
+#else
 	READ(CC(1:LCC),'(E)',ERR=300) DDD
+#endif
 	RETURN
 
 300	IF(LUOUT.GT.0) WRITE(LUOUT,
@@ -1459,8 +1493,8 @@ C  istr_d1...8	Input 1...8  reali doppia precisione
 
 	function istr_ii(bb,ii)
 
-	parameter (MININT=-2147483648)
-	parameter (MAXINT= 2147483647)
+	parameter (DMININT=-2147483648.0)
+	parameter (DMAXINT= 2147483647.0)
 
 	character*(*) bb
 	integer ii
@@ -1472,12 +1506,21 @@ C  istr_d1...8	Input 1...8  reali doppia precisione
 	ltoken=lengthn(bb)
 	if(ltoken.le.0) goto 100
 
+#if defined( __GFORTRAN__ )
+	read(bb(1:ltoken),*,err=10) iii
+#else
 	read(bb(1:ltoken),'(i)',err=10) iii
+#endif
 	ii=iii
 	goto 100
 
-10	read(bb(1:ltoken),'(d)',err=20) ddd
-	if(ddd.GT.MAXINT .OR. ddd.LT.MININT) then
+10	continue
+#if defined( __GFORTRAN__ )
+	read(bb(1:ltoken),*,err=20) ddd
+#else
+	read(bb(1:ltoken),'(d)',err=20) ddd
+#endif
+	if(ddd.GT.DMAXINT .OR. ddd.LT.DMININT) then
 	  ltoken=-1
 	else
 	  ii=ddd
@@ -1604,7 +1647,12 @@ C  istr_d1...8	Input 1...8  reali doppia precisione
 	rr=rrr
 	goto 100
 
-10	read(bb(1:ltoken),'(d)',err=20) ddd
+10      continue
+#if defined( __GFORTRAN__ )
+	read(bb(1:ltoken),*,err=20) ddd
+#else
+	read(bb(1:ltoken),'(d)',err=20) ddd
+#endif
 	rr=ddd
 	goto 100
 

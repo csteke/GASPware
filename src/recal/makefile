@@ -16,17 +16,23 @@ LinuxLIB   = -L../libr -linter ../libr/inter_isl.o ../libr/inter_inpx.o -lpthrea
 SunLIB     = -L../libr -linter ../libr/inter_isl.o ../libr/inter_inpx.o -lposix4
 DigitalLIB = -L../libr -linter ../libr/inter_isl.o ../libr/inter_inpx.o
 
-############################### Linux is the default choice
-linux: FOR = pgf77 -Mextend  -Mdollar,X $(GS_OPT) $(GS_ONLINE)
-linux: CC  = gcc   -mpreferred-stack-boundary=2 -march=i686 $(GS_ONLINE)
-linux: LIB = $(LinuxLIB)
-linux: all
+############################### PGI compilers for Linux/ix86 and MacOS
+pgi: FOR = pgf77 -Mextend  -Mdollar,X $(GS_OPT) $(GS_ONLINE)
+pgi: CC  = pgcc    $(GS_ONLINE)
+pgi: LIB = $(LinuxLIB)
+pgi: all
 
-############################### Intel compilers on Linux/ix86
+############################### Intel compilers on Linux/ix86  and MacOS
 intel: FOR = ifort @../../etc/ifc.cfg $(GS_OPT) $(GS_ONLINE)
 intel: CC  = icc @../../etc/icc.cfg   $(GS_OPT) $(GS_ONLINE)
 intel: LIB = $(LinuxLIB)
 intel: all
+
+############################### GCC(>6.x) compilers on Linux/ix86 and MacOS
+gnu: FOR = $(GNU_FOR)  $(GS_OPT) $(GS_ONLINE)
+gnu: CC  = $(GNU_CC)   $(GS_OPT) $(GS_ONLINE)
+gnu: LIB = $(LinuxLIB)
+gnu: all
 
 ############################### Solaris Studio FORTRAN compiler for Linux/ix86
 sstudio: FOR = sunf90 -silent -f77 -ftrap=%none -e -D__sun_c__ -xpp=cpp  $(GS_OPT) $(GS_ONLINE)
