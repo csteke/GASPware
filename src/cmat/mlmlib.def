@@ -1,0 +1,39 @@
+#include "../libr/types.def"
+
+	IMPLICIT NONE
+
+	integer FRACT
+	PARAMETER (FRACT=8)
+	integer MLM_GAP
+	PARAMETER (MLM_GAP=2)
+
+	structure/mlmque/
+	  integer start
+	  integer next
+	  integer end
+	  integer nflush
+	endstructure
+
+	structure/mlmdef/
+	  integer nseg
+	  integer nbyt
+	  integer mlmllen
+	  integer lsegmin
+	  integer lsegmax
+CVMS	  integer   obufbase
+	  MACHINE_POINTERSIZE obufbase
+CVMS	  integer   listbase
+	  MACHINE_POINTERSIZE listbase
+CVMS	  integer   listlen
+	  MACHINE_POINTERSIZE listlen
+CVMS	  integer   recsbase
+	  MACHINE_POINTERSIZE recsbase
+	  integer nrecs
+	  integer nrecsmax
+	  integer nrecsstep
+	  integer nrecsfmin
+	  integer recsfree
+	  integer*8 nflush
+	  record/mlmque/que(0:1)
+	endstructure
+

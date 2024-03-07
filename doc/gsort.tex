@@ -1,0 +1,1775 @@
+\documentstyle[11pt,a4]{article}
+\topmargin 0cm
+\oddsidemargin0cm
+\evensidemargin0cm
+\textwidth15cm
+\textheight23cm
+\parindent1cm
+\begin{document}
+
+~\vskip9cm
+\begin{center}
+{\Large\bf\underline{GSORT PROGRAM}} \\
+\bigskip
+Part of the GASP Data Analysis Program Package\\
+\bigskip
+\bigskip
+{Dino~Bazzacco and Calin~A.~Ur} \\
+\bigskip
+{\small\it INFN, Sezione di Padova, Italy}\\
+\bigskip
+May 13, 1997
+\end{center}
+
+\newpage
+\begin{center}
+{\large\bf TABLE OF CONTENTS} \\
+\end{center}
+\bigskip
+\bigskip
+
+\begin{tabular}{rrlcr}
+1.&   &Introduction        & ........................................................... & ~4\\
+2.&   &Summary of          &                                                             &   \\
+  &   &sorting commands    & ........................................................... & ~5\\
+  &2.1& Format             & ........................................................... & ~5\\
+  &2.2& Declarations       & ........................................................... & ~6\\
+  &2.3& Analysis           & ........................................................... & ~7\\
+3.&   &Detailed description&                                                             &   \\
+  &   & of sorting commands& ........................................................... & 13\\
+  &3.1& Format             &                                                             &   \\
+  &   & ~~~~~Event type    & ........................................................... & 13\\
+  &   & ~~~~~HEADER        & ........................................................... & 13\\
+  &   & ~~~~~DETECTOR      & ........................................................... & 13\\
+  &   & ~~~~~CDETECTOR     & ........................................................... & 14\\
+  &3.2& Declarations       &                                                             &   \\
+  &   & ~~~~~RAWFOLDMIN    & ........................................................... & 15\\
+  &   & ~~~~~HGATEDEF      & ........................................................... & 15\\
+  &   & ~~~~~PAIRDEF       & ........................................................... & 16\\
+  &3.3& Analysis           &                                                             &   \\
+  &   & ~~~~~ADD           & ........................................................... & 17\\
+  &   & ~~~~~ADDBACK       & ........................................................... & 17\\
+  &   & ~~~~~BANANA        & ........................................................... & 17\\
+  &   & ~~~~~BANANAS       & ........................................................... & 18\\
+  &   & ~~~~~COMBINE       & ........................................................... & 18\\
+  &   & ~~~~~COPY          & ........................................................... & 18\\
+  &   & ~~~~~EBKILL        & ........................................................... & 18\\
+  &   & ~~~~~FOLD          & ........................................................... & 18\\
+  &   & ~~~~~GAIN          & ........................................................... & 19\\
+  &   & ~~~~~GATE          & ........................................................... & 19\\
+  &   & ~~~~~GATES         & ........................................................... & 19\\
+  &   & ~~~~~HK            & ........................................................... & 19\\
+  &   & ~~~~~HSORT1D       & ........................................................... & 20\\
+  &   & ~~~~~KILL          & ........................................................... & 20\\
+  &   & ~~~~~LIST\_EVENT   & ........................................................... & 20\\
+  &   & ~~~~~MASK          & ........................................................... & 21\\
+  &   & ~~~~~MERGE         & ........................................................... & 21\\
+  &   & ~~~~~MOVE          & ........................................................... & 22\\
+  &   & ~~~~~PIN           & ........................................................... & 22\\
+  &   & ~~~~~PROJECTIONS   & ........................................................... & 23\\
+  &   & ~~~~~RECAL         & ........................................................... & 23\\
+  &   & ~~~~~RECAL\_DOPPLER& ........................................................... & 24\\
+  &   & ~~~~~RECAL\_LUT    & ........................................................... & 24\\
+  &   & ~~~~~RECAL\_KINE   & ........................................................... & 25\\
+  &   & ~~~~~RECALL\_EVENT & ........................................................... & 26\\
+  &   & ~~~~~REORDER       & ........................................................... & 26\\
+\end{tabular}
+\newpage
+\begin{tabular}{rrlcr}
+  &   & ~~~~~SELECT        & ........................................................... & 26\\
+  &   & ~~~~~SORT1D        & ........................................................... & 26\\
+  &   & ~~~~~SORT2D        & ........................................................... & 27\\
+  &   & ~~~~~SORT3D        & ........................................................... & 27\\
+  &   & ~~~~~SORT4D        & ........................................................... & 27\\
+  &   & ~~~~~SORT2D\_SYMM  & ........................................................... & 28\\
+  &   & ~~~~~SORT3D\_SYMM  & ........................................................... & 28\\
+  &   & ~~~~~SORT4D\_SYMM  & ........................................................... & 28\\
+  &   & ~~~~~SORT2D\_HSYMM & ........................................................... & 28\\
+  &   & ~~~~~SORT3D\_HSYMM & ........................................................... & 28\\
+  &   & ~~~~~SORT4D\_HSYMM & ........................................................... & 28\\
+  &   & ~~~~~SORT3D\_PAIR  & ........................................................... & 28\\
+  &   & ~~~~~SPLIT         & ........................................................... & 28\\
+  &   & ~~~~~STATISTICS    & ........................................................... & 29\\
+  &   & ~~~~~STORE\_EVENT  & ........................................................... & 29\\
+  &   & ~~~~~SWAP          & ........................................................... & 29\\
+  &   & ~~~~~TIME\_ADJUST  & ........................................................... & 29\\
+  &   & ~~~~~USERSUB       & ........................................................... & 29\\
+  &   & ~~~~~WINDOW        & ........................................................... & 29\\
+  &   & ~~~~~WRITE\_EVENT  & ........................................................... & 29\\
+4.&   & Appendix           & ........................................................... & 31\\
+  &4.1& GASP standard event&                                                             &   \\
+  &   & format             & ........................................................... & 31\\
+  &4.2& Examples of SETUP  &                                                             &   \\
+  &   & files              & ........................................................... & 34\\
+\end{tabular}
+
+\newpage
+\noindent
+{\large\bf 1. INTRODUCTION} \\
+
+\bigskip
+The {\bf GSORT} program is part of the Data Analysis Program Package developed
+at Padova/Legnaro designed to treat data from {\it GASP/EUROBALL}. 
+It can execute the following operations:
+\begin{enumerate}
+\item projection of raw data;
+\item recalibration of the raw data;
+\item addback;
+\item passing form composite detectors to ID ordered single detectors;
+\item tape-to-tape (reduced format);
+\item sort data in 1D/2D/3D/4D spectra;
+\item sort data in gated 1D/2D/3D/4D spectra ;
+\item sort data in multiply gated 1D spectra (cubic or spherical gates).
+\end{enumerate}
+
+The sequence of operations to be executed by the program is given in a SETUP
+file.
+The SETUP file for sorting {\it GASP} or {\it EUROBALL} data is structured 
+according to the different stages of the event analysis, as follows:
+
+\begin{enumerate}
+ \item	{\bf\it FORMAT} Section \\
+        contains the description of the event and defines new parameters 
+        to be used during the offline analysis;
+
+ \item	{\bf\it DECLARATION} Section \\
+	selection of the events according to some general rules which have 
+	to be obeyed by all the events;
+
+ \item	{\bf\it ANALYSIS} Section \\    
+	contains commands for the effective analysis of the data, as: 
+	calibration of the parameters, their ranges and multiplicities; 
+	defines the final action to be done during the sort procedure: 
+	projecting the data, copying the data or building coincidence cubes 
+	and matrices.
+\end{enumerate}
+
+The commands specific to each section are presented below. Note 
+that commands belonging to different sections cannot be mixed. Sections
+has to be specified in the order 1$\rightarrow$2$\rightarrow$3.
+
+Commands are presented as follows: 
+
+\hskip2cm\parbox[t]{7cm} 
+{
+	1. First row~~~: name   \\
+	2. Second row: effect  \\ 
+	3. Third row~~: syntax 
+}
+\bigskip
+\bigskip
+
+\noindent
+{\bf WARNING} !!! \hskip1cm Channels and parameters within a detector are 
+counted starting from 0.
+
+\newpage
+
+\noindent
+{\large\bf 2. SUMMARY OF THE SORTING COMMANDS} \\
+
+\bigskip
+{\large\underline{\bf 2.1~FORMAT}} \\
+
+\begin{itemize}
+
+ \item 	{\it\underline{GASP}} \\
+	{\sc Define GASP type event format (DEFAULT)} 
+
+	\smallskip
+	{\bf GASP} 
+
+ \item 	{\it\underline{EUROBALL}} \\
+	{\sc Define EUROBALL type event format}
+
+	\smallskip
+	{\bf EUROBALL} \\
+
+ \item 	{\it\underline{GAMMASPHERE}} \\
+	{\sc Define GAMMASPHERE type event format (only Ge data implemented)}
+
+	\smallskip
+	{\bf GAMMASPHERE} \\
+
+ \item 	{\it\underline{HEADER}} \\
+	{\sc Define fixed parameters named 'F' (header of the event)}
+
+	\smallskip
+	{\bf HEADER F \#pars  Res\{\#pars\} [PLUS \#pars+ Res\{\#pars+\}]} \\
+
+ \item 	{\it\underline{DETECTOR}} \\
+	{\sc Define a detector type named 'D'}
+
+	\smallskip
+	{\bf DETECTOR D \#detectors \#pars Res\{\#pars\} [PLUS \#pars+ 
+	Res\{\#pars+\}]} \\
+
+ \item 	{\it\underline{CDETECTOR}} \\
+	{\sc Define a composite detector type named 'C'}
+
+	\smallskip
+	{\bf CDETECTOR C \#detectors \#segments \#pars Res\{\#pars\} 
+	[PLUS \#pars+ Res\{\#pars+\}]} \\
+
+\end{itemize}
+
+\newpage
+{\large\underline{\bf 2.2~DECLARATIONS}} \\
+
+
+\begin{itemize}
+
+ \item 	{\it\underline{RAWFOLDMIN}} \\
+	{\sc Define minimum fold to accept event from tape}
+
+	\smallskip
+	{\bf RAWFOLDMIN foldmin\{for every defined detector\}} \\
+
+ \item	{\it\underline{HGATEDEF}} \\
+	{\sc Define a multiple gate to be applied to a parameter during sort}
+
+	\smallskip
+	{\bf HGATEDEF Pn \#gates} 
+
+	\hskip1cm Wl Wh \{\#gates lines\} \\
+
+  	{\bf HGATEDEF Pn file\_with\_gates [Individual$|$Same\_for\_all]} \\
+
+ \item	{\it\underline{PAIRDEF}} \\
+	{\sc Define a list of indexed pairs of detectors}
+
+	\smallskip
+	{\bf PAIRDEF file\_with\_list\_of\_pairs} 
+	
+\end{itemize}
+
+\newpage
+{\large\underline{\bf 2.3~ANALYSIS}} \\
+
+\begin{itemize}
+
+ \item	{\it\underline{ADD}} \\
+	{\sc Add [with factors] two parameters of a detector an put result in a third one}
+
+	\smallskip
+	{\bf ADD P1 P2 P3 FACTOR f1 f2 OFFSET off3 GAIN g3} \\
+
+ \item	{\it\underline{ADDBACK}} \\
+	{\sc Addback of composite detectors} 
+
+	\smallskip
+	{\bf ADDBACK Dn} \\
+
+ \item	{\it\underline{BANANA}} \\
+	{\sc One two-dimensional gate}
+
+	\smallskip
+	{\bf BANANA Px Py [In$|$Out] banana\_file Rx Ry FOLD\_GATE} \\
+
+ \item	{\it\underline{BANANAS}} \\
+	{\sc Multiple two-dimensional gate}
+
+	\smallskip
+	{\bf BANANAS Px Py [In$|$Out] \#bananas banana\_file(\#bananas\_times) 
+	Rx Ry FOLD\_GATE} \\
+
+ \item	{\it\underline{COMBINE}} \\
+	{\sc Combine two parameters of a detector an put result in a third one}
+
+	\smallskip
+	{\bf COMBINE P1 P2 P3 LIMIT nchan} \\
+
+ \item 	{\it\underline{EBKILL}} \\
+	{\sc Kill detectors according to list of bad detectors}
+
+	\smallskip
+	{\bf EBKILL  D  bad\_detectors.file [RUN$|$NORUN} \\
+
+ \item 	{\it\underline{FOLD}} \\
+	{\sc Discard event if number of detectors is outside limits}
+
+	\smallskip
+	{\bf FOLD  D  Min Max} \\
+
+ \item	{\it\underline{GAIN}} \\
+	{\sc Change gain of a parameter}
+
+	\smallskip
+	{\bf GAIN Pn Offset Gain Wl Wh FOLD\_GATE} \\
+
+ \item	{\it\underline{GATE}} \\
+	{\sc One gate on a parameter }
+
+	\smallskip
+	{\bf GATE Pn [In$|$Out] Low High FOLD\_GATE} \\
+
+ \item	{\it\underline{GATES}} \\
+	{\sc Multiple gates on a parameter }
+
+	\smallskip
+	{\bf GATES Pn [In$|$Out] \#gates (Low High)(\#gates\_times) FOLD\_GATE} \\
+
+ \item	{\it\underline{HK}} \\
+	{\sc Total energy H and fold K of a detector (e.g. BGO ball)}
+	\smallskip
+
+	{\bf HK Dn Fh Fk Offset Gain Wl Wh} \\
+	\smallskip
+	Offset, Gain, Wl, Wh applied to H \\
+
+ \item	{\it\underline{HSORT1D}} \\
+	{\sc One-dimensional sort of width 'cubic' or 'spherical' HGATES}
+
+	\smallskip
+	{\bf HSORT1D Px spectrumname [Res R] Hash [maxtimes$>$1]
+	Cubic$|$Spherical} \\
+
+ \item	{\it\underline{KILL}} \\
+	{\sc Kill detectors from the event}
+
+	\smallskip
+	{\bf KILL D \{list\_of\_detectors\_to\_kill\}} \\
+
+ \item	{\it\underline{LIST\_EVENT}} \\
+	{\sc List events on terminal or in a disk\_file}
+
+	\smallskip
+	{\bf LIST\_EVENTS [filename]} \\
+
+ \item	{\it\underline{MASK}} \\
+	{\sc Binary mask of a parameter}
+
+	\smallskip
+	{\bf MASK Px mask} \\
+
+ \item	{\it\underline{MERGE}} \\
+	{\sc Merge detectors together}
+
+	\smallskip
+	{\bf MERGE 
+	\{list\_of\_detectors\_type\_to\_merge\_into\_destination\_D\} D} \\
+
+ \item	{\it\underline{MOVE}} \\
+	{\sc Move a list of detectors of one type into another type}
+
+	\smallskip
+	{\bf MOVE D [list\_of\_detectors] N [id\_of\_first] [GATE Pn [In$|$Out] 
+	Low High]} \\
+
+ \item	{\it\underline{PIN}} \\
+	{\sc Particle Identification Number for the charged particles
+	detected }
+
+	\smallskip
+	{\bf PIN  Px Py Fn  \#bananas  Rx Ry  FOLD\_GATE 
+
+	\hskip1cm \{\#particles\_in\_banana\_1 weight\_of\_banana\_1 
+		banana\_file\_1\} 
+
+	\hskip1cm \{\#particles\_in\_banana\_2 weight\_of\_banana\_2 
+		banana\_file\_2\} 
+
+	\hskip1cm \{     .............................................     \}}\\
+
+ \item	{\it\underline{PROJECTIONS}} \\
+	{\sc Projections for all defined parameters and detectors}
+
+	\smallskip
+	{\bf PROJECTIONS [Filename \{for\_all\_defined\_parameters\}]} \\
+
+ \item	{\it\underline{RECAL}} \\
+	{\sc Recalibration of a parameter. Coefficients from file}
+
+	\smallskip
+	{\bf RECAL Pn file.cal [RUN$|$NORUN] Offset Gain Wl Wh FOLD\_GATE} \\
+
+ \item	{\it\underline{RECAL\_DOPPLER}} \\
+	{\sc Doppler correction with recoil velocity function of gamma energy}
+
+	\smallskip
+	{\bf RECAL\_DOPPLER Pn v0\_\% [E0 E1 v1\_\%] (GASP$|$EB$|$Angles\_file) Offset Gain 
+	Wl Wh FOLD\_GATE} \\
+
+ \item	{\it\underline{RECAL\_LUT}} \\
+	{\sc Recalibration of a parameter from look\_up table}
+
+	\smallskip
+	{\bf RECAL\_LUT Pn file.lut [RUN$|$NORUN] Wl Wh FOLD\_GATE} \\
+
+ \item	{\it\underline{RECAL\_KINE}} \\
+	{\sc Kinematic reconstruction of gamma ray energy parameter according 
+	to the geometry of the detected charged particles }
+
+	\smallskip
+	{\bf RECAL\_KINE Pn (GASP$|$EB$|$Angles\_file\_Ge) Offset Gain Wl Wh 
+	FOLD\_GATE 
+
+	\hskip1cm Bx By \#bananas Rx Ry description.file
+		  (GASP$|$EB$|$Angles\_file\_Si)} \\
+
+ \item	{\it\underline{RECALL\_EVENT}} \\
+	{\sc Recal the saved copy and continue analysis}
+
+	\smallskip
+	{\bf RECALL\_EVENT  ALWAYS or IFVALID} \\
+
+ \item	{\it\underline{REORDER}} \\
+	{\sc Order the sequence of detectors of the event	}
+
+	\smallskip
+	{\bf REORDER [D]} \\
+
+ \item	{\it\underline{SELECT}} \\
+	{\sc Select events with defined detectors}
+
+	\smallskip
+	{\bf SELECT D \{list\_of\_detectors\_to\_select\}} \\
+
+ \item	{\it\underline{SORT1D}} \\
+	{\sc One-dimensional sort of any parameter	}
+
+	\smallskip
+	{\bf SORT1D Px spectrumname [Res R] [Hash [\#times]]} \\
+
+ \item	{\it\underline{SORT2D}} \\
+	{\sc Two-dimensional sort of any pair of parameters	}
+
+	\smallskip
+	{\bf SORT2D Px Py matrixname [Res Rx Ry] [Step Sx Sy] [Hash 
+	[\#times]]} \\
+
+ \item	{\it\underline{SORT3D}} \\
+	{\sc Three-dimensional sort of any triplet of parameters	}
+
+	\smallskip
+	{\bf SORT3D Px Py Pz matrixname [Res Rx Ry Rz] [Step Sx Sy Sz] [Hash 
+	[\#times]]} \\
+
+ \item	{\it\underline{SORT4D}} \\
+	{\sc Four-dimensional sort of any quadruplet of parameters	}
+
+	\smallskip
+	{\bf SORT4D Px Py Pz Pt matrixname [Res Rx Ry Rz Rt] [Step Sx Sy Sz St] 
+	[Hash [\#times]]} \\
+
+ \item	{\it\underline{SORT2D\_SYMM}} \\
+	{\sc Symmetrized two-dimensional sort 	}
+
+	\smallskip
+	{\bf SORT2D\_SYMM Px matrixname [Res R] [Step S] [Hash [\#times]]} \\
+
+ \item	{\it\underline{SORT3D\_SYMM}} \\
+	{\sc Symmetrized three-dimensional sort }
+
+	\smallskip
+	{\bf SORT3D\_SYMM Px matrixname [Res R] [Step S] [Hash [\#times]]} \\
+
+ \item	{\it\underline{SORT4D\_SYMM}} \\
+	{\sc Symmetrized four-dimensional sort	}
+
+	\smallskip
+	{\bf SORT4D\_SYMM Px matrixname [Res R] [Step S] [Hash [\#times]]} \\
+
+ \item	{\it\underline{SORT2D\_HSYMM}} \\
+	{\sc Half-symmetrized two-dimensional sort }	
+
+	\smallskip
+	{\bf SORT2D\_HSYMM Px matrixname [Res R] [Step S] [Hash [\#times]]} \\
+
+ \item	{\it\underline{SORT3D\_HSYMM}} \\
+	{\sc Half-symmetrized three-dimensional sort }
+
+	\smallskip
+	{\bf SORT3D\_HSYMM Px matrixname [Res R] [Step S] [Hash [\#times]]} \\
+
+ \item	{\it\underline{SORT4D\_HSYMM}} \\
+	{\sc Half-symmetrized four-dimensional sort	}
+
+	\smallskip
+	{\bf SORT4D\_HSYMM Px matrixname [Res R] [Step S] [Hash [\#times]]} \\
+
+ \item	{\it\underline{SORT3D\_PAIR}} \\
+	{\sc A cube of Px-Py-Pair\_index}
+
+	\smallskip
+	{\bf SORT3D\_PAIR Px Py Pn matrixname [Res Rx Ry Rn] [Step Sx Sy Sn]}\\ 
+
+ \item	{\it\underline{SPLIT~}}\footnotemark[1] \\
+	{\sc Split detectors from one type to a list of ....}
+
+	\smallskip
+	{\bf SPLIT D \{list\_of\_destination\_types\} 
+	\{\#detectors\_for\_each\_destination\}} \\
+
+ \item	{\it\underline{STATISTICS}} \\
+	{\sc Calculate the statistics of detectors}
+
+	\smallskip
+	{\bf STATISTICS} \\
+
+ \item	{\it\underline{STORE\_EVENT}} \\
+	{\sc Save a copy of the event in its present status}
+
+	\smallskip
+	{\bf STORE\_EVENT} \\
+
+ \item	{\it\underline{SWAP}} \\
+	{\sc Swap two parameters}
+
+	\smallskip
+	{\bf SWAP Px Py} \\
+
+ \item	{\it\underline{TIME\_ADJUST}} \\
+	{\sc Improve the timming by adjustment of the time reference} 
+
+	\smallskip
+	{\bf TIME\_ADJUST Pn position rejection\_factor Wl Wh FOLD\_GATE} \\
+
+ \item	{\it\underline{USERSUB}} \\
+	{\sc User defined routines}
+
+	\smallskip
+	{\bf USERSUB1 \\
+	............... \\
+	USERSUB9}
+
+ \item	{\it\underline{WINDOW}} \\
+	{\sc Gates on all the parameters of the defined type }
+
+	\smallskip
+	{\bf WINDOW P (Wl Wh)\{\#parameters\_times\} FOLD\_GATE} \\
+	
+
+ \item	{\it\underline{WRITE\_EVENT}} \\
+	{\sc Write events to Tape or Disk\_file (possibly in reduced format)}
+
+	\smallskip
+	{\bf WRITE\_EVENT [Tape$|$Disk]  [Reduce \{0$|$1 
+	for\_every\_defined\_parameter\}]} \\
+
+\end{itemize}
+
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+\newpage
+\noindent
+{\large\bf 3. DETAILED DESCRIPTION OF THE SORTING COMMANDS} \\
+
+\bigskip
+\bigskip     
+
+{\large\underline{\bf 3.1~FORMAT}} \\
+
+\begin{itemize}
+
+ \item	{\it\underline{GASP}} \\
+
+	Defines the format of the event to be analized as being of the GASP
+	type (cf. Appendix 1). This is the DEFAULT event format. 
+
+ \item	{\it\underline{EUROBALL}} \\
+
+	Defines the format of the event to be analized as being of the EUROBALL
+	type (cf. {\bf EDOC312} PS file EUROBALL DAQ description).
+
+ \item	{\it\underline{HEADER}} \\
+
+ 	Defines the number of fixed parameters ({\bf "\#pars"}) present in 
+	the event (header of the event). The numbering of these parameters 
+	starts from 0 and further will be refered as {\bf F0, F1, ...}. 
+	After {\bf "\#pars"} follows the list of the lengths of the spectra 
+	associated with the fixed parameters ({\bf resolution}). For each 
+	defined
+	fixed parameter it is associated a resolution {\bf "Res"} number. 
+	In a standard (GASP I) measurement this command looks like:
+
+	\hskip1cm  	{\bf HEADER F 2 4096 4096}\\
+	and means that there are 2 fixed parameters each written on 
+	4096 channels where F0 = sum energy from the BGO inner ball 
+	and F1 = fold spectrum from the BGO inner ball. \\
+
+	There is the possibility to add fixed parameters to the header using
+	the {\bf "PLUS"} subcommand which allows to define {\bf "\#pars+"}
+	supplimentary fixed parameters to be used during the analysis, each 
+        having specified the resolution.
+
+	\hskip1cm	{\bf HEADER F 2 4096 4096 PLUS 2 512 4096} \\
+	In the above example two more parameters have been added ({\bf F2 and
+	F3}) with the resolutions 512 and 4096 channels, respectively.\\
+
+	Maximum number of fixed parameters is 32.
+
+ \item	{\it\underline{DETECTOR}} \\
+
+	Defines the single-detector classes present in the event ({\bf "D"}).\\
+	For each class the command contains: 
+
+	\hskip0.5cm number of detectors ({\bf "\#detectors"})
+
+	\hskip0.5cm number of parameters for each detector ({\bf "\#pars"})
+
+	\hskip0.5cm resolution of each of the parameters ({\bf "\#Res"})\\
+
+	In a GASP event the Ge detectors are described as follows:
+
+	\hskip1cm {\bf DETECTOR G 40 4 8192 4096 4096 4096} \\
+	meaning that there are 40 Ge detectors each one having
+	4 parameters: G0 = energy written on 8192 channels, G1 = time 
+	written on 4096 channels, G2 = energy released in segment A
+	and G3 = energy released in segment B. \\
+	For ISIS:
+
+	\hskip1cm {\bf DETECTOR S 40 4 4096 4096 4096 4096} \\
+	where: S0 = DE energy, S1 = E energy, S2 = DE time and S3 = E time.\\
+	For BGO inner ball:
+
+	\hskip1cm {\bf DETECTOR B 80 2 4096 4096 } \\
+	where: B0 = energy, B1 = time.\\
+
+	One can add new parameters to the detector class using
+	the {\bf "PLUS"} subcommand which allows to define {\bf "\#pars+"}
+	supplimentary parameters each having specified its resolution
+	(see HEADER command). In this way one can define new detectors to
+	be used during the analysis; e.g.:
+
+	\hskip1cm {\bf DETECTOR T 20 PLUS 3 4096 4096 4096}.
+
+
+ \item	{\it\underline{CDETECTOR}} \\
+
+	Defines the composite-detector classes present in the event 
+	({\bf "C"}). \\ 
+	For each class the command contains:
+ 
+	\hskip0.5cm number of detectors ({\bf "\#detectors"})
+
+	\hskip0.5cm number of segments ({\bf "\#segments"})
+
+	\hskip0.5cm number of parameters for each segment ({\bf "\#pars"})
+
+	\hskip0.5cm resolution of each of the parameters ({\bf "\#Res"})\\
+
+	In an EUROBALL event the Ge Cluster detectors are described as 
+	follows:
+
+	\hskip1cm {\bf CDETECTOR C 15 7 2 8192 8192} \\
+	meaning that there are 15 cluster detectors each one having
+	7 segments with 2 parameters: C0 = energy, C1 = time 
+	written on 8192 channels. \\
+	For Ge Clover detectors:
+
+	\hskip1cm {\bf CDETECTOR Q 26 4 2 8192 8192} \\
+	For Ge Tapered detectors (if defined as composite as we locally 
+	prefer):
+
+	\hskip1cm {\bf CDETECTOR T 30 1 2 8192 8192} \\
+
+	One can add new parameters to the detector class using
+	the {\bf "PLUS"} subcommand which allows to define {\bf "\#pars+"}
+	supplimentary parameters each having specified its resolution
+	(see HEADER command).
+\end{itemize}
+
+\newpage
+
+{\large\underline{\bf 3.2~DECLARATIONS}} \\
+
+\begin{itemize}
+ \item	{\it\underline{RAWFOLDMIN}} \\
+
+	It acts when reading events from the tape selecting only the ones 
+	which have at least {\bf "foldmin"} detectors. The minimum fold to 
+	be considered has to be defined for each defined detector in the order
+	they have been defined in FORMAT section. Default value is 0.\\
+	It allows a fast selection of the events in terms of the
+	multiplicity before analysing them.\\
+
+	\hskip1.0cm {\bf RAWFOLDMIN 2 1} \\
+ 	to accept only events which have at least 2 detectors from the first 
+	class and 1 from the second one.
+
+ \item	{\it\underline{HGATEDEF}} \\
+
+	It defines a number {\bf "\#gates"} of gates to be applied on the
+	parameter {\bf "Pn"}. Wl and Wh define the limits of each 
+	gate. Gates are specified in separate lines. \\
+	The gates can be specified also from a file {\bf "file\_with\_gates"}.
+	The gates can be
+	specified for each detector individually ({\bf "Individual"}) or
+	the same for all of them ({\bf "Same\_for\_all"}). The limits of the 
+	gates have to be specified in channels. 
+	The channels Wl and Wh belong to the gate.   \\
+
+	It is used in order to create cubes, matrices or spectra in
+	coincidence with gates on a specified parameter.\\
+
+	The file with gates has the following format:\\
+	
+	\hskip1.0cm Case 1: "Individual"
+
+	\hskip1.5cm ADC 00~~~~~~$|$
+
+	\hskip1.5cm Wl1	~~Wh1 ~$|$
+
+	\hskip1.5cm Wl2	~~Wh2 ~$|$
+
+	\hskip1.5cm ........... ~~~~~~$|$
+
+	\hskip1.5cm ADC 01~~~~~~$|$
+
+	\hskip1.5cm Wl1' ~Wh1'  $|$
+
+	\hskip1.5cm Wl2' ~Wh2'  $|$   ====$>$  individ.gates
+
+	\hskip1.5cm ........... ~~~~~~$|$
+
+	\hskip1.5cm ........... ~~~~~~$|$
+
+	\hskip1.5cm ........... ~~~~~~$|$
+
+	\hskip1.5cm ADC 39~~~~~~$|$
+
+	\hskip1.5cm Wl1" Wh1"	$|$
+
+	\hskip1.5cm Wl2" Wh2"	$|$
+
+	\hskip1.5cm ...........	~~~~~~$|$ \\
+	
+	\hskip1.0cm Case 2: "Same\_for\_all"
+
+	\hskip1.5cm Wl1	Wh1
+
+	\hskip1.5cm Wl2	Wh2
+
+	\hskip1.5cm ........... \\
+
+	\hskip1cm {\bf HGATEDEF G1 individ.gates INDIVIDUAL}\\
+	meaning that the gates on the parameter {\bf G1} 
+	are listed in the file {\bf individ.gates} for each detector
+	separately. 
+
+ \item	{\it\underline{PAIRDEF}} 
+\end{itemize}
+
+\newpage
+
+{\large\underline{\bf 3.3~ANALYSIS}} \\
+
+\begin{itemize}
+ \item	{\it\underline{ADD}} \\
+
+	Gives the possibility to sum two parameters, {\bf "P1"} and 
+	{\bf "P2"}, and 
+	to put the result in a third one, {\bf "P3"}, all of them belonging to 
+	the same type of detectors. All three parameters have to be previously
+	defined. The parameters to be added must have the same dimension. The 
+	operation can be done also
+	using multiplicative factors for each of the three parameters, 
+	{\bf "f1"}, {\bf "f2"} and {\bf "f3"}, respectively. The DEFAULT 
+	value for the factors is 1. They cannot be 0. 
+
+	\hskip1cm{\bf DETECTOR G 40 4 8192 4096 4096 4096 PLUS 1 4096 }
+
+	\hskip1cm{\bf ADD G2 G3 G4  1 1 2 } \\
+	adds parameters G2 and G3 the result being stored in G4 after 
+	multiplying the result by 2.
+
+ \item	{\it\underline{ADDBACK}} \\
+	
+	Performs the addback of the energy signals in the segments of 
+	composite detectors. The procedure is applied when 2 or 3 
+	neighbouring segments
+	of the same composite detector fired in coincidence.
+
+	Cluster detectors case: \\
+	- all the possible combinations of two neighbouring segments;
+	when the two segments are not neighbouring the signals are 
+	treated as two different events;\\
+	- combinations of two neighbouring segments plus the central 
+	one.
+
+	Clover detectors case: \\
+	-combinations of two neighbouring segments excluding the diagonal 
+	cases.
+ 
+	In all cases of addback the sum energy is attributed to the 
+	segment in which the major energy was released.
+
+	\hskip1cm{\bf ADDBACK G1}\\
+	The addback procedure will be applied for the G1 parameter.
+
+ \item	{\it\underline{BANANA~}}\footnotemark[2]$^,$\footnotemark[3] \\
+
+	Defines a two-dimensional gate in the plane specified by the
+	parameters {\bf "Px"} and {\bf "Py"}. 
+	The command is selecting only the events having the 
+	pair of parameters inside the banana gate. The dimension of 
+	space in which the banana was defined is given by the resolution
+	parameters {\bf "Rx"} and {\bf "Ry"}. 
+	The points defining the banana gate are taken from the file 
+	{\bf "banana.file"} where they are listed on two columns X (Px) and 
+	Y (Py).
+
+	\hskip1cm {\bf BANANA S1 S0 banana.file 1024 1024 1 20} \\
+	selects the events in which the S1 S0 coincidences are
+	inside the surface defined by the banana file "banana.file", 
+	considering 1024 channels for each parameter, and only if 
+	the condition is satisfied by at least one pair and less 
+	than 21.  
+
+ \item	{\it\underline{BANANAS~}}\footnotemark[2]$^,$\footnotemark[3] \\
+	Defines more bananas in the space defined by the same parameters in an
+	OR relationship.
+
+	\hskip1cm {\bf BANANAS S1 S0 OUT 2 ban1.file ban2.file 1024 1024 1 20}\\
+	only events which have the pair (S1,S0) outside the two bananas are
+	considered.
+
+ \item	{\it\underline{COMBINE}} \\
+
+	Merges the first two parameters, {\bf "P1"} and {\bf "P2"}, in a third one, 
+	{\bf "P3"} (all of them belonging to the same type of detectors). All three 
+	parameters have to be previously defined. The resulting spectrum will be built 
+	as follows: \\
+	\hskip0.5cm P1 if its content is lower than {\bf "nchan"} \\
+	\hskip0.5cm ~~~if its content is higher than {\bf "nchan"} but P2 is missing \\
+	\hskip0.5cm P2 if its content is higher than {\bf "nchan"} \\
+
+	\hskip1cm{\bf DETECTOR G 239 3 8192 8192 8192 PLUS 1 8192 }
+
+	\hskip1cm{\bf COMBINE G1 G0 G3 LIMIT 7000} \\
+	combine the 4 MeV and 20 MeV parameters (G1 and G0) the result being stored in 
+	G3. The 4 MeV data are taken below channel 7000 (e.g., 3.5 MeV if data are 
+	calibrated to 0.5 keV/ch) and the 20 MeV data above channel 7000.
+
+ \item	{\it\underline{COPY}} \\
+
+ \item	{\it\underline{EBKILL}} \\
+        Allows to eliminate the bad detectors for all runs or for some of them.
+	In the case of composite detectors the detector is throuwn away only if 
+	the bad capsule or one of its neighbours was hit.
+	The list of bad detectors is organized as follows:
+
+	\hskip1cm RUN  1
+
+	\hskip1cm 12 14 90 189
+
+	\hskip1cm RUN  6
+
+	\hskip1cm 12 84 90 208
+
+	\hskip1cm RUN 10
+
+	\hskip1cm 12 
+
+	\hskip1cm ....................
+
+	For the NORUN case the file contains only one row with the numbers of
+	the bad capsules.
+	
+	\hskip1cm {\bf EBKILL G detector.bad RUN}\\ 
+	detectors G will be eliminated from the events according to the list 
+	"detector.bad" which is organized in a RUN dependend manner.
+
+ \item	{\it\underline{FOLD}} \\
+
+        It is used in order to put a window on the number of detectors
+	of class {\bf "D"} 
+	to be considered for the analysis. The window is defined by the
+	numbers {\bf "Min"} and {\bf "Max"}. By DEFAULT the fold window is
+	completely opened. 
+	
+	\hskip1cm {\bf FOLD G 2 40}\\ 
+	means that only events having at least 2 and less than 41 {\bf G} 
+	type detectors fired are accepted.
+
+ \item	{\it\underline{GAIN~}}\footnotemark[2] \\
+
+	Changes the gain of one parameter ({\bf "Pn"}). The linear
+	recalibration is done according to the coefficients {\bf "Offset"}
+ 	and {\bf "Gain"}. A gate is defined on the recalibrated parameter
+	({\bf "Wl"} and {\bf "Wh"}). The event is passed to the program 
+	for further processing only if the {\bf "FOLD\_GATE"} condition is 
+	satisfied. 
+
+	\hskip1cm {\bf GAIN G0 0 2 10 2047 2 20}\\
+	changes the gain of the G0 parameter from (OLDGAIN) to 
+	(OLDGAIN/2) and keeps only events having the recalibrated parameter
+	between 10 and 2047 and there at least two of themin the event and
+	less than 21.  
+
+ \item	{\it\underline{GATE~}}\footnotemark[2]$^,$\footnotemark[3] \\
+
+	Defines a gate on one of the parameters ({\bf "Pn"}).
+	If the parameter does not 
+	satisfy the condition the event is discarded. 
+  		    
+	\hskip1cm {\bf GATE F0 10 4095} \\
+	put a gate on the F0 header parameter between the channels 10 and 
+	4095.
+
+	\hskip1cm {\bf GATE G0 10 4095 2 20} \\
+	put a gate on the G0 detector parameter between the channels 10 and 
+	4095 if the {\bf "FOLD\_GATE"} condition is satisfied.
+
+ \item	{\it\underline{GATES~}}\footnotemark[2]$^,$\footnotemark[3] \\
+
+	Defines a number of {\bf "\#gates"} gates to be applied on the {\bf
+	"Pn"} parameter. The gates are in and OR relationship. 
+	If the parameter does not 
+	satisfy the condition the event is not analysed. 
+
+	\hskip1cm {\bf GATES F2 3 100 120 200 220 300 320 } \\
+	means that the event is valid only if the HEADER paramter F2 is inside
+	the limits of one of the three defined gates.
+
+	\hskip1cm {\bf GATE G1 OUT 2 10 100 1000 4095 2 20} \\
+	a valid event has at least 2 but less than 20 G1 parameters outside 
+	the limits of the two defined gates.
+
+	This command is implemented through a look-up table and therefore a 
+	check is performed that gate limits are consistent with the resolution 
+	of the parameter as defined in the SETUP file.
+
+ \item	{\it\underline{HK}} \\
+
+	Builds the sum energy and multiplicity spectra for the parameter 
+	{\bf "Dn"} of a class of detectors. The spectra are written in the
+	HEADER type parameters {\bf "Fh"} and {\bf "Fk"}, respectively.
+	These parameters have to be defined previously in the HEADER command.
+
+	The sum energy spectrum is compressed by a a factor of {\bf "Gain"} 
+	and shifted with the {\bf "Offset"} value.The final spectrum is cut
+	between the channels {\bf "Wl"} and {\bf "Wh"}.
+
+	As example can be the case when the BGO detectors of the GASP inner
+	ball are recorded as individual detectors:
+	
+	\hskip1cm{\bf HEADER F PLUS 2 2048 128
+	
+	\hskip1cm     DETECTOR B 80 2 4096 4096
+
+	\hskip1cm     HK B0 F0 F1 0 2 10 2047 }\\
+	The sum energy sum and multiplicity of the inner ball are reconstructed
+	from the individual detector information and put in the HEADER 
+	parameters F0 and F1, respectively. The sum energy is compressed by a
+	factor 2 and cut between the channels 10 and 2047. The multiplicity
+	spectrum is recorded on 128 channels.
+
+ \item	{\it\underline{HSORT1D~}}\footnotemark[6] \\
+
+	Produces 1D spectra of the parameter {\bf "Px"} named {\bf
+	"spectrumname"} with the resolution {\bf "R"}. DEFAULT value for the
+	resolution is the resolution of the parameter. 
+	The spectrum file contains a stack of spectra from \#00 to \#{\bf
+	"maxtimes"} meaning that the first one (\#00) is in coincidence with 
+	zero gates, the second one (\#01) is in coincidence with one of the
+	gates from the list, the third one (\#02) is in coincidence with two 
+	of the gates from the list and so on.
+
+	The gates can be of {\bf S} type ({\bf "Spherical"}) or of {\bf C} type
+	({\bf "Cubic"}).
+
+	\hskip1cm{\bf HSORT1D G0 MULTIPLE.GATED 4096 Hash 9 S}
+	In the file MULTIPLE.GATED 10 spectra of the G0 parameter 0.1,2,...,9 
+	times gated are
+	written each one having a length of 4096 channels. The gates are
+	treated as spherical ones.
+
+ \item	{\it\underline{KILL}} \\
+
+	Eliminates from the event the detectors of {\bf "D"} type  
+	specified in {\bf "list\_of\_detectors\_to\_kill"} by their 
+	ADC numbers. 
+		
+	\hskip1cm{\bf KILL G 0 1 2 3 4 5} \\
+	eliminates from the event the G type detectors from 0 to 5.
+
+ \item	{\it\underline{LIST\_EVENT}} \\
+
+	Lists the content of the events on terminal or disk\_file 
+	({\bf "filename"}) in a decoded form.
+
+	\hskip1cm{\bf F 403  409} 
+
+	\hskip1cm{\bf G  2  32 1834 2452    0    0   17 1470  890 1120  350 } 
+
+	\hskip1cm{\bf S  2   6  135  551  603  448    8   70  444  818  734} \\
+	meaning that:
+\begin{center}
+\begin{tabular}{rcr}
+			bgo\_esum         & = & 403  \\
+			bgo\_mult         & = & 409  \\ 
+		no\_of\_fired\_Ge         & = & 2    \\
+				id        & = & 32   \\
+				ener      & = & 1834 \\
+				time      & = & 2452 \\
+				ener\_A   & = & 0    \\ 
+				ener\_B   & = & 0    \\
+				id        & = & 17   \\ 
+				ener      & = & 1470 \\
+				time      & = & 890  \\
+				ener\_A   & = & 1120 \\
+				ener\_B   & = & 350  \\
+			no\_of\_fired\_Si & = & 2    \\
+				id        & = & 6    \\
+				de        & = & 135  \\
+				e         & = & 551  \\
+				tde       & = & 603  \\
+				te        & = & 448  \\
+				id        & = & 8    \\
+				de        & = & 70   \\
+				e         & = & 444  \\
+				tde       & = & 818  \\
+				te        & = & 734  
+\end{tabular}
+\end{center}
+
+ \item	{\it\underline{MASK}} \\
+	 	
+ \item	{\it\underline{MERGE}} \\
+
+	Starting from several classes of detectors forms a unique list of
+	detectors ordered by id's in a new class of detector defined to have 
+	the proper number of detectors.
+
+	\hskip1cm{\bf CDETECTOR C 15 7 3 8192 8192 8192} 
+
+	\hskip1cm{\bf CDETECTOR Q 26 4 3 8192 8192 8192}
+
+	\hskip1cm{\bf CDETECTOR T 35 1 3 8192 8192 8192}
+
+	\hskip1cm{\bf DETECTOR  G 244 PLUS 3 8192 8192 8192}
+
+	\hskip1cm{\bf MERGE C Q T G}\\
+	merges together the composite detectors C, Q, T in the G detector
+	class. The mapping of the input list of detectors (C, Q, T) in the
+output one (G) is the following: \\
+\begin{center}
+\begin{tabular}{lll}
+	G\#000 & C\#00 & Seg\#0 \\
+	G\#001 &      & Seg\#1 \\
+	..... &      & ..... \\
+	G\#006 &      & Seg\#6 \\
+	G\#007 & C\#01 & Seg\#0 \\
+	G\#008 &      & Seg\#1 \\
+	..... &      & ..... \\
+	G\#013 &      & Seg\#6 \\
+	..... & .... & ..... \\
+	G\#105 & Q\#00 & Seg\#0 \\
+	..... &      & ..... \\
+	G\#108 &      & Seg\#3 \\
+	G\#109 & Q\#01 & Seg\#0 \\
+	..... &      & ..... \\
+	G\#112 &      & Seg\#3 \\
+	..... & .... & ..... \\
+	G\#209 & T\#00 & Seg\#0 \\
+	G\#210 & T\#01 & Seg\#0 \\
+	..... & .... & ..... \\
+	G\#243 & T\#34 & Seg\#0 \\
+\end{tabular}
+\end{center}
+
+ \item	{\it\underline{MOVE~}}\footnotemark[3] \\
+
+	Moving a list of detectors of one type into another type. The
+	new type of detector has to be previously defined.
+	The action take place only if the gate on the parameter {\bf "Pn"} is
+	satisfied.
+
+	\hskip1cm{\bf HEADER F 2 4096 4096}
+
+	\hskip1cm{\bf DETECTOR G 40 4 8192 4096 4096 4096}
+
+	\hskip1cm{\bf DETECTOR S  8 PLUS 4 8192 4096 4096 4096}
+
+	\hskip1cm{\bf MOVE G 16 17 18 19 20 21 22 23 S 0 GATE F1 300 4095} \\
+	detectors G with id's from \#16 to \#23 are moved in the S new type of
+	detector with the id's from \#00 to \#07 only if the F1 parameter has a
+	value between 300 and 4095.
+
+ \item	{\it\underline{PIN}}\\
+ 
+	Creates a new HEADER parameter {\bf "Fn"} containing a multiplicity 
+	spectrum built by counting all the pairs of ({\bf "Px", "Py"}) 
+	parameters, 
+	with the right fold ({\bf "FOLD\_GATE}), inside the bananas. The fixed 
+	parameter Fn has to be defined 
+	previously as a HEADER parameter with the {\bf PLUS} subcommand.
+	Up to four ("\#bananas") 
+	bananas can be defined in the same (x,y) space of {\bf "Rx"} and 
+	{\bf "Ry"} 
+	dimensions, respectively. The {\bf "\#particles\_in\_banana\_n"} means 
+	that the pair ({\bf "Px", "Py"}) in the {\bf "banana\_file\_n"} counts 
+	for {\bf "\#particles\_in\_banana\_n"} particles (number of
+	simultaneous hits in the same detector).
+	The {\bf "weight\_of\_banana\_n"} specifies the 
+	rule according to which the spectrum is organized. 
+
+	\hskip1cm{\bf HEADER F 2 4096 4096 PLUS 1 64}
+
+	\hskip1cm{\bf PIN S1 S0 F2 3 1024 1024  1 20}
+
+	\hskip2.5cm{\bf  x  a 1P.BAN }
+
+	\hskip2.5cm{\bf  y  a 2P.BAN }
+
+	\hskip2.5cm{\bf  z  b 1A.BAN } \\
+	the multiplicity spectrum is incremented in the F2 parameter defined on
+	64 channels. The 1P.BAN and 2P.BAN bananas count for {\it x} and 
+	{\it y} simultaneously detected P type particle (of the same kind) in 
+	the same 
+	detector, respectively. The 1A.BAN counts for {\it z} simultaneously
+	detected A type of particles in the same detector.
+
+	The spectrum is built following the rule: 
+
+{\bf
+\begin{center}
+	\{x * (\#pairs\_in\_banana\_1P) + y * (\#pairs\_in\_banana\_2P)\} * a 
+	\\ + \\ 
+	\{z * (\#pairs\_in\_banana\_1A)\} * b 
+\end{center}
+}
+
+ \item	{\it\underline{PROJECTIONS}} \\
+
+	Produces the projection spectra corresponding to the
+	definition of the event structure including eventually 
+	recalibration or gates of the parameters. The names for the 
+	projection files can be explicitly  given; if not the DEFAULT 
+	names derived from the name of detectors are used.
+	The spectra are saved at the end of each RUN and the number
+	of RUN is specified in the extension of the file name (in I4 
+	format). They are written in L format (4 bytes integers). The
+	files are organized as libraries of spectra with the length
+	given by the resolution of each parameter. The number of 
+	spectra is defined by the number of the detectors.
+	The spectra associated with the HEADER parameters are packed
+	inside a unique file with the resolution defined for each of
+	them.
+	Various programs for data analysis (TRACK, SADD) are able to 
+	extract the spectra from these libraries. 
+	The spectrum associated with G0 parameter for the 21st detector 
+	measured 
+	during RUN\#20 can be specified as: EGE\#20.0020/L:8 (in format L
+	on 8K).
+
+	\hskip1cm{\bf PROJE  FIX EGE TGE AGE BGE EDE EEE TDE TEE} \\
+	to create the projections for a standard GASP event.
+
+ \item	{\it\underline{RECAL~}}\footnotemark[2] \\
+
+	Defines the recalibration of one of the parameters. The calibration
+	coefficients (not necessarily linear calibration) are taken from the 
+	file {\bf "file.cal"}. The coefficients are read one by one at the 
+	beginning of the analysis. 
+	They can be RUN dependent (DEFAULT) or RUN 
+	independent (option NORUN). The structure of such a file is 
+	the following:
+
+	\hskip1cm RUN\#	ADC\# n+1 C0  C1  C2  ...  Cn \\
+	where C0,..., Cn are the calibration coefficients and n is
+	the order of the calibration polynomial (maximum 4).
+	Once the recalibration done a linear 
+	alignment of the gains (defined by {\bf "Offset"} and {\bf "Gain"}) 
+	is 
+	performed. These coefficients must be present in the command
+	line even if the readjustment is not desired (case in which they  
+	have the values 0 and 1, respectively). Then the gate {\bf "Wl" " Wh"} 
+	is applied to the recalibrated data. Also a multiplicity selecton 
+	is done by the {\bf "FOLD\_GATE"}.
+	In the case of a HEADER parameter if the gate condition is not
+	satisfied the event is thrown away. In the case of DETECTOR 
+	type parameters only the detector is eliminated.
+
+	\hskip1cm {\bf RECAL G0 Ge\_ener.cal 0 2 10 2047 2 20}\\
+	this command defines the recalibration ofthe G0 parameter (e.g., 
+	energy of the GASP Ge detectors) using the coefficients specified in 
+	the file Ge\_ener.cal for each RUN. Once recalibrated the 
+	parameter is amplified by a factor 2 resulting in a 
+	dispersion of 0.5 keV/channel; the detector is considered 
+	only if the result fits in the energy range from 10 to 2047
+	(including the two limits); the event is considered only if 
+	at least two detectors satisfy this condition and less than 
+	21.
+		  
+ \item	{\it\underline{RECAL\_DOPPLER~}}\footnotemark[2] \\
+
+	Produces a Doppler correction of the gamma energy with the velocity
+	value depending on the gamma energy. If {\bf "E0 E1 v1\_\%"} are
+	specified then from 0 up to {\bf "E0"} the {\bf "v0\_\%"} velocity is 
+	used, from {\bf "E1"} to the maximum resolution the {\bf "v1\_\%"} 
+	velocity is used and between the {\bf "E0"} and {\bf "E1"} values a 
+	linear interpolation is done for the velocity as a function of the 
+	channel.\\
+	By vn\_\% one means v/c in percentage.\\
+	The detection angles can be read from standard GASP/EB files or from a
+	user defined file {\bf "Angles\_file"} which has to be written in the 
+	format:
+\begin{center}
+\begin{tabular}{ccc}
+ADC\#00	& $\theta$ angle & $\phi$ angle \\
+ADC\#01	& $\theta$ angle & $\phi$ angle \\
+....... & .............. & .............
+\end{tabular}
+\end{center}
+
+	\hskip1cm{\bf RECAL\_DOPPLER G0 2.5 1000 1500 3.0 GASP 0 1 10 2047 
+	2 20}\\ 
+	meaning that the G0 parameter will be Doppler corrected with v/c=2.5\%
+	form 0 t0 1000, with v/c=3.0\% from 1500 to maximum value in-between
+	being used a linear interpolation between the two v/c limits. Angles
+	are taken from the standard GASP angles configuration file. Data are 
+	calibrated to 1 keV/ch and the event is valid  only if at least 2 and 
+	less than 20 detectors have the new G0 value between 10 and 2047 keV 
+
+ \item	{\it\underline{RECAL\_LUT~}}\footnotemark[2] \\
+
+	Performs the recalibration of a parameter according to a look-up 
+	table ({\bf "file.lut"}). 
+
+	\hskip1cm {\bf RECAL\_LUT F1 BGO.LUT LUT 0 1 10 4095} \\
+	create a spectrum of the F1 parameter  
+	according to a rule define in the BGO.LUT file. A LUT file of
+	the form:
+	
+	\hskip1.5cm 10
+ 
+	\hskip1.5cm 20
+ 
+	\hskip1.5cm 30
+
+	\hskip1.5cm .....\\
+	will produce a spectrum in which the channels from 0 to 9
+	will be mapped into the 0 channel; the channels 
+	from 10 to 19 will be mapped into the channel 1, and so on.
+	This command is used generally for the F1 header parameter 
+	(the inner
+	ball fold distribution) and in order to map the wires on 
+	the X axis of the RMS (defined as a fixed parameter in the header). 
+
+ \item	{\it\underline{RECAL\_KINE~}}\footnotemark[2] \\
+
+	Performs a Doppler correction of the gamma ray energy parameter 
+	{\bf "Pn"} with the recoil velocity and direction determined
+	according to the energies and the angles of the detected charged 
+	particles. The position of the Ge detectors and of the charged
+	particles detectors are taken from standard files {\bf "GASP/EUROBALL"}
+	or from userdefined files {\bf "Angles\_file\_Ge / Angles\_file\_Si"}.
+	Data are recalibrated according to the parameters {\bf "Offset"} and
+	{\bf "Gain"} and cut between the limits {\bf "Wl"} and {\bf "Wh"}.
+	Events are considered only if {\bf "FOLD\_GATE"} is satisfied.
+	The informations regarding the energy distribution of the charged
+	particles on the various detectors and the reaction kinematics are
+	given in the file {\bf "description.file"}. This file file is organized
+	as follows:
+	\begin{center}
+	\begin{tabular}{ll}
+	First row: 	& M$^{NC}$ and E$^{CM}$ 			 \\
+	Second row:   	& m$^{particle}$				 \\
+	Third row:	& N (number of detectors for which the energy is \\
+			& 	given: from ADC\#00 to ADC\#(N-1))	 \\
+	Fourth row:  	& the values of the particles energy 		 \\
+	Fifth row:  	& (a number of N values). Detectors with 	 \\
+	......... 	& zero energy released are not specified	 \\
+	n-th row:  	& name of the file containing the points of the  \\
+				particle banana				 
+	\end{tabular}
+	\end{center}
+
+	The rows sequence from 2 to n is repeated for each emitted particle in
+	order to populate the reaction channel of interest ({\bf "\#bananas"}
+	times).
+
+	The banana gates have been defined in the space ({\bf "Bx","By"}) with
+	the resolution ({\bf "Rx","Ry"})
+
+	For the case of the ISIS detector mounted inside GASP for an $\alpha
+	2p$ reaction channel we will have:
+
+	\hskip1cm{\bf RECAL\_KINE G0 GASP 0 2 10 2047 2 20
+
+	\hskip1.5cm S1 S0 3 1024 1024 a2p.set GASP }\\
+	The command acts on the G0 Ge energy parameter. The energy spectrum
+	will be compressed two times and cut between the channels 10 to 2047.
+	Valid events are those which have at least 2 and less than 21 fired Ge
+	detectors with the right G0 parameter.
+
+	The a2p.set description file has the following format:
+
+	\hskip1cm 56 71.4 						
+
+	\hskip1cm 4 							
+
+	\hskip1cm 16 							
+
+	\hskip1cm 22.1 22.1 23.6 23.6 22.1 22.1 13.1 13.1 13.1 13.1 	
+
+	\hskip1cm 13.7 13.7  9.1  9.1  9.1  9.1				
+
+	\hskip1cm alpha.ban						
+
+	\hskip1cm   1							
+
+	\hskip1cm  32							
+
+	\hskip1cm 9.4 9.4 9.8 9.8 9.4 9.4 6.6 6.6 6.6 6.6 6.8 6.8 5.3 	
+
+	\hskip1cm 5.3 5.3 5.3 3.7 3.7 3.7 3.7 3.7 3.7 3.7 3.7 2.5 2.5 	
+
+	\hskip1cm 2.5 2.5 2.0 2.0 2.0 2.0				
+
+	\hskip1cm proton.ban						
+
+	\hskip1cm   1							
+
+	\hskip1cm  32							
+
+	\hskip1cm 9.4 9.4 9.8 9.8 9.4 9.4 6.6 6.6 6.6 6.6 6.8 6.8 5.3 	
+
+	\hskip1cm 5.3 5.3 5.3 3.7 3.7 3.7 3.7 3.7 3.7 3.7 3.7 2.5 2.5 	
+
+	\hskip1cm 2.5 2.5 2.0 2.0 2.0 2.0				
+
+	\hskip1cm proton.ban						\\
+
+	The bananas alpha.ban and proton.ban have been defined in the space 
+	E vs. $\Delta$E (S1,S0) reduced to 1024 x 1024 channels.  	
+
+ \item	{\it\underline{RECALL\_EVENT}} \\
+
+	Recalls the event in the status it was saved with 
+	STORE\_EVENT command.
+
+ \item	{\it\underline{REORDER}} \\
+
+	Produces a reordering of the detectors in the event.
+
+ \item	{\it\underline{TIME\_ADJUST}} \\
+	Improve the timming by adjustment of the time reference.
+
+	\hskip1cm{\bf TIME\_ADJUST G2 1000 0.95   10 6000  1 100} \\
+	
+
+ \item	{\it\underline{SELECT}} \\
+
+
+	Only events which contain the {\bf "D"} type detectors
+	listed in {\bf "list\_of\_detectors\_to\_select"} are analized (all 
+	the others being rejected).
+
+	\hskip1cm{\bf SELECT G 0 1 2 3 4 5} \\
+	to select only the events with the G type detectors from 0 to 5.
+
+ \item	{\it\underline{SORT1D~}}\footnotemark[5] \\
+
+	Produces a one-dimensional spectrum of the {\bf "Px"} parameter.
+	The spectrum will have the name {\bf "spectrumname"}.
+	DEFAULT resolution for such a spectrum is given by the maximum
+	resolution of the parameter.
+	To use a different resolution one has to specify it through the {\bf
+	"Res"} argument {\bf "R"} and {\bf "Ry"}.\\
+
+	\hskip1cm{\bf SORT1D  G0 G0.SPE Res 2048}\\
+	to create a 1D spectrum with the name G0.SPE containing the G0 
+	parameter.
+
+ \item	{\it\underline{SORT2D, SORT3D,
+			SORT4D~}}\footnotemark[4]$^,$\footnotemark[5] \\
+
+	Produces a 2/3/4-dimensional matrix between the {\bf "Px/Py/Pz/Pt"} 
+	parameters.
+	The matrix will have the name {\bf "matrixname"} with the standard
+	extension {\bf CMAT} and will be written in compressed format.
+	DEFAULT resolution for such a matrix is given by the maximum
+	resolutions of the parameters.
+	To use a different resolution one has to specify it through the {\bf
+	"Res"} arguments {\bf "Rx/Ry/Rz/Rt"}. All axes has to be 
+	specified. 
+	The standard dimension of the 2/3/4-D segments is 
+	(64 x 64 / 64 x 64 x 64 / 64 x 64 x 64 x 64). They can
+	be changed through the {\bf "Step"} arguments {\bf "Sx/Sy/Sz/St"}. 
+	The length of each axis has to be an integer number of the steps.
+
+	\hskip1cm{\bf SORT2D  S1 S0 EDE Res 1024 1024 Step 32 32}\\
+	to create a 2D matrix with the name EDE.CMAT having on the
+	first axis the S1 parameter and on the second one the S1 
+	parameter.
+
+	\hskip1cm{\bf SORT3D  F2 F4 G0 RMS Res 512 512 2048 Step 64 64 32}\\
+	to create a 3D matrix with the name RMS.CMAT having on the
+	first axis the F2 parameter, on the second one the F3 parameter and on
+	the third one the G0 parameter.
+
+	\hskip1cm{\bf SORT4D  F0 F1 F2 G0 HKMG Res 512 126 512 1024}\\
+	to create a 4D matrix with the name HKMG.CMAT having on the
+	first axis the F0 parameter, on the second one the F1 parameter, on
+	the third one the F2 parameter and on the fourth axis the G0 parameter.
+
+ \item	{\it\underline{SORT2D\_SYMM, SORT3D\_SYMM, SORT4D\_SYMM~}}
+	\footnotemark[4]$^,$\footnotemark[5] \\
+
+	Produces a 2/3/4-dimensional symmetrized matrix for the {\bf "Px"} 
+	parameter.
+	DEFAULT values for the resolution ({\bf "R"}) and step ({\bf S"}) are 
+	4096 and 64.
+	The matrix will have the name {\bf "matrixname"} with the standard
+	extension {\bf CMAT} and will be written in compressed format.	
+
+	For 2D matrices:\\
+	the matrix is symmetrized with the condition ind2$\geq$ind1 when
+	the (ind1,ind2) location is incremented (with an eventual 
+	permutation of the two index).
+	It results in a  reduction by a factor two of the dimension of
+	the matrix (the dimension of the matrix is reducing from
+	res*res to C(res+1,2)=res*(res+1)/2. Due to the segmentation of 
+	the matrix the number of segments is changing from (res/step)$^2$ 
+	(4096 in the standard case) to C(res/step+1,2) (tipically 2080).
+		    
+	\hskip1cm{\bf HGATEDEF G0 5 
+
+	\hskip1.5cm 150 160
+
+	\hskip1.5cm 250 260
+
+	\hskip1.5cm 350 360
+
+	\hskip1.5cm 450 460
+
+	\hskip1.5cm 550 560}
+
+	\hskip1cm{\bf GSORT2D\_SYMM G0 MAT2D Hash 2}\\
+	The matrix is incremented by double gating on the G0 parameter with the
+	list of gates given in the HGATEDEF command.\\
+
+	For 3D matrices:\\
+	the matrix is symmetrized with the condition ind3$\geq$ind2$\geq$ind1 
+	when
+	the (ind1,ind2,ind3) location is incremented.
+	It results in a  reduction by a factor six of the dimension of
+	the matrix.
+	The standard dimension for 
+	each axis is 2048 and is divided in 2048/32=64 portions. The total 
+	number of segments in which the cube will be divided is C(64+2,3)=45760.
+
+	\hskip1cm{\bf GSORT3D\_SYMM G0 MAT3D}\\
+
+	For 4D matrices:
+
+	\hskip1cm{\bf GSORT4D\_SYMM G0 MAT4D}
+
+ \item	{\it\underline{SORT2D\_HSYMM, SORT3D\_HSYMM, SORT4D\_HSYMM~}}
+	\footnotemark[4]$^,$\footnotemark[5] \\
+
+	Produces half-symmetrized 2/3/4D matrices to allow fast access to the
+	data stored inside.
+
+	\hskip1cm{\bf SORT3D\_HSYMM G0 HMAT3D}
+
+ \item	{\it\underline{SORT3D\_PAIR}} \\
+
+	Creates a Px-Py-Pindex cube. The index value for each
+	valid pair of detectors is specified in the "file\_with\_index\_
+	of\_pairs" written in the form: 
+
+		ADC\#1	ADC\#2	index 
+
+		.....................\\
+	In the GASP directory there are available two files for such a
+	sort type:
+
+	GASP-PAIRS.LST~~~~~~~~~~~~\parbox[t]{9cm}{7 matrices of the type 
+				all\_the\_detectors
+			     	against the detectors\_at\_one\_angle}
+
+	GASP-PLUNGER.LST~~~~~~\parbox[t]{9cm}{28 matrices of the type detectors\_at
+			     	one\_angle 
+				against detectors\_at\_another\_angle.}
+
+	used for angular distribution and angular correlation analysis.
+
+	\hskip1cm{\bf PAIRDEF GASP-PAIRS.LST}
+
+	\hskip1cm{\bf PAIRDEF GASP-PLUNGER.LST}
+
+	\hskip1cm{\bf ......................}
+
+	\hskip1cm{\bf SORT3D\_PAIR G0 G0 P0 PAIRS RES 4096 4096 32  STEP 64 64 8}
+
+	\hskip1cm{\bf SORT3D\_PAIR G0 G0 P1 PLUN RES 4096 4096 32  STEP 64 64 8}
+
+	to create:
+
+	1. a stack of 7 matrices of angular distribution indexed by P0.
+
+	2. a stack of 28 matrices of plunger type indexed by P1.
+
+
+ \item	{\it\underline{SPLIT}} \\
+
+ \item	{\it\underline{STORE\_EVENT}} \\
+
+	Saves internally a copy of the event in its status at the 
+	moment when the command is given.
+
+ \item	{\it\underline{STATISTICS}} \\
+
+	Calculates the statistics of detectors.
+
+ \item	{\it\underline{SWAP}} \\
+
+	Interchanges the values of the parameters {\bf "Px"} and {\bf "Py"}
+
+ \item	{\it\underline{TIME\_ADJUST}} \\
+	
+	Improve the timming by adjustment of the time reference. The operation
+	consists in calculating the centroid of the time distribution in one 
+	event and to recalculate the time positions with respect to this
+	position. Times which are outside a number of {\bf "rejection\_factor"}
+	of sigma are not considered in building the final centroid position.
+	Before using this command one has to recalibrate the centroids of the
+	time distributions of all the detectors at the same position (using
+	eventually the RECAL\_TIME program).
+
+	\hskip1cm {\bf TIME\_ADJUST G2 2000 2 1900 2100 2 50} \\
+	time spectra recorded on G2 parameter are adjusted to bring the 
+	centroid of the time distribution at position 2000. Times which are 
+	more than 2 sigma away from the centroid are not considered in 
+	calculating the time distribution. Finally, only detectors which have 
+	G2 from 1900 to 2100 and multiplicity from 2 to 50 are considered.
+
+ \item	{\it\underline{WINDOW~}}\footnotemark[2] \\
+
+	Defines gates on all the parameters of the specified type ({\bf "P"}).
+	All the gates has to be satisfied in order to declare the event valid.
+
+	\hskip1cm {\bf WINDOW F 320 4095 220 4095 } \\
+	gates have been set on all the HEADER type parameters F. Gates are set
+	on the first two parameters (F0 and F1). The rest of them (\#pars-2)
+	are completely opened (from 0 to maximum dimension).
+
+ \item	{\it\underline{WRITE\_EVENT}} \\
+
+	Causes the program to write the events on tape ({\bf T}) or the
+	disk ({\bf D}) in their form at the moment when the command is
+	specified according to the GASP standard format with the 
+	possibility of eliminating the parameters not needed ({\bf "REDUCE"}).
+	By DEFAULT events are written on tape.
+	When REDUCE option is used for each defined parameter has to
+	be specified {\bf "1"} if it has to be preserved or {\bf "0"} if it 
+	has to 
+	be eliminated (all the parameters have to be in the list).
+
+	\hskip1cm{\bf HEADER F 2 4096 4096} 
+
+	\hskip1cm{\bf DETECTOR G 40 4 8192 4096 4096 4096} 
+
+	\hskip1cm{\bf WRITE\_EVENTS D REDUCE 1 1 1 0 0 0} \\
+	writes the list of events on a disk file in reduce format
+	keeping the F0, F1 and G0 parameters.
+
+\end{itemize}
+
+\footnotetext[1] {Not yet defined.}
+\footnotetext[2] {For HEADER type parameters the {\bf "FOLD\_GATE"} subcommand
+	is not effective and needs not to be specified.}
+\footnotetext[3] {The {\bf "IN$|$OUT"} subcommand means that the parameter 
+	has to be inside/outside the gate limits. DEFAULT is IN.}
+\footnotetext[4] {The 4D sort is not yet available.}
+\footnotetext[5] {If present the {\bf "Hash"} subcommand means that the 
+	spectrum is
+	incremented in coincidende with the gates defined by HGATEDEF command
+	applied {\bf "\#times"} times.}
+\footnotetext[6] {Subjected to changements.}
+
+
+\newpage
+
+\appendix{Appendix 1}
+
+\begin{center}
+{\bf GASP Standart Event Format }
+\end{center}
+
+The data files are written with fixed record length which usually is 32k
+(1k = 1024bytes). Each record has an 16 words (1word = 2bytes) header for
+informations. The structure of the header is the following:
+
+\noindent
+typedef struct \{ 
+
+\hskip1cm\parbox[t]{10cm}
+{\begin{tabular}{lll}
+short int	   & rec\_k\_length & record length in k \\
+unsigned short int & rec\_number    & record number; 0 for header and trailer \\
+unsigned short int & run\_number    & run number \\
+char	 	   & rec\_id[2]	    & HG header; DG data; TG trailer \\
+short int	   & header\_len    & header length in words (16) \\
+short int 	   & tape\_num	    & tape number \\
+short int 	   & tape\_part	    & part 0$|$1 if buffer ping-pong else 0 \\
+short int	   & data\_source   & data path 1=raw, 2=recal, 3=filter \\
+long int	   & byte\_order    & =0xff00f00f for swapping problems \\
+char		   & gasp\_string[6]& ="GASP" to identify histograms
+\end{tabular}
+} \\
+\noindent
+\} tape\_record\_head;\\
+
+The byte\_order variable can be used for automatic byte and/or word swapping.
+The byte order on the GASP tape format is the DIGITAL one.
+
+Each file has a header record (rec\_id="HG") with additional informations
+staring from word 16:
+
+\noindent
+typedef struct \{ 
+
+\hskip1cm\parbox[t]{10cm}
+{\begin{tabular}{ll}
+char	& beam\_time\_lid[17] \\
+char	& measure\_name[17] \\
+char	& measure\_comment[73] \\
+char	& run\_number[7] \\
+char	& run\_comment[73] \\
+char	& tape\_number[7] \\
+char	& tape\_part[3] \\
+char	& date\_time[25] \\
+\end{tabular}
+} \\
+\noindent
+\} tape\_header\_com; \\
+
+Beginning from word 160 a copy of the NEO acquisition program is listed in UNIX
+like format (single string with lines ended by LF). If the length of the
+program exceeds the record length extra records are written to accomodate the
+whole program.
+
+In the data records (rec\_id="DG") events are packed together padded with
+zeroes at the end of the record (no broken events). Events begin with a
+negative word 0xfnnn where nnn equal to the length in words of the event
+(excluding count word).
+
+\begin{tabular}{llll}
+	    & label	& EVENT\_CLASSIFICATION &			\\
+	    & tag		& RECORD\_TAG		&			\\
+	    & bgo\_esum	& 4096			&			\\
+	    & bgo\_mult	& 4096			&			\\
+	    & .		& 			&			\\
+	    & .		& here other FIX params &			\\
+HEADER	    & .		& can be added		&			\\
+	    & .		& 			&			\\
+	    & ge\_count	& COUNTER ge 40         & (number of Ge type detectors)\\
+	    & ge\_start	& POINTER ge		&			\\
+	    & si\_count	& COUNTER si 40         & (number of Ge type detectors)\\
+	    & si\_start	& POINTER si		&			\\
+	    &		&			&			\\
+            & 		& 			&			\\
+	    & id		& KEY (the ADC number)	& $|$			\\
+	    & ener		& 8192			& $|$ repeated for each \\
+DETECTOR ge & time		& 4096			& $|$ fired Ge detector \\
+	    & ener\_A	& 4096			& $|$			\\
+	    & ener\_B	& 4096			& $|$			\\
+	    & ......	& room for more params  & $|$			\\
+	    &		&			&			\\
+            & 		& 			& 			\\
+	    & id		& KEY (the ADC number)	& $|$			\\
+	    & de		& 4096			& $|$ repeated for each	\\
+DETECTOR si & e		& 4096			& $|$ fired Si detector	\\
+	    & tde		& 4096			& $|$			\\
+	    & te		& 4096			& $|$			\\
+	    & ...		& room for more params  & $|$			\\
+\end{tabular}
+
+\bigskip
+\bigskip
+\bigskip
+The last record of each file has a rec\_id="TG" ad contains the same
+information as the header record except for the listing of the NEO program. It
+is used mainly as a time stamp of the end of the run.
+
+\newpage
+Example of a hexadecimal dump of one event:
+\begin{center}
+\begin{tabular}{llll}
+    & f01b &            & Start event \& length (27 words) 	\\
+ ~0 & 0000 & label	& 					\\
+ ~1 & 0000 & tag	& 					\\
+ ~2 & 0101 & bgo\_esum	& 					\\
+ ~3 & 0328 & bgo\_mult	& 					\\
+ ~4 & 0003 & ge\_count	& 3 Ge fired				\\
+ ~5 & 0008 & ge\_start	& start at word 8			\\
+ ~6 & 0002 & si\_count	& 2 Si telescopes fired			\\
+ ~7 & 0011 & si\_start  & start at word 8(ge)+11-1 = 17		\\
+    &      &            &  					\\
+ ~8 & 0017 & ge.id	& first Ge ADC\#23			\\
+ ~9 & 051e & ge.ener	& 					\\
+ 10 & 0700 & ge.time  	& 					\\
+ 11 & 0003 & ge.id	& second Ge ADC\#03			\\
+ 12 & 12f0 & ge.ener	&					\\
+ 13 & 05ee & ge.time	& 					\\
+ 14 & 0002 & ge.id	& third Ge ADC\#02			\\
+ 15 & 032a & ge.ener	&					\\
+ 16 & 05ef & ge.time 	& 					\\
+    &      &            &  					\\
+ 17 & 0001 & si.id	& first Si ADC\#01			\\
+ 18 & 00aa & si.de 	& 					\\
+ 19 & 0152 & si.e	& 					\\
+ 20 & 076c & si.tde	& 					\\
+ 21 & 0738 & si.te	& 					\\
+ 22 & 0005 & si.id	& second Si ADC\#05			\\
+ 23 & 0202 & si.de	& 					\\
+ 24 & 0281 & si.e	& 					\\
+ 25 & 06c5 & si.tde	& 					\\
+ 26 & 0675 & si.te	& 					\\
+    &      &            &  					\\
+    & fnnn &            & Start next event 		 	\\
+\end{tabular}
+\end{center}
+ 
+
+\newpage
+
+\appendix{Appendix 2}
+
+\begin{center}
+{\bf Examples of SETUP files }
+\end{center}
+
+\begin{itemize}
+
+\item {Reducing EB data format to GASP data format}
+
+	EUROBALL \\
+	CDETECTOR C  15 7 3 8192 8192 8192 \\
+	CDETECTOR Q  26 4 3 8192 8192 8192 \\
+	CDETECTOR T  30 1 3 8192 8192 8192 \\
+	DETECTORS S  40   4 4096 4096 4096 4096 \\
+	DETECTORS G 239   PLUS 3 8192 8192 8192 \\
+	MERGE   C Q T  G
+
+
+\item {Sorting DCO matrices}
+
+	DETECTORS G  40   4 8192 4096 4096 4096 \\
+	DETECTORS A   8   PLUS 4 8192 4096 4096 4096 \\
+	DETECTORS B  12   PLUS 4 8192 4096 4096 4096 \\
+	RECAL  G1  GE\_TIME.CAL 0 1 1950 2050 2 20 \\
+	RECAL  G0  GE\_ENER.CAL 0 2   10 4095 2 20 \\
+	MOVE G 16 17 18 19 20 21 22 23  A  0 \\
+	MOVE G  0  1  2  3  4  5 34 35 36 37 38 39  B  0 \\
+	SORT2D A0 B0 DCO.CMAT  RES 4096 4096 
+
+\item {Sorting angular distributions cubes}
+
+	HEADER   F        5 4096 4096 4096 4096 4096 \\
+	DETECTOR G   40   4 8192 4096 4096 4096 \\
+	PAIRDEF PAIRS.LST \\
+	RECAL G1  GE\_TIME.CAL  RUN 0 1   950  1050  2 20 \\
+	RECAL G0  GE\_ENER.CAL  RUN 0 2    10  4096  2 20 \\
+	SORT3D\_PAIR G0 G0 P0 DCO3D RES 4096 4096 128 STEP 128 128 8 
+
+\end{itemize}
+
+\end{document}

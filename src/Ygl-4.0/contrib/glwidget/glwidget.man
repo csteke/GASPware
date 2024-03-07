@@ -1,0 +1,227 @@
+.TH libglwidget 3
+.SH NAME
+redraw_widgets, update_widgets, create_gl_button, destroy_gl_button,
+create_gl_slider, destroy_gl_slider
+.SH SYNOPSIS
+.nf
+
+#include <gl/glwidget.h>
+
+void redraw_widgets();
+
+int update_widgets(short value);
+
+gl_button *create_gl_button(double x, double y, double width,
+                            double height, int fg, int bg,
+                            int active_c, int *state, int type,
+                            char *label,
+                            void (*callback)(gl_button *, int));
+
+void      destroy_gl_button(gl_button *but);
+
+gl_slider *create_gl_slider(double x, double y, double len, 
+			    double height, double thick,
+			    int fg, int bg,
+			    double min, double max, double step, 
+			    double initvalue,
+			    double *valuep, char *format, 
+			    void (*callback)(gl_slider *, double));
+
+void      destroy_gl_slider(gl_slider *sld);
+.fi
+.SH DESCRIPTION
+The libglwidget implements two type of widgets in the GL graphics
+language. They only use the subset of routines emulated in Ygl, an
+emulation routine for 2d GL functions that only uses Xlib. Two types
+of widgets are supplied: buttons and sliders. Since the GL programs
+usually have their onw event handler subroutine, there is no standard
+handler provided. The programmer has to take care that LEFTMOUSE and
+REDRAW envents are passed to the funtions redrawwidgets and
+updatewidgets. See the examples "simple" and "lissa" (see FILES
+section) how to do this.
+.PP
+.I redraw_widgets
+is a function to redraw all widgets generated with
+create_gl_button and create_gl_slider. It has to be called when a
+REDRAW event is read from the queue.
+.PP
+.I update_widgets
+is a function to be called when a LEFTMOUSE event is
+encountered. The create_gl_... functions call on initialization a
+"qdevice(LEFTMOUSE);" and a "tie(LEFTMOUSE, MOUSEX, MOUSEY);" to handle
+these events. updatewidgets returns true if a slider value has changed
+or a button has been pressed, it returns false otherwise. The
+parameter "value" is the one obtained from the "qread(&value)" call
+that returned the LEFTMOUSE event. 
+.PP
+.I create_gl_button
+creates a button. It returns a pointer to a
+"gl_button" type which is described below. The memory pointed to is
+allocated with "malloc()". It returns NULL if the creation of the
+button fails. The arguments
+.I x
+and
+.I y
+specify the position of the lower right corner of the button.
+.I width
+and
+.I height
+specify the dimensions of the button.
+.I fg
+and
+.I bg
+specify the foreground and background color of the button
+respectively.
+.I active_c
+is only important for buttons of CHECKBOX type, see parameter type. If
+the button is activated, the background is drawn in the color
+specified with active_c. active_c is ignored for buttons of type
+BUTTON.
+.I state
+is a pointer to an int variable where the state of the button is
+stored. This is only important for buttons of type CHECKBOX. If state
+is NULL, memory will be malloc'ed and the state can only be accessed
+through the gl_button structure. If state is not NULL the value of
+*state is taken as initial value for a CHECKBOX button.
+.I type
+specifies the type of the button. There are two allowed values: BUTTON
+for a button that can be pressed and will reset itself to off
+automatically and CHECKBOX for a two state button with an "on" state
+and an "off" state. If a CHECKBOX button is "on", its background will
+be drawn in the color specified with active_c.
+.I label
+is a string pointer. If not NULL its contents will be printed inside
+the button box in the current font. There is no check that the label
+will fit into the box.
+.I callback
+is a pointer to a function. If not NULL it will be called with two
+arguments whenever a button is pressed. The first argument is a
+pointer to the gl_button structure, the second an int value describing
+the state of the button.
+.PP
+.I destroy_gl_button
+frees the memory allocated for the button and tries to remove the
+button painting it in its background color. It's a good idea to do a
+qenter(REDRAW, ..) after destroying a button.
+It's argument
+.I but
+is a pointer to a gl_button type returned by the create_gl_button
+function.
+.PP
+.I create_gl_slider
+creates a slider. It returns a pointer to a
+"gl_slider" type which is described below. The memory pointed to is
+allocated with "malloc()". It returns NULL if the creation of the
+slider fails. The arguments
+.I x
+and
+.I y
+specify the lower rigth corner of the slider. The arguments
+.I len
+and
+.I heigth
+specifiy the length and height of the slider.
+.I thick
+specifies how thick the slider indicator should be.
+.I fg
+and
+.I bg
+are the foreground and background colors of the slider respectively.
+.I min
+and
+.I max
+are the minimum and maximum values of the slider value.
+.I step
+specifies the stepsize in which the slidervalue can be changed.
+.I initvalue
+is the value the slider is set to when it is created.
+.I valuep
+is a pointer to a variable of type double where the slider value is
+stored. If it is NULL memory for the value will be malloc'ed. The
+value can then be accessed via the gl_slider structure.
+.I format
+is a format string for printing the slidervalue. It will be ignored if
+set to NULL. If not NULL a string generated with "sprintf(<string>,
+format, <slider_value>) will be printed behind the slider
+(<slider_value> is of type double). The background for the string will
+be guessed by looking at the background before printing the first
+time.
+.I callback
+is a pointer to a function. If not NULL it will be called with two
+arguments when the slidervalue has changed. The first argument is a
+pointer to the gl_slider, the second the (double) value of the slider.
+.PP
+.I destroy_gl_slider
+frees the memory allocated for the slider and tries to remove the
+slider by painting it in its background color. It's a good idea to do a
+qenter(REDRAW, ..) after destroying a slider.
+It's argument
+.I sl
+is a pointer to a gl_slider type returned by the create_gl_slider
+function.
+.PP
+The 
+.I gl_button
+structure:
+
+.nf
+typedef struct gl_button gl_button;
+struct gl_button{
+    double x, y, width, height; /* coordinates and geometry */
+    int scx0 ,scx1, scy0, scy1; /* screecoords */
+    int win, bg, fg, active_c;  /* window and colors */
+    int type, *state;           /* type and pointer to state */
+    int changed;                /* true if a button of type BUTTON */
+                                /* has changed after updating.     */
+    char *label;                /* label of the button */
+    gl_button *nextp;           /* pointer to next button in list */
+    void (*callback)(gl_button *, int);      /* the callback */
+};
+.fi
+.PP
+The
+.I gl_slider
+structure:
+
+.nf
+typedef struct gl_slider gl_slider;
+struct gl_slider{
+    int bg, fg;                 /* colors */
+    Int32 win;                  /* window */
+    double x, y, len, height, thick; /* coordinates and geometry */
+    int scx0, scx1, scy0, scy1, sc_thick; /* screecoords */
+    double min, max, step;      /* min, max value and stepsize   */
+    double value, *valuep;      /* value and pointer to value    */
+    gl_slider *nextp;           /* next slider in lis            */
+    Int32 txbg;                 /* text background color         */
+    char *format, *buf;         /* format and buffer for text    */
+    void (*callback)(gl_slider *, double);   /* the callback     */ 
+};
+.fi
+
+.SH AUTHOR
+libglwidget was developed by Michael Staats
+(michael@hal6000.thp.Uni-Dusiburg.DE) based on initial ideas from Fred
+Hucht (fred@hal6000.thp.Uni-Dusiburg.DE).
+.SH FILES
+.nf
+libglwidget.a     - The library.
+gl/glwidget.h     - The header file to include if using libglwidget.
+examples/simple.c - Simple demo of libglwidget.
+examples/lissa.c  - More complex example drawing lissajous
+figures.
+.fi
+Ask the person at your site who is responsible for libglwidget where
+to find the examples.
+.SH SEE ALSO
+The GL graphics language, the Ygl emulation library from Fred Hucht. 
+.SH BUGS
+Sometimes the slider functions are a little confused about the mouse
+states and don't react to releasing the mouse. Click the left button
+beside the slider to return to a normal state. This bug should be
+fixed now, but you know how life is..... (It occured when calling
+"update_widgets" on a LEFTMOUSE event with value 0 (i. e. release
+mouse event) that occured inside a widget while the corresponding
+press event occured outside the widget. The parameter of
+"update_widgets" is now checked to prevent such a situation.)
+

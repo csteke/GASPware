@@ -1,0 +1,16 @@
+******* September 2006 **** N. Marginean ******
+(1) Mac OSX porting
+
+******* June 25, 2003 ****  N. Marginean ******
+(1) asyncronous read from tape on LINUX: implemented using pthread
+(2) use of double-buffering in XTRACKN and CMAT
+
+******* May 24, 2001 ****  N. Marginean ******
+
+(1) the peak fit in XTRACKN can consider individual peak widths
+(2) the display region in XTRACKN can be shifted left/right also
+    with arrow keys
+(3) up arrow key is equivalent with FY command in XTRACKN
+(4) fixed tape assignment from 0 to 9 (previously 0 to 7)
+(5) small changes in the tape dialog
+**********************************************

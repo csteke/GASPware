@@ -1,0 +1,1054 @@
+	SUBROUTINE VMOVB(B1,I1S,B2,I2S,N)
+
+C	SPOSTAMENTO DI VETTORI A BYTE
+
+*	BYTE B1(MAX(1,N*I1S)),B2(MAX(1,N*I2S)),B
+	BYTE B1(1),B2(1),B
+
+	IF(N.LE.0) GOTO 200
+	IF(I1S.EQ.0) GO TO 15
+	J1=1
+	J2=1
+	DO I=1,N
+		B2(J2)=B1(J1)
+		J1=J1+I1S
+		J2=J2+I2S
+	ENDDO
+	GOTO 200
+
+15	B=B1(1)
+	J2=1
+	DO I=1,N
+		B2(J2)=B
+		J2=J2+I2S
+	ENDDO
+
+200	RETURN
+
+	END
+
+	SUBROUTINE VMOVW(I1,I1S,I2,I2S,N)
+
+C	SPOSTAMENTO DI VETTORI A WORD
+
+*	INTEGER*2 I1(MAX(1,N*I1S)),I2(MAX(1,N*I2S)),II
+	INTEGER*2 I1(1),I2(1),II
+
+	IF(N.LE.0) GOTO 200
+	IF(I1S.EQ.0) GO TO 15
+	J1=1
+	J2=1
+	DO I=1,N
+		I2(J2)=I1(J1)
+		J1=J1+I1S
+		J2=J2+I2S
+	ENDDO
+	GOTO 200
+
+15	II=I1(1)
+	J2=1
+	DO I=1,N
+		I2(J2)=II
+		J2=J2+I2S
+	ENDDO
+
+200	RETURN
+
+	END
+
+	SUBROUTINE VMOVI(I1,I1S,I2,I2S,N)
+	ENTRY 	VMOVL(I1,I1S,I2,I2S,N)
+	ENTRY 	VMOVR(I1,I1S,I2,I2S,N)
+
+C	SPOSTAMENTO DI VETTORI A LONG WORD
+
+*	INTEGER*4 I1(MAX(1,N*I1S)),I2(MAX(1,N*I2S)),II
+	INTEGER*4 I1(1),I2(1),II
+
+	IF(N.LE.0) GOTO 200
+	IF(I1S.EQ.0) GO TO 15
+	J1=1
+	J2=1
+	DO I=1,N
+		I2(J2)=I1(J1)
+		J1=J1+I1S
+		J2=J2+I2S
+	ENDDO
+	GOTO 200
+
+15	II=I1(1)
+	J2=1
+	DO I=1,N
+		I2(J2)=II
+		J2=J2+I2S
+	ENDDO
+
+200	RETURN
+
+	END
+
+	SUBROUTINE VMINB(I1,I1S,N,IPOS)
+
+C	TROVA IL MINIMO
+
+*	BYTE I1(MAX(1,N*I1S)),MINIMO
+	BYTE I1(1),MINIMO
+
+	IPOS=-1
+	IF(N.LE.0) GOTO 200
+	IF(I1S.EQ.0) GO TO 200
+
+	J1=1
+	IPOS=1
+	MINIMO=I1(J1)
+	DO I=1,N
+	   IF(I1(J1).LT.MINIMO) THEN
+		IPOS=I
+		MINIMO=I1(J1)
+	   ENDIF
+	   J1=J1+I1S
+	ENDDO
+
+200	RETURN
+
+	END
+
+	SUBROUTINE VMINI(I1,I1S,N,IPOS)
+
+C	TROVA IL MINIMO
+
+*	INTEGER*2 I1(MAX(1,N*I1S)),MINIMO
+	INTEGER*2 I1(1),MINIMO
+
+	IPOS=-1
+	IF(N.LE.0) GOTO 200
+	IF(I1S.EQ.0) GO TO 200
+
+	J1=1
+	IPOS=1
+	MINIMO=I1(J1)
+	DO I=1,N
+	   IF(I1(J1).LT.MINIMO) THEN
+		IPOS=I
+		MINIMO=I1(J1)
+	   ENDIF
+	   J1=J1+I1S
+	ENDDO
+
+200	RETURN
+
+	END
+
+	SUBROUTINE VMINL(I1,I1S,N,IPOS)
+
+C	TROVA IL MINIMO
+
+*	INTEGER*4 I1(MAX(1,N*I1S)),MINIMO
+	INTEGER*4 I1(1),MINIMO
+
+	IPOS=-1
+	IF(N.LE.0) GOTO 200
+	IF(I1S.EQ.0) GO TO 200
+
+	J1=1
+	IPOS=1
+	MINIMO=I1(J1)
+	DO I=1,N
+	   IF(I1(J1).LT.MINIMO) THEN
+		IPOS=I
+		MINIMO=I1(J1)
+	   ENDIF
+	   J1=J1+I1S
+	ENDDO
+
+200	RETURN
+
+	END
+
+	SUBROUTINE VMINR(I1,I1S,N,IPOS)
+
+C	TROVA IL MINIMO
+
+*	REAL I1(MAX(1,N*I1S)),MINIMO
+	REAL I1(1),MINIMO
+
+	IPOS=-1
+	IF(N.LE.0) GOTO 200
+	IF(I1S.EQ.0) GO TO 200
+
+	J1=1
+	IPOS=1
+	MINIMO=I1(J1)
+	DO I=1,N
+	   IF(I1(J1).LT.MINIMO) THEN
+		IPOS=I
+		MINIMO=I1(J1)
+	   ENDIF
+	   J1=J1+I1S
+	ENDDO
+
+200	RETURN
+
+	END
+
+	SUBROUTINE VMAXB(I1,I1S,N,IPOS)
+
+C	TROVA IL MASSIMO
+
+*	BYTE I1(MAX(1,N*I1S)),MASSIMO
+	BYTE I1(1),MASSIMO
+
+	IPOS=-1
+	IF(N.LE.0) GOTO 200
+	IF(I1S.EQ.0) GO TO 200
+
+	J1=1
+	IPOS=1
+	MASSIMO=I1(J1)
+	DO I=1,N
+	   IF(I1(J1).GT.MASSIMO) THEN
+		IPOS=I
+		MASSIMO=I1(J1)
+	   ENDIF
+	   J1=J1+I1S
+	ENDDO
+
+200	RETURN
+
+	END
+
+
+	SUBROUTINE VMAXI(I1,I1S,N,IPOS)
+
+C	TROVA IL MASSIMO
+
+*	INTEGER*2 I1(MAX(1,N*I1S)),MASSIMO
+	INTEGER*2 I1(1),MASSIMO
+
+	IPOS=-1
+	IF(N.LE.0) GOTO 200
+	IF(I1S.EQ.0) GO TO 200
+
+	J1=1
+	IPOS=1
+	MASSIMO=I1(J1)
+	DO I=1,N
+	   IF(I1(J1).GT.MASSIMO) THEN
+		IPOS=I
+		MASSIMO=I1(J1)
+	   ENDIF
+	   J1=J1+I1S
+	ENDDO
+
+200	RETURN
+
+	END
+
+	SUBROUTINE VMAXL(I1,I1S,N,IPOS)
+
+C	TROVA IL MASSIMO
+
+*	INTEGER*4 I1(MAX(1,N*I1S)),MASSIMO
+	INTEGER*4 I1(1),MASSIMO
+
+	IPOS=-1
+	IF(N.LE.0) GOTO 200
+	IF(I1S.EQ.0) GO TO 200
+
+	J1=1
+	IPOS=1
+	MASSIMO=I1(J1)
+	DO I=1,N
+	   IF(I1(J1).GT.MASSIMO) THEN
+		IPOS=I
+		MASSIMO=I1(J1)
+	   ENDIF
+	   J1=J1+I1S
+	ENDDO
+
+200	RETURN
+
+	END
+
+	SUBROUTINE VMAXR(I1,I1S,N,IPOS)
+
+C	TROVA IL MASSIMO
+
+*	REAL I1(MAX(1,N*I1S)),MASSIMO
+	REAL I1(1),MASSIMO
+
+	IPOS=-1
+	IF(N.LE.0) GOTO 200
+	IF(I1S.EQ.0) GO TO 200
+
+	J1=1
+	IPOS=1
+	MASSIMO=I1(J1)
+	DO I=1,N
+	   IF(I1(J1).GT.MASSIMO) THEN
+		IPOS=I
+		MASSIMO=I1(J1)
+	   ENDIF
+	   J1=J1+I1S
+	ENDDO
+
+200	RETURN
+
+	END
+
+	subroutine lvect_erase(ivec,nn)
+
+	integer ivec(1)
+	
+	do ii=1,nn
+	  ivec(ii)=0
+	enddo
+
+	return
+
+	end
+
+	SUBROUTINE put1LW(LWvec,LW1)
+
+	integer*4 LWvec,LW1
+
+	LWvec=LW1
+
+	RETURN
+
+	END
+
+	SUBROUTINE get1LW(LWvec,LW1)
+
+	integer*4 LWvec,LW1
+
+	LW1=LWvec
+
+	RETURN
+
+	END
+
+
+	SUBROUTINE put2LW(LWvec,LW1,LW2)
+
+	integer*4 LWvec(2),LW1,LW2
+
+	LWvec(1)=LW1
+	LWvec(2)=LW2
+
+	RETURN
+
+	END
+
+	SUBROUTINE get2LW(LWvec,LW1,LW2)
+
+	integer*4 LWvec(2),LW1,LW2
+
+	LW1=LWvec(1)
+	LW2=LWvec(2)
+
+	RETURN
+
+	END
+
+	SUBROUTINE put4LW(LWvec,LW1,LW2,LW3,LW4)
+
+	integer*4 LWvec(4),LW1,LW2,LW3,LW4
+
+	LWvec(1)=LW1
+	LWvec(2)=LW2
+	LWvec(3)=LW3
+	LWvec(4)=LW4
+
+	RETURN
+
+	END
+
+	SUBROUTINE get4LW(LWvec,LW1,LW2,LW3,LW4)
+
+	integer*4 LWvec(4),LW1,Lw2,LW3,LW4
+
+	LW1=LWvec(1)
+	LW2=LWvec(2)
+	LW3=LWvec(3)
+	LW4=LWvec(4)
+
+	RETURN
+
+	END
+
+	subroutine bytes_to_char(bytein,charout,nn)
+
+	byte bytein(*)
+	character charout*(*) 
+
+	DO II=1,nn
+	  charout(ii:ii)=CHAR(bytein(II))
+	ENDDO
+
+	return
+
+	end
+
+	subroutine char_to_bytes(charin,byteout,nn)
+
+	byte byteout(*)
+	character charin*(*) 
+
+	DO II=1,nn
+	  byteout(II)=ichar(charin(ii:ii))
+	ENDDO
+
+	return
+
+	end
+
+
+	subroutine lint_to_real(dat,nn)
+
+	integer dat(1)
+
+	integer lw
+	real    rw
+	equivalence (lw,rw)
+
+	lw=0
+	do ii=1,nn
+	  rw=dat(ii)
+	  dat(ii)=lw
+	enddo
+
+	return
+
+	end
+
+	subroutine real_to_lint(dat,nn)
+
+	real dat(1)
+
+	integer lw
+	real    rw
+	equivalence (lw,rw)
+
+	rw=0
+	do ii=1,nn
+	  lw=dat(ii)
+	  dat(ii)=rw
+	enddo
+
+	return
+
+	end
+
+	FUNCTION FLUNSI(I)
+
+C	CONVERSIONE UNSIGNED_INTEGER ==> FLOAT
+
+	INTEGER*2 I2,I
+	INTEGER*4 I4
+	EQUIVALENCE (I4,I2)
+
+	I4=0
+	I2=I
+	FLUNSI=I4
+
+	RETURN
+
+	END
+
+	SUBROUTINE SWAPB(B1,B2)
+
+C	SCAMBIO    B1 <==> B2		A BYTE
+
+	BYTE B1,B2,B
+
+	B=B1
+	B1=B2
+	B2=B
+
+	RETURN
+	END
+
+	SUBROUTINE SWAPW(I1,I2)
+
+C	SCAMBIO    I1 <==> I2		A WORD
+
+	INTEGER*2 I1,I2,I
+
+	I=I1
+	I1=I2
+	I2=I
+
+	RETURN
+
+	END
+
+	SUBROUTINE SWAPI(I1,I2)
+	ENTRY      SWAPL(I1,I2)
+	ENTRY      SWAPR(I1,I2)
+
+C	SCAMBIO    I1 <==> I2		A LONG WORD
+
+	INTEGER*4 I1,I2,I
+
+	I=I1
+	I1=I2
+	I2=I
+
+	RETURN
+
+	END
+	
+	SUBROUTINE ORDB(IA,N)
+
+C	ORDINA IN MODO CRESCENTE UN VETTORE A BYTE
+
+	BYTE IA(N),IX
+
+	IF(N.GT.100) GOTO 100
+
+	DO I=2,N			! STRAIGHT INSERT METHOD
+	   IX=IA(I)
+	   LL=1				! CERCA IL PUNTO DI INSERZIONE
+	   LR=I-1
+	   DO WHILE (LL.LE.LR)
+		LM=(LL+LR)/2
+		IF(IX.GE.IA(LM)) THEN
+		   LL=LM+1
+		ELSE
+		   LR=LM-1
+		ENDIF
+	   ENDDO
+	   DO J=I,LL+1,-1		! SHIFT
+		IA(J)=IA(J-1)
+	   ENDDO
+	   IA(LL)=IX			! INSERT
+	ENDDO
+	RETURN
+
+100	DO II=N/2,1,-1			! HEAP-SORT METHOD
+	   I=II
+	   J=2*I
+	   IX=IA(I)
+	   DO WHILE (J.LE.N)
+		IF(J.LT.N .AND. IA(J+1).GT.IA(J) ) J=J+1
+		IF(IA(J).LE.IX) GOTO 10
+		IA(I)=IA(J)
+		I=J
+		J=2*I
+	   ENDDO
+10	   IA(I)=IX
+	ENDDO
+
+	DO II=N,2,-1
+	   IX=IA(II)
+	   IA(II)=IA(1)
+	   I=1
+	   J=2
+	   NN=II-1
+	   DO WHILE (J.LE.NN)
+		IF(J.LT.NN .AND. IA(J+1).GT.IA(J) ) J=J+1
+		IF(IA(J).LE.IX) GOTO 20
+		IA(I)=IA(J)
+		I=J
+		J=2*I
+	ENDDO
+20	IA(I)=IX
+	ENDDO
+
+	RETURN
+
+	END
+
+	SUBROUTINE ORDW(IA,N)
+
+C	ORDINA IN MODO CRESCENTE UN VETTORE A WORD
+
+	INTEGER*2 IA(N),IX
+
+	IF(N.GT.100) GOTO 100
+
+	DO I=2,N			! STRAIGHT INSERT METHOD
+	   IX=IA(I)
+	   LL=1				! CERCA IL PUNTO DI INSERZIONE
+	   LR=I-1
+	   DO WHILE (LL.LE.LR)
+		LM=(LL+LR)/2
+		IF(IX.GE.IA(LM)) THEN
+		   LL=LM+1
+		ELSE
+		   LR=LM-1
+		ENDIF
+	   ENDDO
+	   DO J=I,LL+1,-1		! SHIFT
+		IA(J)=IA(J-1)
+	   ENDDO
+	   IA(LL)=IX			! INSERT
+	ENDDO
+	RETURN
+
+100	DO II=N/2,1,-1			! HEAP-SORT METHOD
+	   I=II
+	   J=2*I
+	   IX=IA(I)
+	   DO WHILE (J.LE.N)
+		IF(J.LT.N .AND. IA(J+1).GT.IA(J) ) J=J+1
+		IF(IA(J).LE.IX) GOTO 10
+		IA(I)=IA(J)
+		I=J
+		J=2*I
+	   ENDDO
+10	   IA(I)=IX
+	ENDDO
+
+	DO II=N,2,-1
+	   IX=IA(II)
+	   IA(II)=IA(1)
+	   I=1
+	   J=2
+	   NN=II-1
+	   DO WHILE (J.LE.NN)
+		IF(J.LT.NN .AND. IA(J+1).GT.IA(J) ) J=J+1
+		IF(IA(J).LE.IX) GOTO 20
+		IA(I)=IA(J)
+		I=J
+		J=2*I
+	ENDDO
+20	IA(I)=IX
+	ENDDO
+
+	RETURN
+
+	END
+
+	SUBROUTINE ORDI(IA,N)
+	ENTRY      ORDL(IA,N)
+
+C	ORDINA IN MODO CRESCENTE UN VETTORE A LONG WORD
+
+	INTEGER*4 IA(N),IX
+
+	IF(N.GT.100) GOTO 100
+
+	DO I=2,N			! STRAIGHT INSERT METHOD
+	   IX=IA(I)
+	   LL=1				! CERCA IL PUNTO DI INSERZIONE
+	   LR=I-1
+	   DO WHILE (LL.LE.LR)
+		LM=(LL+LR)/2
+		IF(IX.GE.IA(LM)) THEN
+		   LL=LM+1
+		ELSE
+		   LR=LM-1
+		ENDIF
+	   ENDDO
+	   DO J=I,LL+1,-1		! SHIFT
+		IA(J)=IA(J-1)
+	   ENDDO
+	   IA(LL)=IX			! INSERT
+	ENDDO
+	RETURN
+
+100	DO II=N/2,1,-1			! HEAP-SORT METHOD
+	   I=II
+	   J=2*I
+	   IX=IA(I)
+	   DO WHILE (J.LE.N)
+		IF(J.LT.N .AND. IA(J+1).GT.IA(J) ) J=J+1
+		IF(IA(J).LE.IX) GOTO 10
+		IA(I)=IA(J)
+		I=J
+		J=2*I
+	   ENDDO
+10	   IA(I)=IX
+	ENDDO
+
+	DO II=N,2,-1
+	   IX=IA(II)
+	   IA(II)=IA(1)
+	   I=1
+	   J=2
+	   NN=II-1
+	   DO WHILE (J.LE.NN)
+		IF(J.LT.NN .AND. IA(J+1).GT.IA(J) ) J=J+1
+		IF(IA(J).LE.IX) GOTO 20
+		IA(I)=IA(J)
+		I=J
+		J=2*I
+	ENDDO
+20	IA(I)=IX
+	ENDDO
+
+	RETURN
+
+	END
+
+	SUBROUTINE ORDR(IA,N)
+
+	REAL IA(N),IX
+
+	IF(N.GT.100) GOTO 100
+
+	DO I=2,N			! STRAIGHT INSERT METHOD
+	   IX=IA(I)
+	   LL=1				! CERCA IL PUNTO DI INSERZIONE
+	   LR=I-1
+	   DO WHILE (LL.LE.LR)
+		LM=(LL+LR)/2
+		IF(IX.GE.IA(LM)) THEN
+		   LL=LM+1
+		ELSE
+		   LR=LM-1
+		ENDIF
+	   ENDDO
+	   DO J=I,LL+1,-1		! SHIFT
+		IA(J)=IA(J-1)
+	   ENDDO
+	   IA(LL)=IX			! INSERT
+	ENDDO
+	RETURN
+
+100	DO II=N/2,1,-1			! HEAP-SORT METHOD
+	   I=II
+	   J=2*I
+	   IX=IA(I)
+	   DO WHILE (J.LE.N)
+		IF(J.LT.N .AND. IA(J+1).GT.IA(J) ) J=J+1
+		IF(IA(J).LE.IX) GOTO 10
+		IA(I)=IA(J)
+		I=J
+		J=2*I
+	   ENDDO
+10	   IA(I)=IX
+	ENDDO
+
+	DO II=N,2,-1
+	   IX=IA(II)
+	   IA(II)=IA(1)
+	   I=1
+	   J=2
+	   NN=II-1
+	   DO WHILE (J.LE.NN)
+		IF(J.LT.NN .AND. IA(J+1).GT.IA(J) ) J=J+1
+		IF(IA(J).LE.IX) GOTO 20
+		IA(I)=IA(J)
+		I=J
+		J=2*I
+	ENDDO
+20	IA(I)=IX
+	ENDDO
+
+	RETURN
+
+	END
+
+	FUNCTION POL(X,A,N)
+
+C	CALCOLA IL VALORE DEL POLINOMIO DI ORDINE N (COEFFICENTI IN A)
+
+	DIMENSION A(N)
+
+	POL=0.
+	IF(N.LE.0) GOTO 200
+	POL=A(N)
+	DO I=N-1,1,-1
+		POL=POL*X+A(I)
+	ENDDO
+
+200	RETURN
+
+	END
+
+	FUNCTION POLDER(X,A,N)
+
+C	CALCOLA LA DERIVATA DEL POLINOMIO DI ORDINE N (COEFFICENTI IN A)
+
+	DIMENSION A(N)
+
+	POLDER=0.
+	IF(N.LE.1) GOTO 200
+	POLDER=(N-1)*A(N)
+	DO I=N-1,2,-1
+		POLDER=POLDER*X+(I-1)*A(I)
+	ENDDO
+
+200	RETURN
+
+	END
+
+	FUNCTION POLINV(EN,A,N)
+
+C	INVERTE IL POLINOMIO DI ORDINE N (COEFFICENTI IN A)
+
+	DIMENSION A(N)
+
+	POLINV=0.
+	IF(N.LE.1) GOTO 200
+	IF(A(2).NE.0.) POLINV=(EN-A(1))/A(2)
+	IF(N.EQ.2) GOTO 200
+	XO=POLINV
+	DO I=1,30
+		XP=POL(XO,A,N)-EN
+		XF=POLDER(XO,A,N)
+		XN=XO-XP/XF
+		IF(XN.EQ.XO) GO TO 10
+		XO=XN
+	ENDDO
+10	POLINV=XN
+
+200	RETURN
+
+	END
+
+	SUBROUTINE SOLVEQ2(A,B,C,NSOL,T1,T2)
+
+	NSOL=0
+
+	IF(A.NE.0) THEN
+	   DETER=B*B-4.*A*C
+	   IF(DETER.GT.0) THEN
+		DETER=SQRT(DETER)
+		A2=2*A
+		T1=(-B+DETER)/A2
+		T2=(-B-DETER)/A2
+		NSOL=2
+	   ELSE IF(DETER.EQ.0) THEN
+		T1=-0.5*B/A
+	   ELSE
+		RETURN
+	   ENDIF
+	ELSE
+	   IF(B.EQ.0) RETURN
+	   T1=-C/B
+	   NSOL=1
+	ENDIF
+
+	RETURN
+
+	END
+
+      SUBROUTINE INTERPOL(N,L,XP,YP,X,Y)
+
+C     Questa subroutine interpola secondo Lagrange. In X() e Y() sono 
+C     contenute le ascisse e le ordinate; N e` il numero di punti in
+C     cui e` definito il valore della funzione; L e` il grado del
+C     polinomio interpolante; XP e` l'ascissa del punto in cui il valore
+C     della funzione e` incognito; YP e` il valore della funzione
+C     dedotto dalla interpolazione.
+     
+	DIMENSION X(1),Y(1)
+	IF(L+1-N)2,2,1
+C     VERSION 1
+1	L=N-1
+	WRITE(6,100)L
+2	IF(X(1)-XP)4,9,3
+3	WRITE(6,101)XP
+	GO TO 9
+4	IF(XP-X(N))5,11,17
+17	WRITE(6,101) XP
+	GO TO 11
+5	I=1
+6	IF(XP-X(I))8,7,7
+7	I=I+1
+	GO TO 6
+8	IB=I-(L+1)/2
+	IS=I+L/2
+	IF(IB-1)9,10,10
+9	IB=1
+	IS=L+1
+	GO TO 12
+10	IF(N-IS)11,12,12
+11	IB=N-L
+	IS=N
+12	YP=0.
+	DO 15 I=IB,IS
+	A=Y(I)
+	DO 14 K=IB,IS
+	IF(I-K)13,14,13
+13	A=A*(XP-X(K))/(X(I)-X(K))
+14	CONTINUE
+15	YP=YP+A
+100	FORMAT('0 TOO HIGH ORDER OF INTERPOLATION REQUESTED. ORDER=',
+	1	I3,' USED')
+101	FORMAT('0 X =  ',E10.3,' NOT IN INTERVAL FROM ',E10.3,' TO',E10.3)
+	RETURN
+
+      END
+
+	FUNCTION RANEXP(RANDOM01)
+
+C	Trasforma il numero RANDOM01 (uniformemente distribuito in [0,1] )
+C	 secondo una distribuzione esponenziale  [0,88.(=-LN(MIN_REAL) )
+
+	XX=MAX( (1.-RANDOM01) , 0.5E-37)
+	RANEXP=-LOG(XX)
+
+	RETURN
+
+	END
+
+	FUNCTION RANUSER(RANDOM01,SPETT,NDIM,XNORM)
+
+C	Trasforma il numero RANDOM01 (uniformemente distribuito in [0,1] )
+C	 secondo la distribuzione data dal vettore SPETT di NDIM canali
+C	 (all' interno di un canale la distribuzione si considera uniforme)
+C	Se la normalizzazione non e` specificata ( XNORM<0 ) essa viene
+C	 calcolata internamente.
+
+	DIMENSION SPETT(NDIM)
+
+	XSUM=XNORM
+	IF(XSUM.LE.0) THEN
+		XSUM=0
+		DO II=1,NDIM
+			XSUM=XSUM+SPETT(II)
+		ENDDO
+	ENDIF
+	RR=RANDOM01*XSUM
+	DO JJ=1,NDIM
+		XX=SPETT(JJ)
+		RR=RR-XX
+		IF(RR.LE.0) THEN
+			RANUSER=JJ-1+(RR+XX)/XX
+			RETURN
+		ENDIF
+	ENDDO
+	RANUSER=0
+
+	RETURN
+
+	END
+
+  	SUBROUTINE MOMENTS(XX,YY,NXY,PM,NPM)
+
+C	CALCOLA I PRIMI NPM MOMENTI DEI DATI XX,YY
+C	I MEMENTI P(I) PER I>1 SONO RELATIVI AL BARICENTRO P(1)
+
+	DIMENSION XX(NXY),YY(NXY),PM(NPM)
+
+	DO II=1,NPM
+		PM(II)=0
+	ENDDO
+
+	P0=0
+	DO II=1,NXY
+		P0=P0+YY(II)
+	ENDDO
+	IF(P0.LE.0) RETURN
+	PM(1)=P0
+
+	IF(NPM.LT.2) RETURN
+	P1=0
+	DO II=1,NXY
+		P1=P1+YY(II)*XX(II)
+	ENDDO
+	P1=P1/P0
+	PM(2)=P1
+
+	IF(NPM.LT.3) RETURN
+	DO II=1,NXY
+		Y=YY(II)
+		X=XX(II)-P1
+		XXY=X*Y
+		DO JJ=3,NPM
+			XXY=XXY*X
+			PM(JJ)=PM(JJ)+XXY
+		ENDDO
+	ENDDO
+	DO JJ=3,NPM
+		PM(JJ)=PM(JJ)/P0
+	ENDDO
+
+	RETURN
+
+	END
+
+	SUBROUTINE MOMENTR(YY,NIYY,PM,NPM)
+
+C	CALCOLA I PRIMI NPM MOMENTI DEI DATI YY(1:NIYY)
+C	I MEMENTI P(I) PER I>1 SONO RELATIVI AL BARICENTRO P(1)
+
+	REAL YY(NIYY),PM(NPM)
+
+	DO II=1,NPM
+		PM(II)=0
+	ENDDO
+
+	P0=0
+	DO II=1,NIYY
+		P0=P0+YY(II)
+	ENDDO
+	IF(P0.LE.0) RETURN
+	PM(1)=P0
+
+	IF(NPM.LT.2) RETURN
+	P1=0
+	DO II=1,NIYY
+		P1=P1+YY(II)*II
+	ENDDO
+	P1=P1/P0
+	PM(2)=P1
+
+	IF(NPM.LT.3) RETURN
+	DO II=1,NIYY
+		Y=YY(II)
+		X=II-P1
+		XY=X*Y
+		DO JJ=3,NPM
+			XY=XY*X
+			PM(JJ)=PM(JJ)+XY
+		ENDDO
+	ENDDO
+	DO JJ=3,NPM
+		PM(JJ)=PM(JJ)/P0
+	ENDDO
+
+	RETURN
+
+	END
+
+	SUBROUTINE MOMENTI(IYY,NIYY,PM,NPM)
+
+C	CALCOLA I PRIMI NPM MOMENTI DEI DATI INTERI IYY(1:NIYY)
+C	I MEMENTI P(I) PER I>1 SONO RELATIVI AL BARICENTRO P(1)
+
+	INTEGER IYY(NIYY)
+	REAL    PM(NPM)
+
+	DO II=1,NPM
+		PM(II)=0
+	ENDDO
+
+	P0=0
+	DO II=1,NIYY
+		P0=P0+IYY(II)
+	ENDDO
+	IF(P0.LE.0) RETURN
+	PM(1)=P0
+
+	IF(NPM.LT.2) RETURN
+	P1=0
+	DO II=1,NIYY
+		P1=P1+FLOAT(IYY(II))*II
+	ENDDO
+	P1=P1/P0
+	PM(2)=P1
+
+	IF(NPM.LT.3) RETURN
+	DO II=1,NIYY
+		Y=IYY(II)
+		X=II-P1
+		XY=X*Y
+		DO JJ=3,NPM
+			XY=XY*X
+			PM(JJ)=PM(JJ)+XY
+		ENDDO
+	ENDDO
+	DO JJ=3,NPM
+		PM(JJ)=PM(JJ)/P0
+	ENDDO
+
+	RETURN
+
+	END
+

@@ -1,0 +1,129 @@
+
+
+   Numerazione dei rivelatori al Germanio di CLARA
+
+
+  Riv# 002    Theta=  171.1000        Phi=  225.0000    
+  Riv# 003    Theta=  171.1000        Phi=  315.0000    
+  Riv# 000    Theta=  171.1000        Phi=   45.0000    
+  Riv# 001    Theta=  171.1000        Phi=  135.0000
+             
+  Riv# 006    Theta=  157.9000        Phi=  351.4000    
+  Riv# 007    Theta=  150.5000        Phi=  353.3000    
+  Riv# 004    Theta=  150.5000        Phi=    7.7000    
+  Riv# 005    Theta=  157.9000        Phi=    9.6000    
+
+  Riv# 010    Theta=  157.9000        Phi=   81.4000    
+  Riv# 011    Theta=  150.5000        Phi=   83.3000    
+  Riv# 008    Theta=  150.5000        Phi=   97.7000    
+  Riv# 009    Theta=  157.9000        Phi=   99.6000    
+
+  Riv# 014    Theta=  157.9000        Phi=  171.4000    
+  Riv# 015    Theta=  150.5000        Phi=  173.3000    
+  Riv# 012    Theta=  150.5000        Phi=  187.7000    
+  Riv# 013    Theta=  157.9000        Phi=  189.6000    
+
+  Riv# 018    Theta=  157.9000        Phi=  261.4000    
+  Riv# 019    Theta=  150.5000        Phi=  263.3000    
+  Riv# 016    Theta=  150.5000        Phi=  277.7000    
+  Riv# 017    Theta=  157.9000        Phi=  279.8000    
+
+  Riv# 021    Theta=  135.1000        Phi=   45.4000    
+  Riv# 022    Theta=  137.5000        Phi=   36.7000    
+  Riv# 023    Theta=  132.7000        Phi=   32.0000    
+  Riv# 020    Theta=  129.3000        Phi=   40.1000    
+
+  Riv# 026    Theta=  129.3000        Phi=  140.9000	
+  Riv# 027    Theta=  132.7000        Phi=  149.1000	
+  Riv# 024    Theta=  137.5000        Phi=  144.4000	
+  Riv# 025    Theta=  135.1000        Phi=  135.7000	
+
+  Riv# 028    Theta=  135.1000        Phi=  225.5000	
+  Riv# 029    Theta=  137.5000        Phi=  216.7000	
+  Riv# 030    Theta=  132.7000        Phi=  212.1000	
+  Riv# 031    Theta=  129.3000        Phi=  220.2000	
+
+  Riv# 034    Theta=  129.3000        Phi=  321.0000	
+  Riv# 035    Theta=  132.7000        Phi=  329.2000	
+  Riv# 032    Theta=  137.5000        Phi=  324.4000	
+  Riv# 033    Theta=  135.1000        Phi=  315.7000	
+
+  Riv# 038    Theta=  131.4000        Phi=  355.8000    
+  Riv# 039    Theta=  124.5000        Phi=  356.2000    
+  Riv# 036    Theta=  124.5000        Phi=    4.8000    
+  Riv# 037    Theta=  131.4000        Phi=    5.2000    
+
+  Riv# 042    Theta=  131.4000        Phi=   85.8000    
+  Riv# 043    Theta=  124.5000        Phi=   86.2000    
+  Riv# 040    Theta=  124.5000        Phi=   94.8000    
+  Riv# 041    Theta=  131.4000        Phi=   95.2000    
+
+  Riv# 046    Theta=  131.4000        Phi=  175.8000	
+  Riv# 047    Theta=  124.5000        Phi=  176.2000	
+  Riv# 044    Theta=  124.5000        Phi=  184.8000	
+  Riv# 045    Theta=  131.4000        Phi=  185.2000	
+
+  Riv# 050    Theta=  131.4000        Phi=  265.8000    
+  Riv# 051    Theta=  124.5000        Phi=  266.2000    
+  Riv# 048    Theta=  124.5000        Phi=  274.8000    
+  Riv# 049    Theta=  131.4000        Phi=  275.2000    
+
+  Riv# 054    Theta=  103.8000        Phi=  356.9000    
+  Riv# 055    Theta=   97.8000        Phi=  356.9000    
+  Riv# 052    Theta=   97.8000        Phi=    4.1000    
+  Riv# 053    Theta=  103.8000        Phi=    4.1000    
+
+  Riv# 058    Theta=  103.8000        Phi=   26.9000    
+  Riv# 059    Theta=   97.8000        Phi=   26.9000    
+  Riv# 056    Theta=   97.8000        Phi=   34.1000    
+  Riv# 057    Theta=  103.8000        Phi=   34.1000    
+
+  Riv# 062    Theta=  103.8000        Phi=   56.9000    
+  Riv# 063    Theta=   97.8000        Phi=   56.9000    
+  Riv# 060    Theta=   97.8000        Phi=   64.1000    
+  Riv# 061    Theta=  103.8000        Phi=   64.1000    
+
+  Riv# 066    Theta=  103.8000        Phi=   86.9000    
+  Riv# 067    Theta=   97.8000        Phi=   86.9000    
+  Riv# 064    Theta=   97.8000        Phi=   94.1000    
+  Riv# 065    Theta=  103.8000        Phi=   94.1000    
+
+  Riv# 070    Theta=  103.8000        Phi=  116.9000    
+  Riv# 071    Theta=   97.8000        Phi=  116.9000    
+  Riv# 068    Theta=   97.8000        Phi=  124.1000    
+  Riv# 069    Theta=  103.8000        Phi=  124.1000    
+
+  Riv# 074    Theta=  103.8000        Phi=  146.9000    
+  Riv# 075    Theta=   97.8000        Phi=  146.9000    
+  Riv# 072    Theta=   97.8000        Phi=  154.1000    
+  Riv# 073    Theta=  103.8000        Phi=  154.1000    
+
+  Riv# 078    Theta=  103.8000        Phi=  176.9000    
+  Riv# 079    Theta=   97.8000        Phi=  176.9000    
+  Riv# 076    Theta=   97.8000        Phi=  184.1000    
+  Riv# 077    Theta=  103.8000        Phi=  184.1000    
+
+  Riv# 082    Theta=  103.8000        Phi=  206.9000    
+  Riv# 083    Theta=   97.8000        Phi=  206.9000    
+  Riv# 080    Theta=   97.8000        Phi=  214.1000    
+  Riv# 081    Theta=  103.8000        Phi=  214.1000    
+
+  Riv# 086    Theta=  103.8000        Phi=  236.9000    
+  Riv# 087    Theta=   97.8000        Phi=  236.9000    
+  Riv# 084    Theta=   97.8000        Phi=  244.1000    
+  Riv# 085    Theta=  103.8000        Phi=  244.1000    
+
+  Riv# 090    Theta=  103.8000        Phi=  266.9000    
+  Riv# 091    Theta=   97.8000        Phi=  266.9000    
+  Riv# 088    Theta=   97.8000        Phi=  274.1000    
+  Riv# 089    Theta=  103.8000        Phi=  274.1000    
+
+  Riv# 094    Theta=  103.8000        Phi=  296.9000    
+  Riv# 095    Theta=   97.8000        Phi=  296.9000    
+  Riv# 092    Theta=   97.8000        Phi=  304.1000    
+  Riv# 093    Theta=  103.8000        Phi=  304.1000    
+
+  Riv# 098    Theta=  103.8000        Phi=  329.9000    
+  Riv# 099    Theta=   97.8000        Phi=  329.9000    
+  Riv# 096    Theta=   97.8000        Phi=  334.1000    
+  Riv# 097    Theta=  103.8000        Phi=  334.1000    

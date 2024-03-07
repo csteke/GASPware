@@ -1,0 +1,8 @@
+xterm*ginTerminator:        CRonly
+xterm*scrollBar:            TRUE
+xterm*cursorColor:          red
+xterm*Scrollbar.foreground: green
+xterm*borderColor:          orange
+xterm*pointerColor:         blue
+xterm*c132:                 TRUE
+xterm*tekStartup:           TRUE

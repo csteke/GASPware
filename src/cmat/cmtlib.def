@@ -1,0 +1,36 @@
+#include "../libr/types.def"
+#include "cmtlib.par"
+#define GO_UP_ONE_LINE char(27)//char(91)//char(65)
+
+	structure/cmtdef/
+	  INTEGER NDIM			! Matrix dimension
+	  INTEGER RES(MAXMATDIM)	! Resolution of matrix axis
+	  INTEGER STEP(MAXMATDIM)	! size of step of matrix axis
+	  INTEGER NDIV(MAXMATDIM)	! # segments of matrix axis
+	  INTEGER POFF(MAXMATDIM)	! offset to projection in PROJE
+	  INTEGER NSEG		! # segments of matrix
+	  INTEGER NEXTRA	! # extra segments
+	  INTEGER SEGSIZE	! size of data segments
+	  INTEGER CMODE		! from compression of last read/written record
+	  INTEGER CMINVAL	!         "
+
+	  MACHINE_POINTERSIZE OLDCMODE	! array of cmode for previous versions
+	  MACHINE_POINTERSIZE OLDCMINVAL	! array of cminval    "
+
+	  INTEGER OLDCLEN	! their length in LW
+	  logical*1 READONLY	! Matrix cannot be modified
+	  INTEGER VERSION	! Version of CMT software
+	  INTEGER CMTID		! a unique identifier of this structure
+	  INTEGER MATMODE	! type of increment
+	  INTEGER INCRMODE	! type of increment
+	  INTEGER*8 NINCREMENT	! # increments 
+	  INTEGER NFLUSH	! # calls to cmt_flush
+	  INTEGER CMTLEN	! sizeof this structure in LW
+
+	  MACHINE_POINTERSIZE IVFBASE	! structure for IVFLIB
+	  MACHINE_POINTERSIZE MLMBASE	! structure for MLMLIB
+	  MACHINE_POINTERSIZE MEMCBASE	! structure for MEMCLIB
+
+	  INTEGER PROJE(0:1)	! space for projections
+	endstructure
+

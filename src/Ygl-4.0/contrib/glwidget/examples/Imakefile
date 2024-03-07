@@ -1,0 +1,16 @@
+
+INCLUDES 	= -I.. -I.
+
+/* Replace -lYgl with -lgl for standard gl lib */
+REQUIREDLIBS 	= -L.. -lglwidget -lYgl -lXext -lX11 -lm /**/
+
+/* REQUIREDLIBS 	= -L.. -lglwidget -lgl -lXext -lX11 -lm  /**/
+
+AllTarget(simple lissa)
+
+
+NormalProgramTarget(simple,   simple.o,    ,,$(REQUIREDLIBS))
+NormalProgramTarget(lissa,     lissa.o,    ,,$(REQUIREDLIBS))
+
+DependTarget();
+

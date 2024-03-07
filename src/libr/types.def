@@ -1,0 +1,28 @@
+#if defined( __i386__ ) || defined( i386 )
+#	define MACHINE_POINTERSIZE integer*4
+#   define _GW_LITTLE_ENDIAN
+#   define _GW_32_BYTES
+
+#elif defined( __x86_64__ )
+#	define MACHINE_POINTERSIZE integer*8
+#   define _GW_LITTLE_ENDIAN
+#   define _GW_64_BYTES
+
+#elif (defined(__sparc__) || defined(sparc) || defined(__sparc)) && ( !(defined(__sparcv9) || defined(__arch64__)) )
+#	define MACHINE_POINTERSIZE integer*4
+#   define _GW_BIG_ENDIAN
+#   define _GW_32_BYTES
+
+#elif (defined(__sparc__) || defined(sparc) || defined(__sparc)) && ( (defined(__sparcv9) || defined(__arch64__)) )
+#	define MACHINE_POINTERSIZE integer*8
+#   define _GW_BIG_ENDIAN
+#   define _GW_64_BYTES
+
+#elif defined(__alpha__) || defined(__osf__)
+#	define MACHINE_POINTERSIZE integer*8
+#   define _GW_LITTLE_ENDIAN
+#   define _GW_64_BYTES
+
+#else
+#   error "Undefined platform"
+#endif

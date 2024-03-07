@@ -1,0 +1,13 @@
+#include "../libr/types.def"
+
+	IMPLICIT NONE
+
+	integer ivfversion,maxnbits,drecbyte,drecword,dreclong,drecbits,minflen
+
+	PARAMETER (IVFVERSION=5)			! version of library
+	PARAMETER (MAXNBITS=32)			! max # of bits/channel
+	PARAMETER (DRECBYTE=512)			! # of bytes per disk record
+	PARAMETER (DRECWORD=DRECBYTE/2)		! # of words
+	PARAMETER (DRECLONG=DRECBYTE/4)		! # of longwords
+	PARAMETER (DRECBITS=DRECBYTE*8)		! # of bits
+	PARAMETER (MINFLEN=900)			! initialsize&extendsize

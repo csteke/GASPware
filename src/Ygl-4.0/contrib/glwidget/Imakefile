@@ -1,0 +1,61 @@
+#ifdef RsArchitecture
+#define DoSharedLib 1
+CC 		= 	xlc
+#endif /* RsArc */
+
+#define IHaveSubdirs
+#define PassCDebugFlags CDEBUGFLAGS='$(CDEBUGFLAGS)'
+SUBDIRS = examples
+
+GLINCLUDEDIR = /usr/include/gl
+
+/* set */
+/* REQUIREDLIBS = -lgl /**/
+/* for the use with standard gl library */
+
+REQUIREDLIBS 	= 	-lYgl /**/
+TARGET		= glwidget
+
+SRCS = glwidget.c
+OBJS = glwidget.o
+
+INCLUDES = -I.
+
+MANSUFFIX = 3
+MANDIR = /usr/local/man/man$(MANSUFFIX)
+
+#if DoSharedLib
+
+SharedLibraryTarget($(TARGET),,$(OBJS),.,.)
+InstallSharedLibrary($(TARGET),,$(USRLIBDIR))
+
+#else /* DoSharedLib */
+
+XLIBS = $(REQUIREDLIBS)
+NormalLibraryTarget($(TARGET),$(OBJS))
+InstallLibrary($(TARGET),$(USRLIBDIR))
+
+#endif /* DoSharedLib */
+
+INSTALLFLAGS = $(INSTINCFLAGS)
+InstallMultiple(glwidget.h,$(GLINCLUDEDIR))
+
+DependTarget()
+
+MakeSubdirs($(SUBDIRS))
+DependSubdirs($(SUBDIRS))
+
+
+InstallManPage($(TARGET), $(MANDIR))
+
+etags::
+	etags -t $(SRCS) glwidget.h
+
+tarfile::
+	make clean
+	-ln -f Makefile.std Makefile
+	-(cd examples; ln -f Makefile.std Makefile)
+	(cd ..;gtar -cvf glwidget-1.1alpha.tar glwidget;\
+	/bin/rm -rf /users/fred/prog/Ygl/src/contrib/glwidget/?*;\
+	gtar -xvf glwidget-1.1alpha.tar -C /users/fred/prog/Ygl/src/contrib/;\
+	gzip -f glwidget-1.1alpha.tar)

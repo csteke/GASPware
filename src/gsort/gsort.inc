@@ -1,0 +1,123 @@
+#include "gsort.def"
+
+	INTEGER	  LLUN
+	INTEGER	  LLIST
+	INTEGER   GS2LUN
+	INTEGER   LGSDIR
+	CHARACTER GSDIR*64
+	CHARACTER LIST*256
+	CHARACTER LINE*256
+	CHARACTER COMSORT*40
+	integer INFILES
+	COMMON /VARIECOM/ LLUN,LLIST,GS2LUN,LGSDIR,GSDIR,LIST,LINE,COMSORT,INFILES
+
+	logical*1 BREAK
+	logical*1 KILLEV
+	logical*1 AUTONUMBER	! File etichettati con RUN#
+	logical*1 TAPEDISMOUNT	! Controllo fine nastro
+	logical*1 LASTTAPE	! Controllo fine nastro
+	logical*1 AUTOLOADER
+	logical*1 STORED_EV
+	logical*1 DEFINED_OUT,FINISHED_OUT
+	COMMON/FLAGS/ BREAK,KILLEV,AUTONUMBER,TAPEDISMOUNT,LASTTAPE,AUTOLOADER,STORED_EV,
+     1 DEFINED_OUT,FINISHED_OUT
+
+	logical*1 SYNTAX
+	INTEGER PHASE
+	CHARACTER COMLINE*256
+	INTEGER LCOMLINE
+	INTEGER INPLU
+	CHARACTER*128  FORM(NFORMCOM)
+	CHARACTER*128  DECL(NDECLCOM)
+	CHARACTER*128  ANAL(NANALCOM)
+	CHARACTER*128 SYNT(NSYNT)
+	COMMON /COMDEFS/ PHASE,COMLINE,LCOMLINE,INPLU,FORM,DECL,ANAL,SYNT,SYNTAX
+
+	RECORD /COMMANDS/COM(MAXCOMANDI)
+	INTEGER	NCOMANDI
+	INTEGER ICMD
+	INTEGER WHICHCOM
+	INTEGER INIT_MODE,FINIT_MODE
+	COMMON /COMMAND/ COM,NCOMANDI,ICMD,WHICHCOM,INIT_MODE,FINIT_MODE
+
+	INTEGER   DATAFORMAT			! GASP/EUROBALL/8PI
+	INTEGER   GASPMAP(0:NDTYPE)		! Mappatura per formato GASP
+	INTEGER   EUROMAP(0:NDTYPE)		! Mappatura per formato euroball
+	INTEGER   ISEED				! Seed per i numeri random
+	INTEGER   NTIPI				! quanti tipi di rivelatori
+	INTEGER   NDPAR(0:NDTYPE)		! # parametri
+	INTEGER   MDPAR(0:NDTYPE)		! # parametri aggiunti
+	INTEGER   TDPAR(0:NDTYPE)		! # parametri totali
+	INTEGER   PARRES(0:MAXPAR-1,0:NDTYPE)  	! Risoluzione dei vari parametri
+
+	INTEGER   NDETS(0:NDTYPE)		! # di rivelatori (se composito)
+	INTEGER   NSEGS(0:NDTYPE)		! # segmenti (se composito)
+	INTEGER   NCPAR(0:NDTYPE)		! # di parametri comuni (se composito)
+	
+	INTEGER   NITEMS(0:NDTYPE)		! # totale di rivelatori
+	logical*1   EXISTS(0:NDTYPE)		! Esiste il tipo di rivelatore
+	INTEGER   FOLDMIN(0:NDTYPE)		! Minimo fold da nastro
+	CHARACTER*1 DNAME(0:NDTYPE)		! simboli per rivelatori
+	COMMON /EVDEF/DATAFORMAT,GASPMAP,EUROMAP,ISEED,NTIPI,NDPAR,MDPAR,
+     1TDPAR,PARRES,NDETS,NSEGS,NCPAR,NITEMS,FOLDMIN,EXISTS,DNAME
+
+	INTEGER   CLASS,TAG			! Descrizione dell'evento
+	INTEGER   NDET(0:NDTYPE)		! # rivelatori nell' evento
+	INTEGER   DOFF(0:NDTYPE)		! offset in LVAL dei vari tipi
+	RECORD/DETECTOR/DET(0:MAXDET-1)		! i dati
+	COMMON /CEVENT/  CLASS,TAG,NDET,DOFF,DET
+
+	INTEGER   sCLASS,sTAG			! Copia dell'evento per SAVE/RECALL
+	INTEGER   sNDET(0:NDTYPE)		! # rivelatori nell' evento
+	INTEGER   sDOFF(0:NDTYPE)		! offset in LVAL dei vari tipi
+	RECORD/DETECTOR/sDET(0:MAXDET-1)	! i dati
+	COMMON /SEVENT/  sCLASS,sTAG,sNDET,sDOFF,sDET
+
+	INTEGER   mCLASS,mTAG			! Copia di lavoro (Move...)
+	INTEGER   mNDET(0:NDTYPE)		! # rivelatori nell' evento
+	INTEGER   mDOFF(0:NDTYPE)		! offset in LVAL dei vari tipi
+	RECORD/DETECTOR/mDET(0:MAXDET-1)	! i dati
+	COMMON /mEVENT/  mCLASS,mTAG,mNDET,mDOFF,mDET
+
+
+	MACHINE_POINTERSIZE HASHADDR(0:MAXHASH-1)
+
+	INTEGER HASHGIVEN
+	INTEGER HNTRUE,HSTRUE			! Quanti rivelatori in gate
+	logical*1 HLTRUE(0:MAXDET-1)		! Quali rivelatori in gate
+	REAL    HDIST1(0:MAXDET-1)		! per gestione gates sferici
+	REAL    HDIST2(0:MAXDET-1)		! per gestione gates sferici
+	COMMON /HASHDEF/ HASHADDR,HASHGIVEN,HNTRUE,HSTRUE,HLTRUE,HDIST1,HDIST2
+
+
+	MACHINE_POINTERSIZE PAIRSADDR(0:MAXPAIRS-1)
+
+	INTEGER PAIRSGIVEN
+	COMMON /PAIRSDEF/ PAIRSADDR,PAIRSGIVEN
+
+
+	MACHINE_POINTERSIZE STATADDR
+
+	INTEGER STATSIZE
+	INTEGER NSTATCOM			! quanti comandi di statistica
+	COMMON /STATISTICS/ STATADDR,STATSIZE,NSTATCOM
+
+	INTEGER NLOST,NCLASS
+	INTEGER*8 NINCR(MAXMATDIM)
+	INTEGER FLUSHED
+	INTEGER NPRINT
+	COMMON /STATUS/ NLOST,NCLASS,NINCR,FLUSHED,NPRINT
+
+	integer*2 ievbuf(16*MAXWORDS)	! Buffer dati
+	integer*2 ievheader(MAXWORDS)	! header record
+	record/iodef/iio
+	common/ievcom/ievheader,ievbuf,iio
+
+	record/oevdef/oev
+	integer*2 oevent(MAXEVL*4)	! evento da scrivere
+	integer*2 oevbuf(MAXBYTES/2)	! Buffer scrittura eventi
+	record/iodef/oio
+	common/oevcom/oev,oevent,oevbuf,oio
+
+	record /tndio/tnd
+	common /tndcom/tnd

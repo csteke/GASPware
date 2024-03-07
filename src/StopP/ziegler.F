@@ -1,0 +1,138 @@
+	SUBROUTINE ZIEGLER(ZP,AP,ZB,AB,EP,STPOW,IFLAG,C1,C2,STNUC,
+	1 STLSS)
+	DIMENSION SIMBHE(92),ZETAHE(92),C1HE(92),C2HE(92),AHE(9,92)
+	DIMENSION SIMBH(92),ZETAH(92),C1H(92),C2H(92),AH(12,92)
+	CHARACTER SIMBHE*2, SIMBH*2, SIMBPRO*2, SIMBOLI*2, ENER*3
+	DIMENSION SIMBOLI(92),ZETA(92)
+	EQUIVALENCE (SIMBOLI(1),SIMBH(1)),(ZETA(1),ZETAH(1))
+	INTEGER ZETA, ZETAH, ZETAHE
+
+	logical*1 RFLAG
+	DATA RFLAG/.FALSE./
+
+C	ZP = Carica del proiettile ( in cariche elementari).
+C	AP = Massa del proiettile (amu; =1 per protone, =4 per l'alfa).
+C	ZB e AB: come sopra per il bersaglio.
+C	EP = Energia del proiettile in keV.
+C	STPOW = Stopping elettronico in eV/[1E15 Atomi/cm2].
+C	IFLAG = 1, uscita normale; = 0, uscita abnormale.
+C	C1 coefficiente per passare da STPOW alle unita` [keV/micron].
+C	C2 coefficiente per passare da STPOW alle unita` [eV/microgrammi/cm2].
+C	STNUC Stopping nucleare.
+C	STLSS Stopping totale in unita` LSS
+C	RFLAG flag per testare se i dati sono gia stati letti (.FALSE. ==> NO )
+
+	IF(RFLAG) GO TO 10
+
+        OPEN(UNIT=1,STATUS='OLD',NAME='DATI$ZIEGLER')
+	READ(1,*)
+	READ(1,*)
+	READ(1,*)
+	READ(1,*)
+	DO J=1,92
+		READ(1,12) SIMBHE(J),ZETAHE(J)
+     		READ(1,*) (AHE(K,J),K=1,9)
+	END DO
+
+12	FORMAT(A2,2X,I2)
+	READ(1,*)
+	READ(1,*)
+	READ(1,*)
+	READ(1,*)
+	DO J=1,92
+	     	READ(1,12) SIMBH( J),ZETAH( J)
+		READ(1,*) (AH(K, J),K=1,12), C1H( J),C2H( J)
+	END DO
+	RFLAG=.TRUE.
+
+10 	IZ=ZB
+	IFLAG=1
+	EMEVAMU=EP/(1000*AP)
+	EKEVAMU=EP/AP
+	EMEV=EP/1000
+C	Si decide se si tratta di un'alfa.
+	SIMBPRO='H '
+	IF(ZP.EQ.2..AND.AP.EQ.4.) GO TO 2000
+
+C	Si tratta di un protone o di uno ione pesante
+
+C	Si controlla se ci sono i coefficienti.
+	DO 100 K=1,12
+	IF(AH(K,IZ).NE.0.) GO TO 102
+100	CONTINUE
+99	TYPE 101, SIMBOLI(IZ)
+101	FORMAT(' Mancano i dati del 'A2'; provvedi !!!')
+	IFLAG=0
+	RETURN
+102	CONTINUE
+	IF(EKEVAMU.LE.10.) ENER='LLW'
+	IF(EMEVAMU.LT.1 .AND. EKEVAMU.GT.10) ENER='LOW'
+	IF(EMEVAMU.GE.1) ENER='HIG'
+	IF(AP.NE.1) GO TO 500
+	COEFPES=1.
+	GO TO 1000
+
+C	Si calcola il rapporto delle cariche efficaci.
+500	BFAC=.886*SQRT(EP/(AP*25))/(ZP**.6666667)
+	PI=3.141593
+	AFAC=BFAC+.0378*SIN(PI*BFAC/2)
+	ZIBARZH = 1-EXP(-AFAC)*(1.034-0.1777*EXP(-ZP*.08114))
+	COEFPES=ZIBARZH**2*ZP**2
+1000	IF(ENER.EQ.'LLW') GO TO 1090
+	IF(ENER.EQ.'LOW') GO TO 1100
+	IF(ENER.EQ.'HIG') GO TO 1150
+1090	E=EKEVAMU
+	STPOW=AH(1,IZ)*SQRT(E)*COEFPES
+	GO TO 1260
+1100	E=EKEVAMU
+	SLOW=AH(2,IZ)*E**(.45)
+	SHIGH=(AH(3,IZ)/E)*LOG(1.+(AH(4,IZ)/E)+AH(5,IZ)*E)
+C	STPOW E' lo stopping power
+	STPOW=COEFPES/((1./SLOW)+(1./SHIGH))
+	GO TO 1260
+C	Calcolo di BETA2 = (v/c)**2
+1150	BETA2=1-(938.2/(EMEVAMU+938.2))**2
+	SUM=0
+	DO 1151 K=0,4
+1151	SUM=SUM+AH(K+8,IZ)*(LOG(EKEVAMU)**K)
+	STPOW=(AH(6,IZ)/BETA2)*(LOG(AH(7,IZ)*BETA2/(1.-BETA2))-BETA2)-SUM
+	STPOW=COEFPES*STPOW
+	GO TO 1260
+
+C	Calcolo per le particelle alfa.
+2000	DO 1200 K=1,9
+	IF (AHE(K,IZ).NE.0.) GO TO 1202
+1200	CONTINUE
+	GO TO 99
+1202	CONTINUE
+	E=EP
+	SLOW= AHE(1,IZ)*E**AHE(2,IZ)
+	SHIGH=(AHE(3,IZ)*1000./E)*LOG(1+(AHE(4,IZ)*1000./E)
+	1 +(AHE(5,IZ)*E/1000.))
+	STPOW=1./((1./SLOW)+(1./SHIGH))
+	GO TO 1260
+1250	EE=LOG(1./EMEV)
+	PRODSC=0
+	DO 1251 I=0,3
+1251	PRODSC = PRODSC + AHE(6+I,IZ)*EE**I
+	STPOW=EXP(PRODSC)
+1260	C1=C1H(IZ)
+	C2=C2H(IZ)
+C	Calcolo dello stopping nucleare (Ziegler J. of App. Phys.31 (1977) 544)
+	DD3=2./3
+	Z2TERZI=ZP**DD3+ZB**DD3
+	EPSI=32.53*AB*EP/(ZP*ZB*(AP+AB)*SQRT(Z2TERZI))
+	IF(EPSI .LT. (.01)) GO TO 1280
+	IF(EPSI .GE. (.01) .AND. EPSI .LE. (10.)) GO TO 1270
+	STNUC=LOG(.47*EPSI)/(2*EPSI)
+	GO TO 1290
+1270	STNUC=1.7*SQRT(EPSI)*LOG(EPSI+2.718282)/(1.+6.8*EPSI+3.4*
+	1EPSI**1.5)
+	GO TO 1290
+1280	STNUC=1.59*SQRT(EPSI)
+1290	COEFLSS=8.462*ZP*ZB*AP/((AP+AB)*SQRT(Z2TERZI))
+	STNUC=STNUC*COEFLSS
+	STTOT=STNUC+STPOW
+	STLSS=STTOT/COEFLSS
+	RETURN
+	END

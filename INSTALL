@@ -1,0 +1,51 @@
+
+Installation Notes for GASPware
+
+SUPPORTED PLATFORMS 
+Digital Unix (OSF/4) on Alpha - with Digital C and FORTRAN compilers
+Solaris 2.x on Sun - with Sun Workshop compilers
+Linux on PC x86 - with gcc and PGI's pgf77   or  Intel compilers
+Mac OSX on Mac Intel computers - with Intel compilers
+
+HOW TO INSTALL 
+(i) download the file GASPware.tar.gz corresponding with your computer and operating system
+
+(ii) uncompress the archive:
+gzip -d -c GASPware.tar.gz | tar xvf -
+It will create a directory named GASPware with the following structure
+			GASPware/
+				|-- bin
+				|-- doc
+				|-- etc
+				`-- src
+					|-- StopP
+					|-- Ygl-4.0
+					|-- cmat
+					|-- gsort
+					|-- libr
+					|-- recal
+					|-- sadd
+					|-- tape
+					|-- varie
+					`-- xtrack
+
+NOTE: Platform dependent executables have to be already in the bin/ directory. 
+If you want only  to use them and not to recompile the programs on your machine, go directly to step (v)
+(iii) enter in the GASPware directory
+			cd GASPware
+
+(iv) compile the programs as follows
+		for Digital Unix (OSF/4) : 
+				make digital
+		for Solaris 2.x
+				gmake sun      ( GNU make is needed )
+		for Linux
+				make linux    if you use gcc + pgf77 , or
+				make intel    if you use Intel C and FORTRAN compilers
+		for Mac OSX
+				make intel    (you need Intel C and FORTRAN compilers)
+If everything goes well, the new binaries will be placed in the bin/ directory.
+
+(v) set the environment 
+add the [...]/GASPware/bin/ directory to the PATH environment variable
+define the GSDIR environment variable to point to the [...]/GASPware/etc/ directory

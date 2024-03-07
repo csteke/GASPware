@@ -1,0 +1,21 @@
+
+INSTALLATION of libglwidget
+
+If you have Imake (you should...):
+
+	1. Type "xmkmf -a"
+
+	2. Type "make install".
+	   Type "make install.man".
+
+	3. Look into the examples directory. Two example programs
+	   should be there.
+
+If not:
+
+	Copy Makefile.std to Makefile and edit it for your system.
+	Try "make".
+	Try "make install" or install libglwidget.a in /usr/lib
+	and copy glwidget.g to /usr/local/include/gl (or where
+	your gl headers are). Try to compile the examples with Makefile.std.
+

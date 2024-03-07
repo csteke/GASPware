@@ -1,0 +1,216 @@
+\documentstyle[11pt]{article}
+\topmargin0cm
+\oddsidemargin0cm
+\evensidemargin0cm
+\textwidth15cm
+\textheight23cm
+\parindent1cm
+\begin{document}
+
+\begin{center}
+{\Large\bf\underline{CMAT PROGRAM}} \\
+\bigskip
+Part of the GASP Data Analysis Program Package\\
+\bigskip
+\bigskip
+{D. Bazzacco} \\
+\bigskip
+{\small\it INFN, Sezione di Padova, Italy}\\
+\bigskip
+September 25, 1997
+\end{center}
+
+\bigskip
+\bigskip
+\bigskip
+
+\noindent
+{\large\bf 1. INTRODUCTION} \\
+
+\bigskip
+The {\bf CMAT} program is part of the Data Analysis Program Package developed
+at Padova/Legnaro designed to analize multidimensional coincidence matrices
+produced with GSORT program. 
+It can execute the following operations:
+\begin{enumerate}
+\item 1D projections of the matrices;
+\item extracting gated 1D spectra from 2D matrices;
+\item extracting gated 2D matrices from 3D/4D matrices;
+\item adding multidimensional matrices;
+\item compress/decompress matrices;
+\item transposing 2D matrices;
+\item reading the content of one channel;
+\item changing organization of a matrix;
+\item 2D scatter plot of 2D matrices;
+\item defining automatic banana gates on 2D matrices.
+\end{enumerate}
+
+When starting the program it shows the prompt {\bf CMAT$>$} and waits for a
+command. Before acting on a matrix it has to be opened with the {\bf
+OPEN} command. When the matrix is opened the program list its organization
+(symmetric/nonsymmetric, dimensions of the axis, step values, number of
+segments). A brief list of the commands can be get using the {\bf ?} command. 
+
+\newpage
+\noindent
+{\large\bf 2. DETAILED DESCRIPTION OF THE COMMANDS} \\
+
+\bigskip
+\bigskip     
+
+\begin{itemize}
+
+ \item	{\it\underline{ADD}} \\
+
+	It creates a matrix {\bf $fact3 \times mat3$} by summing the matrices 
+	{\bf $fact1 \times mat1$} and {\bf $fact2 \times mat2$}. After the
+	command the program ask for the name of the matrices to be summed, the 
+	name of the final matrix and the factors to be mutiplied with; e.g.,
+	with the factors 1 -1 1 one subtracts {\bf mat2} from {\bf mat1}. The
+	two matrices involved in this operation must have the same
+	organization.
+
+ \item	{\it\underlin{BANANA\_DEFINE}} \\
+
+
+
+ \item	{\it\underline{CHANNEL\_VALUE ~~ind1 ~ind2 ~...}} \\
+
+	It shows the content and the address of a matrix location defined by
+	${\bf ind1, ind2, ...}$.
+
+ \item	{\it\underline{CLOSE}} \\
+
+	Deallocates the matrix. This command allows to operate on a different
+	matrix. Exiting from the program does not need explicit closure of the
+	matrix.
+
+ \item	{\it\underline{COMPRESS\_2D ~filename.ext}} \\
+
+	It creates a compress matrix {\bf "filename.cmat"} starting from the
+	decompressed one {\bf "filename.ext"} organized as {\bf res2} records
+	of 2 bytes {\bf res1} channels. The program asks for the axes length
+	and if they are equal it ask also if the compressed matrix should be
+	symmetrized. When creating a symmetrized compressed matrix the content
+	of each channel on the main diagonal is divided by 2 for consistency
+	with the matrices created directly in compressed form.
+
+ \item	{\it\underline{CUBEAID}} \\
+
+	It is used to identify superdeformed structures with constant dynamical
+	moment of inertia. It uses a 3D grid with constant spacing. There are 
+	still problems with background subtraction.
+
+ \item	{\it\underline{DECOMPRESS\_2D}} \\
+
+	It produces a decompress matrix. Each location uses a 2 bytes integer
+	and the file consists of {\bf res2} records of {\bf res1}$\times$ 2 
+	bytes. This operation is valid only for 2D matrices. It allows to
+	symmetrize the decompress matrix.
+
+ \item	{\it\underline{DIAGN\_2D\_SYMM}} \\
+
+	It creates a spectrum from a cut perpendicular on the main diagonal of
+	a 2D symmetric matrix. It is used to evidence ridge structures. The 
+	channels for the cut are selected from the projection of the matrix.
+	The spectrum is created with a length equal to the projection af the
+	matrix and its name is automatically generated including the channels
+	in-between which the cut was done and the extension {\bf DIAGN}. Data
+	are centered inside the spectrum. 
+
+ \item	{\it\underline{DIAGP\_2D\_SYMM}} \\
+
+	It creates a spectrum from a cut paralel to the main diagonal of
+	a 2D symmetric matrix. The channels for the cut are selected from a 
+	perpendicular cut on the main diagonal.
+	The spectrum is created with a length equal to the projection af the
+	matrix and its name is automatically generated including the channels
+	in-between which the cut was done (distance in channels from the
+	diagonal) and the extension {\bf DIAGP}.
+
+ \item	{\it\underline{EXIT}} \\
+
+	Exit the program. Open matrices are automatically closed.
+
+ \item	{\it\underline{GATE}} \\
+
+	It produces a 1D spectrum from the opened matrix setting gates on
+	ndim-1 of its axis. Gates can be specified from a file or from terminal
+	together with a normalization factor. The name of the spectrum is
+	explicity asked together with its format.
+
+ \item	{\it\underline{GET\_PROJECTIONS}} \\
+
+	It reads the projections saved in the opened matrix file and writes
+	them as spectra on disk. The name of the spectra are PROJ1.DAT,
+	PROJ2.DAT, .... up to the number of axes (even in the case of
+	symmetrized matrices).
+	
+ \item	{\it\underline{MOMENTS}} \\
+
+	It calculates the area,center of mass and FWHM of a spectrum on one of
+	the axes of a 2D matrix. Results are written as spectra and can be used
+	for isomeric states identification from gamma-time matrices.
+
+ \item	{\it\underline{M2D\_FROM\_M3D}} \\
+
+	It produces a 2D matrix from a 3D matrix by setting a list of gates
+	read from the terminal or from a disk file. One has to specify the axes
+	which are projected. The time needed to execute this command depends on
+	the matrix dimensions and the number of gates.
+
+ \item	{\it\underline{OPEN ~filename}} \\
+
+	It allocates the file containing the matrix {\bf filename.CMAT} (only
+	{\bf READ} permission).
+
+ \item	{\it\underline{PUT\_PROJECTIONS}} \\
+
+	It writes the new projections spectra in a matrix opened with {\bf
+	RWOPEN}.
+		  
+ \item	{\it\underline{RWOPEN ~filename}} \\
+
+	It allocates the file containing the matrix {\bf filename.CMAT} 
+	({\bf READ/WRITE} permission).
+
+
+ \item	{\it\underline{SCATTERPLOT\_2D}} \\
+
+	It allows to represent a 2D matrix as a scatter plot on a Tek4010
+	graphical terminal. The first index is put on horizontal and the second
+	one on vertical. It works only for nonsymmetric matrices. A few simple 
+	commands in cursor-mode are available:
+
+	{\bf T}~~~~~~~~~~~~~~~transposing the two indexes\\
+	{\bf L}~~~~~~~~~~~~~~~left marker\\
+	{\bf R}~~~~~~~~~~~~~~~right marker\\
+	{\bf O}~~~~~~~~~~~~~~~upper marker\\
+	{\bf U}~~~~~~~~~~~~~~~lower marker\\
+	{\bf E}~~~~~~~~~~~~~~~expand the region defined by L R O U\\
+	{\bf Z}~~~~~~~~~~~~~~~low offset on z-axis\\
+	{\bf space\_bar}~~~shows the coordinates and content at the marker
+				point\\
+	{\bf CTRL\_Z}~~~~exit the graphics mode.\\
+
+ \item	{\it\underline{SHIFT}} \\
+	
+	It changes the organizations of the opened matrix. It allows to pack
+	together channles and to translate them (only by integer factors).
+
+ \item	{\it\underline{STATISTICS}} \\
+	
+	It gives informations on the compression formatfor a given interval of
+	segments.
+ 
+ \item	{\it\underline{TEST}}\\
+ 
+	It is used to test new commands under development.
+
+ \item	{\it\underline{TRANSPOSE}} \\
+
+	It allows to transpose a 2D matrix.
+
+\end{itemize}
+
+\end{document}

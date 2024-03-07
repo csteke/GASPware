@@ -1,0 +1,11 @@
+
+README to libglwidget
+
+libglwidget implements two widgets in the GL graphics language. You can
+use two types of buttons and sliders in your gl programs. libglwidget
+can be compiled with the original gl library and the Ygl library from
+Fred Hucht so that it runs under vanilla X.
+
+It can be freely distributed according to the GNU Public License.
+
+Copyright (C) 1994 Michael Staats (michael@hal6000.thp.Uni-Duisburg.DE)

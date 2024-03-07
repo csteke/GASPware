@@ -1,0 +1,33 @@
+#include "ivflib.par"
+
+	structure/ivfdescr/
+	  INTEGER NREC		! # records
+	  INTEGER FREC		! first record
+	endstructure
+
+	structure/ivfheader/
+	  INTEGER LUN		! LUN to access the file
+	  INTEGER NSEG		! # segments
+	  INTEGER VERSION	! version if IVF software
+	  logical*1 READONLY	! file is readonly
+	  logical*1 MODIFIED	! file has been modified
+	  logical*1 CONSISTENT	! description on disk is consistent
+	  INTEGER FIRST		! first data record
+	  INTEGER LAST		! last data record
+	  INTEGER NDESCR	! # descriptor blocks
+	  INTEGER FDESCR	! starting at
+	  INTEGER NREC		! number of records to read/write
+	  INTEGER FREC		! position in file
+	  INTEGER WASTE		! # wasted records
+	  INTEGER NFREE		! # free file regions
+
+	  MACHINE_POINTERSIZE BASEFREE	! memoria per i pezzi liberi
+
+	  INTEGER IVFLEN
+	  INTEGER FREELEN
+	  record/ivfdescr/ind(1)
+	endstructure
+
+	structure/ivffree/
+	  INTEGER FREE(2,1)	! starting and continuing up to
+	endstructure

@@ -1,0 +1,231 @@
+\documentstyle[11pt]{article}
+\topmargin0cm
+\oddsidemargin0cm
+\evensidemargin0cm
+\textwidth15cm
+\textheight23cm
+\parindent1cm
+\begin{document}
+
+\begin{center}
+{\Large\bf\underline{TRACKN PROGRAM}} \\
+\bigskip
+Part of the GASP Data Analysis Program Package\\
+\bigskip
+\bigskip
+{D. Bazzacco} \\
+\bigskip
+{\small\it INFN, Sezione di Padova, Italy}\\
+\bigskip
+September 25, 1997
+\end{center}
+
+\bigskip
+\bigskip
+\bigskip
+
+\noindent
+{\large\bf 1. INTRODUCTION} \\
+
+\bigskip
+The {\bf TRACKN} program is part of the Data Analysis Program Package developed
+at Padova/Legnaro designed for graphical analisys of 2D coincidence matrices
+produced with GSORT program and/or CMAT program.
+It can execute the following operations:
+\begin{enumerate}
+\item displaying 1D spectra
+\item extracting gated 1D spectra from 2D matrices with normal/common
+	background subtraction;
+\item simple operation with spectra (area, centroid and FWHM of peaks);
+\item automatic peaksearch;
+\item automatic calibration with standard gamma-ray sources;
+\item defining smooth background spectrum and cut;
+\item screen dump to a PS file.
+\end{enumerate}
+
+The program is running in graphic mode on Tek4010 terminals.
+A brief list of the commands can be get using the {\bf ? or H} command. 
+
+\newpage
+\noindent
+{\large\bf 2. DETAILED DESCRIPTION OF THE COMMANDS} \\
+
+\bigskip
+\bigskip     
+
+\begin{itemize}
+
+ \item	{\it\underline{SPACE\_BAR}} \\
+
+	Set expand markers and display marker position in channels and energy
+	if the calibration was defined before.
+
+ \item	{\it\underline{E}} \\
+
+	Expand spectrum between the last two 'space\_bar' markers.
+
+ \item	{\it\underline{V}} \\
+
+	It shows the position (in channels and energy) and spectrum content at
+	the cursor position.
+
+ \item	{\it\underline{SETTING MARKERS}} \\
+
+	{\bf B}~~~~~~background marker (maximum four=two background region);\\
+	{\bf I}~~~~~~integration marker (maximum two=one integration region);\\
+	{\bf R}~~~~~~mark the ROI for fit (maximum two=one ROI);\\
+	{\bf G}~~~~~~initial estimate of the peak position;\\
+	{\bf W}~~~~~~gate marker;\\
+	{\bf S}~~~~~~smooth background marker. 
+
+ \item	{\it\underline{DELETING MARKERS}} \\
+
+	{\bf ZB}~~~~~~cancel background markers;\\
+	{\bf ZI}~~~~~~cancel integration marker;\\
+	{\bf ZR}~~~~~~cancel ROI;\\
+	{\bf ZG}~~~~~~cancel peak markers;\\
+	{\bf ZW}~~~~~~cancel gate markers;\\
+	{\bf ZS}~~~~~~cancel smooth background marker. 
+
+ \item	{\it\underline{CB, CI, CJ, MI, MJ, AJ}} \\
+
+	{\bf CB}~~~~~calculate/show background;\\
+	{\bf CI}~~~~~integration between the I markers; area, centroid, FWHM
+			listed\\
+	{\bf CJ}~~~~~background+integration;\\
+	{\bf MI}~~~~~show I markers;\\
+	{\bf MJ}~~~~~show I and B markers;\\
+	{\bf AJ}~~~~~automatic background+integration at cursor position.
+
+ \item	{\it\underline{CG, CV, MG, MV, AG}} \\
+
+	{\bf CG}~~~~~gaussian fit of the peaks marked with G inside the ROI; 
+	             area, centroid, 
+		     
+		     \hskip1cm FWHM are listed;\\
+	{\bf CV}~~~~~background+gaussian fit;\\
+	{\bf MG}~~~~~show G markers;\\
+	{\bf MV}~~~~~show G, R and B markers;\\
+	{\bf AG}~~~~~automatic background+gaussian fit at cursor position.
+
+ \item	{\it\underline{CP, DP, MP, ZP, +, -}} \\
+
+	{\bf CP}~~~~~automatic peaksearch and show;\\
+	{\bf DP}~~~~~define peaks from file;\\
+	{\bf MP}~~~~~show peaks in the buffer;\\
+	{\bf ZP}~~~~~cancel peak positions from buffer;\\
+	{\bf ~+}~~~~~insert peak position at cursor location;\\
+	{\bf ~-}~~~~~cancel peak position at cursor location.
+
+ \item	{\it\underline{Dn, Cn, Mn, Zn, n}} \\
+
+	{\bf Dn}~~~~~define command string (e.g., NFF=new spectrum+full display);\\
+	{\bf Cn}~~~~~cicle on  the n-th command string;\\
+	{\bf Mn}~~~~~show the n-th command string;\\
+	{\bf Zn}~~~~~cancel the n-th command string;\\
+	{\bf ~n}~~~~~execute the n-th command string (n=1,...,9).
+
+ \item	{\it\underline{DS, MS, ZS}} \\
+
+	{\bf DS}~~~~~read smooth background points from file;\\
+	{\bf MS}~~~~~show smooth background points;\\
+	{\bf ZS}~~~~~cancel smooth background points.
+
+ \item	{\it\underline{DW, MW, ZW, CW, Q}} \\
+
+	{\bf DW}~~~~~define cut limits from terminal or file;\\
+	{\bf MW}~~~~~show cut limits;\\
+	{\bf ZW}~~~~~delete cut limits;\\
+	{\bf CW}~~~~~execute cut;\\
+	{\bf ~Q}~~~~~return to the total matrix projection.
+
+	{\bf CW} works in two ways:\\
+	~~~~~~~~1) common backgound subtraction: all markers define peaks\\
+	~~~~~~~~2) normal backgound subtraction: first two markers define the peak\\
+	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~all the others define the background
+	
+ \item	{\it\underline{DT, CT, AT}} \\
+
+	{\bf DT}~~~~~;\\
+	{\bf CT}~~~~~;\\
+	{\bf AT}~~~~~.
+
+ \item	{\it\underline{DD}} \\
+
+	Define display characteristics. Some of the possibilities are:\\
+	~~~~Y-display function: normal(default), logarithmic or square-root;\\
+	~~~~X-limits (in channels);\\
+	~~~~Y-limits (in channels);\\
+	~~~~terminal window dimensions: x0, x1, y0, y1;\\
+	~~~~text characteristics;\\
+	~~~~ticks height;\\
+	~~~~X-axis labels: calibrated(default) or in channels;\\
+	~~~~X-axis title.
+
+ \item	{\it\underline{DK, AK}} \\
+
+	Define the energy and FWHM  calibrations.\\
+
+	{\bf DK} allows to introduce the coefficients of the calibration 
+	polynomials of up \\ 
+	\hskip1cm to the fifth degree.
+
+	{\bf AK} automatic energy calibration using a list of gamma-rays from a
+	disk file, \\
+	\hskip1cm introduced from terminal or with standard gamma-ray sources. 
+
+ \item	{\it\underline{DL}} \\
+
+	Define the LUN for the output of the calculations (fit, integration,
+	...). If LUN=6 then th results are written on the top of the figure.
+
+
+	
+ \item	{\it\underline{DQ}} \\
+
+	Define compressed matrix
+	
+ \item	{\it\underline{FF, FX, FY, FO, FU}} \\
+
+	{\bf FF}~~~~~zoom off on both x and y axes;\\
+	{\bf FX}~~~~~zoom off on the x axis; \\
+	{\bf FY}~~~~~zoom off on the y axis; \\
+	{\bf FO}~~~~~expand below the marker position on y axis ;\\
+	{\bf FU}~~~~~expand above the marker position on y axis .
+
+ \item	{\it\underline{L}} \\
+
+	Turn off/on logaritmic scale
+
+ \item	{\it\underline{N}} \\
+
+	Define new spectrum 
+
+ \item	{\it\underline{O=}} \\
+
+	Screen dump of the Tektronix graphical window in a PS file or to 
+	the print spooler
+
+ \item	{\it\underline{P}} \\
+
+	Go to a specified energy
+
+ \item	{\it\underline{MZ}} \\
+
+
+ \item	{\it\underline{$<$, $>$}} \\
+
+	Shift spectrum to left/right by 3/4 of the x displayed range
+		  
+ \item	{\it\underline{=}} \\
+
+	Redisplay
+
+
+ \item	{\it\underline{CTRL\_C, CTRL\_Y, CTRL\_Z}} \\
+
+	Exit (on UNIX use only CTRL\_Y)
+	
+\end{itemize}
+
+\end{document}
