@@ -831,6 +831,8 @@ void inpx_( unsigned char *InterString, int *InterLength ){
 
      case REDRAW: { DOUBLEBUFF_ON 
 		   DrawTrackFrame(GLWindow->ID);
+		   swapbuffers();
+		   DrawTrackFrame(GLWindow->ID);
      		   XFlush((Display *)getXdpy());
 		   if(CrtPlot)TrackDisplayed.Text = CrtPlot->Comment;
                    WriteInLabel(TrackDisplayed);
@@ -910,6 +912,7 @@ void xtpget_(float *x, float *y, Int32 *c){
     KillPlots(Plot);
     Plot=OldPlot;
     OldPlot=NULL;
+
     DrawTrackFrame(GLWindow->ID);
     NofPlots=(Plot->Row)*(Plot->Col);
     TrackPlotMap(Plot->Row,Plot->Col);
@@ -947,7 +950,6 @@ void xtpget_(float *x, float *y, Int32 *c){
   fflush(stdin);
   TrackDisplayed.Text = CrtPlot->Comment;
   WriteInLabel(TrackDisplayed);
-
   
   
   while ( dev = qread(&val) ) {
@@ -1708,7 +1710,11 @@ void xtpget_(float *x, float *y, Int32 *c){
 #if defined(__APPLE__) && ( defined( __MAC_10_7 ) || defined( __MAC_10_8 ) )
 */
 redraw:	  
+	  DOUBLEBUFF_ON
           ReshapeWindow();
+	  DrawTrackFrame(GLWindow->ID);
+	  swapbuffers();
+
 	      while( qtest() )
 	      {
 	     	 dev = qread( &val );
@@ -1717,13 +1723,15 @@ redraw:
 
           ReshapeWindow();
 
-	      DOUBLEBUFF_ON
-	      DrawTrackFrame(GLWindow->ID);
+	  DrawTrackFrame(GLWindow->ID);
+	  swapbuffers();
+	  DrawTrackFrame(GLWindow->ID);
+	  
      	  XFlush((Display *)getXdpy());
 
 	
-	      WriteInLabel(TrackDisplayed);
-	      TrackPlotMap(Plot->Row,Plot->Col);
+	  WriteInLabel(TrackDisplayed);
+	  TrackPlotMap(Plot->Row,Plot->Col);
           if(OldPlot == NULL)																      
 		  { 																				      
                 sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",CrtPlot->Xmin[CrtPlot->ActiveData]);     
@@ -1748,20 +1756,19 @@ redraw:
 		          WriteInLabel(TrackDisplayed); 													 
 		        }																					 
            } 																				      
-		   p=Plot;
-		   while(p)
-		   {
-		        DrawPlotFrame(p);
-		        DrawPlot(p); 
-		        p=p->Next;
-		   }
-			  
-		   DrawActivePlotFrame(CrtPlot);			  
+	   
+	   p=Plot;
+	   while(p)
+	   {
+	   	DrawPlotFrame(p);
+	   	DrawPlot(p); 
+	   	p=p->Next;
+	   }
+		   
+	   DrawActivePlotFrame(CrtPlot);			  
 
-
-
-		   DOUBLEBUFF_OFF
-		   _global_ForceRedraw = 0;
+	   DOUBLEBUFF_OFF
+	   _global_ForceRedraw = 0;
 
 
 /*

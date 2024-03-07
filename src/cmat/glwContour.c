@@ -1495,6 +1495,7 @@ void DrawPlot ( void ){
  Int16 val;
 
   SetMouseShape(XC_watch);  
+
   logicop(Plot.Reverse); /*(LO_SRC);*/
   color(GLW_DRAWBG);
   rectfi(XpPlot.x1,XpPlot.y1,XpPlot.x2,XpPlot.y2);
@@ -2316,9 +2317,10 @@ void HandleKey( char key ){
 						     DoExpand = True;}
 			                m->On = MARKER_OFF;
 					m = m->Next;}
-					if(DoExpand){DrawPlot(); REDRAW_BANANAS;}
+					if(DoExpand){ DOUBLEBUFF_ON DrawPlot(); REDRAW_BANANAS; DOUBLEBUFF_OFF}
 			    break;}
-      case 'F': case 'f':{ RedrawAllMarkers();
+      case 'F': case 'f':{ DOUBLEBUFF_ON
+                           RedrawAllMarkers();
                            m = Marker; while( m ){ m->On = MARKER_OFF; m = m->Next;}
                            Plot.Xmin = Plot.Ymin = 0;
 			   Plot.Xmax = DataXmax-1; Plot.Ymax = DataYmax-1;
@@ -2326,6 +2328,7 @@ void HandleKey( char key ){
 	                   Selected = NULL;
 	                   b = Banana;
 	                   while( b ){ BP_DrawBanana( b ); b = b->Next; }
+			   DOUBLEBUFF_OFF
 			   break;}
 			   
       case 'Q': case 'q':{  DoQuit = True; break;}
@@ -2427,7 +2430,7 @@ void  contourplot_(Int32 *data, Int32 *resx, Int32 *resy){
   DataXmax = *resx; DataYmax = *resy;
   DoQuit = False;
   Win = GLWContourInit();
-  DOUBLEBUFF_OFF
+  DOUBLEBUFF_ON
   DrawFrame(); 
   MapPlots();
   XMinLabel.Reverse = &(Plot.Reverse);
@@ -2442,7 +2445,23 @@ void  contourplot_(Int32 *data, Int32 *resx, Int32 *resy){
   REDRAW_BANANAS;
   fflush(stdin);
   ZScaleChange = 0;
-  
+
+  swapbuffers();
+
+  DrawFrame(); 
+  MapPlots();
+  XMinLabel.Reverse = &(Plot.Reverse);
+  XMaxLabel.Reverse = &(Plot.Reverse);
+  YMinLabel.Reverse = &(Plot.Reverse);
+  YMaxLabel.Reverse = &(Plot.Reverse);
+  ZMinLabel.Reverse = &(Plot.Reverse);
+  ZMaxLabel.Reverse = &(Plot.Reverse);
+  DrawPlotFrame(MatPlot); DrawPlotFrame(XpPlot); DrawPlotFrame(YpPlot);
+  MakeData(data);
+  DrawPlot();
+  REDRAW_BANANAS;
+  fflush(stdin);
+  DOUBLEBUFF_OFF
   
   while ( dev = qread(&val) ) {
 
@@ -2468,20 +2487,42 @@ void  contourplot_(Int32 *data, Int32 *resx, Int32 *resy){
         break;}
 
       case REDRAW: {
+
+	DOUBLEBUFF_ON
 redraw:	ReshapeWindow();
+	if( qtest() )
+	{
+	    dev = qread( &val );
+	    if( dev == REDRAW )  {  usleep(10000); goto redraw; }
+	}
+
+	DrawFrame();
+	
+	swapbuffers();
+
+	if( qtest() )
+	{
+	    dev = qread( &val );
+	    if( dev == REDRAW )  {  usleep(10000); goto redraw; }
+	}
+	
 	DrawFrame();
   	MapPlots();
 	DrawPlotFrame(MatPlot); DrawPlotFrame(XpPlot); DrawPlotFrame(YpPlot);
+
+
+	swapbuffers(); 
 	
 	if( qtest() )
 	{
 	    dev = qread( &val );
-	    if( dev == REDRAW ) goto redraw;
+	    if( dev == REDRAW ) {  usleep(10000); goto redraw; }
 	}
 
-	DOUBLEBUFF_ON
+
 	DrawFrame();
 	DrawPlotFrame(MatPlot); DrawPlotFrame(XpPlot); DrawPlotFrame(YpPlot);
+	swapbuffers();
 	DrawPlot();
 	REDRAW_BANANAS_SelKeep;
 	RedrawAllMarkers();
@@ -2526,8 +2567,9 @@ redraw:	ReshapeWindow();
 	       Plot.Xmax = ( x1Rex > xRex )?x1Rex:xRex;
 	       Plot.Ymin = ( y1Rex < yRex )?y1Rex:yRex;
 	       Plot.Ymax = ( y1Rex > yRex )?y1Rex:yRex;
-	       
+	       DOUBLEBUFF_ON
 	       DrawPlot(); REDRAW_BANANAS; FlushDrawings;
+	       DOUBLEBUFF_OFF
 	       }
 	    }
 	  break; }
@@ -2535,6 +2577,7 @@ redraw:	ReshapeWindow();
        else {
         update_widgets(val); FlushDrawings;
   	if( ZScaleChange ){
+DOUBLEBUFF_ON
   	    MapPlots();
   	    DrawPlotFrame(MatPlot); DrawPlotFrame(XpPlot); DrawPlotFrame(YpPlot);
   	    DrawPlot();
@@ -2542,6 +2585,8 @@ redraw:	ReshapeWindow();
   	    RedrawAllMarkers();
   	    FlushDrawings;
   	    ZScaleChange = 0;
+	    update_widgets(val); FlushDrawings;
+DOUBLEBUFF_OFF
   	    }
         getorigin(&x,&y);
         x=getvaluator(MOUSEX)-x;
@@ -2585,7 +2630,9 @@ redraw:	ReshapeWindow();
                 y=getvaluator(MOUSEY)-y;
 		ShowPosition(); 
 		}
+	   DOUBLEBUFF_ON
            MovePlotRegion ( MOVE_CENTER   ); REDRAW_BANANAS;
+	   DOUBLEBUFF_OFF
 	   }
 	else {
 	if( getbutton(LEFTSHIFTKEY) || getbutton(RIGHTSHIFTKEY) ){
@@ -2616,7 +2663,8 @@ redraw:	ReshapeWindow();
 	break;}
 
      case MENUBUTTON:  { 
-                        switch(dopup(Menu)) {
+                        DOUBLEBUFF_ON
+			switch(dopup(Menu)) {
                               case 1: {Plot.ZScaleType = ZLIN; 
 			               setpup(Menu,1,PUP_GREY);
 				       setpup(Menu,2,PUP_NONE);
@@ -2691,25 +2739,38 @@ redraw:	ReshapeWindow();
 				       REDRAW_BANANAS_SelKeep;
 				       RedrawAllMarkers();}break;}
 			      }
-                         break;}
+                         DOUBLEBUFF_OFF
+			 break;}
      case UPARROWKEY:    { 
  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
-	      MovePlotRegion ( MOVE_UP   ); REDRAW_BANANAS;}
+	      DOUBLEBUFF_ON
+	      MovePlotRegion ( MOVE_UP   ); REDRAW_BANANAS;
+	      DOUBLEBUFF_OFF
+	      }
 	else DrawMarker('O');
         break;}
      case DOWNARROWKEY:  { 
  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
-	      MovePlotRegion ( MOVE_DOWN   ); REDRAW_BANANAS;}
+	      DOUBLEBUFF_ON
+	      MovePlotRegion ( MOVE_DOWN   ); REDRAW_BANANAS;
+	      DOUBLEBUFF_OFF
+	      }
 	else DrawMarker('U');
         break;}
      case RIGHTARROWKEY: { 
  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
-	      MovePlotRegion ( MOVE_RIGHT   ); REDRAW_BANANAS;}
+	      DOUBLEBUFF_ON
+	      MovePlotRegion ( MOVE_RIGHT   ); REDRAW_BANANAS;
+	      DOUBLEBUFF_OFF
+	      }
 	else DrawMarker('R');
         break;}
      case LEFTARROWKEY:  { 
  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
-	      MovePlotRegion ( MOVE_LEFT   ); REDRAW_BANANAS;}
+	      DOUBLEBUFF_ON
+	      MovePlotRegion ( MOVE_LEFT   ); REDRAW_BANANAS;
+	      DOUBLEBUFF_OFF
+	      }
 	else DrawMarker('L');
         break;}
      
@@ -2759,6 +2820,7 @@ int GetString( unsigned char *String ) {
 		   break; }
 
       case REDRAW: {
+        DOUBLEBUFF_ON
 	ReshapeWindow();
 	DrawFrame();
   	MapPlots();
@@ -2767,6 +2829,7 @@ int GetString( unsigned char *String ) {
 	REDRAW_BANANAS_SelKeep;
 	RedrawAllMarkers();
 	FlushDrawings;
+        DOUBLEBUFF_OFF
 	break;}
      }
     }
