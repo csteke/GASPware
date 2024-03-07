@@ -58,10 +58,15 @@
 
 	INTEGER MAXNBAN		! MAX # banane per BANANA e PIN
 	PARAMETER (MAXNBAN=32)
+
 	INTEGER MAXRCL_ORD	! MAX # coefficienti di ricalibrazione
 	PARAMETER (MAXRCL_ORD=6)
+
 	INTEGER MAXRCL_REGS	! MAX # regioni di ricalibrazione
-	PARAMETER (MAXRCL_REGS=6)
+	PARAMETER (MAXRCL_REGS=10)
+
+	INTEGER MAXDMULT	! MAX # di parametri in DMULT
+	PARAMETER (MAXDMULT=16)
 
 	INTEGER MAXTADJ		! MAX # di parametri in time_adjust
 	PARAMETER (MAXTADJ=16)

@@ -10,7 +10,7 @@
 	      integer*4 ival(-1:maxpar-1)
 	    endmap
 	  endunion
-	  real*4    xval( 0:maxpar-1)
+	  real*8    xval( 0:maxpar-1)
 	endstructure
 
 	structure/hashdat/
@@ -49,7 +49,7 @@
 	  INTEGER NGATES	! Quanti intervalli
 	  INTEGER FL		! Minfold
 	  INTEGER FH		! Minfold
-	  logical*1 SAME		! Same as before gate
+	  logical*1 SAME	! Same as before gate
 	endstructure
 
 	structure/gatesdat/
@@ -57,38 +57,38 @@
 	endstructure
 
 	structure/filter/
-	  INTEGER IND		! Tipo di parametro
-	  INTEGER PARS		! parametro sorgente
-	  INTEGER PARD		! parametro destinazione
-	  INTEGER RES		! Risoluzione filtro
-	  character*80 file     ! no comment
-	  integer iform         ! 
+	  INTEGER IND		  ! Tipo di parametro
+	  INTEGER PARS		  ! parametro sorgente
+	  INTEGER PARD		  ! parametro destinazione
+	  INTEGER RES		  ! Risoluzione filtro
+	  character*80 file       ! no comment
+	  integer iform           ! 
 	  real F(0:MAXRES)        !
-	  INTEGER FL		! Minfold
-	  INTEGER FH		! Minfold
-	  logical*1 SAME		! Same as before gate
+	  INTEGER FL		  ! Minfold
+	  INTEGER FH		  ! Minfold
+	  logical*1 SAME	  ! Same as before gate
 	  logical*1 initialized   !
 	endstructure
 
 	structure/window/
-	  INTEGER  IND		! Tipo di parametro
-	  INTEGER  LO(0:MAXPAR-1)! Valore inferiore
-	  INTEGER  HI(0:MAXPAR-1)! Valore superiore
-	  INTEGER  FL		! Minfold
-	  INTEGER  FH		! Minfold
-	  logical*1  SAME		! Same as before window
+	  INTEGER  IND		  ! Tipo di parametro
+	  INTEGER  LO(0:MAXPAR-1) ! Valore inferiore
+	  INTEGER  HI(0:MAXPAR-1) ! Valore superiore
+	  INTEGER  FL		  ! Minfold
+	  INTEGER  FH		  ! Minfold
+	  logical*1  SAME	  ! Same as before window
 	endstructure
 
 	structure/banana/
-	  INTEGER IND(2)	! Tipo di parametro x,y
-	  INTEGER PAR(2)	! Parametro asse x,y
-	  INTEGER RES(2)	! Risoluzione della banana
-	  INTEGER NBAN		! Numero di banane
-	  INTEGER FL		! Minfold
-	  INTEGER FH		! Maxfold
-	  logical*1 INSIDE	! In-Out
-	  logical*1 SAME		! Same as before banana
-	  logical*1 multiadc      ! N.M. - for ADC-dependent banana
+	  INTEGER IND(2)	       ! Tipo di parametro x,y
+	  INTEGER PAR(2)	       ! Parametro asse x,y
+	  INTEGER RES(2)	       ! Risoluzione della banana
+	  INTEGER NBAN		       ! Numero di banane
+	  INTEGER FL		       ! Minfold
+	  INTEGER FH		       ! Maxfold
+	  logical*1 INSIDE	       ! In-Out
+	  logical*1 SAME	       ! Same as before banana
+	  logical*1 multiadc           ! N.M. - for ADC-dependent banana
 	  logical*1 ignore(0:MAXDET-1) ! only for ADC-dependent banana
 	endstructure
 
@@ -118,18 +118,18 @@
 	endstructure
 
 	structure/pin/
-	  INTEGER IND(4)	! Tipo di parametro per banane
-	  INTEGER PAR(4)	! Parametro asse x,y ; la massa e il tipo della particella
-	  INTEGER RES(2)	! Risoluzione delle banane
-	  INTEGER FIX		! Parametro fisso per il risultato
-	  INTEGER FIXRES        ! Risoluzione dell parametro fisso
-	  INTEGER NBAN		! quante banane
-	  INTEGER F1(MAXNBAN)	! Numero di particelle della banana
-	  INTEGER F2(MAXNBAN)	! Peso della banana in PIN
-	  INTEGER F3(MAXNBAN)	! Massa della particella
-	  INTEGER FL		! Minfold
-	  INTEGER FH		! Maxfold
-	  logical*1 SAME		! Same as before PIN
+	  INTEGER IND(4)		       ! Tipo di parametro per banane
+	  INTEGER PAR(4)		       ! Parametro asse x,y ; la massa e il tipo della particella
+	  INTEGER RES(2)		       ! Risoluzione delle banane
+	  INTEGER FIX			       ! Parametro fisso per il risultato
+	  INTEGER FIXRES        	       ! Risoluzione dell parametro fisso
+	  INTEGER NBAN			       ! quante banane
+	  INTEGER F1(MAXNBAN)		       ! Numero di particelle della banana
+	  INTEGER F2(MAXNBAN)		       ! Peso della banana in PIN
+	  INTEGER F3(MAXNBAN)		       ! Massa della particella
+	  INTEGER FL			       ! Minfold
+	  INTEGER FH			       ! Maxfold
+	  logical*1 SAME		       ! Same as before PIN
 	  logical*1 multiadc(MAXNBAN)          ! N.M. - for ADC-dependent banana
 	  logical*1 ignore(MAXNBAN,0:MAXDET-1) ! only for ADC-dependent banana
 	endstructure
@@ -144,6 +144,16 @@
 	  INTEGER WLO		! Finestra sul finale
 	  INTEGER WHI		! Finestra sul finale
 	endstructure
+	
+	structure/dmult/
+	  INTEGER IND(MAXDMULT)	! Tipo di parametro 
+	  INTEGER PAR(MAXDMULT)	! Quale parametro
+	  INTEGER LO(MAXDMULT)	! Limite inferiore della finestra
+	  INTEGER HI(MAXDMULT)	! limite superiore della finestra
+	  INTEGER FIX           ! Parametro fisso per il risultato
+	  INTEGER NGATES        ! Quante finestre
+	endstructure
+	  	  
 
 	structure/recal/
 	  INTEGER IND		! Tipo di parametro
@@ -180,14 +190,14 @@
 
 	structure/calcoef/
 	  INTEGER*4 ORD
-	  REAL*4    COEF(MAXRCL_ORD)
+	  REAL*8    COEF(MAXRCL_ORD)
 	endstructure
 
 	structure/mcalcoef/
 	  integer*4 nregs
 	  INTEGER*4 ORD(MAXRCL_REGS)
-	  REAL*4    COEF(MAXRCL_ORD,MAXRCL_REGS)
-	  real*4    limit(0:MAXRCL_REGS)
+	  REAL*8    COEF(MAXRCL_ORD,MAXRCL_REGS)
+	  real*8    limit(0:MAXRCL_REGS)
 	endstructure
 
 
@@ -610,7 +620,7 @@ c	  logical*1 SAME		! Same as before gate
 	  INTEGER NIND
 	  INTEGER IHASH			! Quale tabella di hash (se >=0)
 	  INTEGER HIND,HPAR		! riportati qui per comodita'
-	  logical*1 HSAME			! IND e' quello su cui applicare HGATE
+	  logical*1 HSAME		! IND e' quello su cui applicare HGATE
 	  INTEGER NHASH			! quante volte
 	  logical*1 SPHERICAL		! gate di tipo elissoidale
 	  INTEGER TYPE
@@ -695,6 +705,9 @@ CVMS	  integer*2 mtch,hctm
 	    endmap
 	    map
 	      record/hk/hk
+	    endmap
+	    map
+	      record/dmult/dmult
 	    endmap
 	    map
 	      record/add/add

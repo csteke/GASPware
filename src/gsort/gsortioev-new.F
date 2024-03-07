@@ -1680,7 +1680,7 @@ C	  CALL ANSI_BELL(LU1)
 *#ifdef PClinux
 *	real rbuf(:)
 *#else
-	real rbuf(16*MAXWORDS)
+	real rbuf(0:16*MAXWORDS)
 *#endif
 	integer*4 tnd_decode
 	external tnd_decode

@@ -305,8 +305,10 @@ CVMS	CALL CPU_SECONDS(TIM_START)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!! FINITO UN RUN  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-40	CALL ANSI_BELL(LU1)
+40	CONTINUE
 CVMS	CALL CPU_SECONDS(TIM_END)
+
+	CALL ANSI_BELL(LU1)
 
 #ifdef __linux__
 	SEC_END=r4_time() - SEC_START
@@ -325,13 +327,21 @@ CVMS	CALL CPU_SECONDS(TIM_END)
 	  if(nlost.ne.0) then
 	    WRITE(ilu,'(I15,''   Bad event sequences       '',A)') nlost
 	  endif
-	  do ii=1,MAXMATDIM
-	    WRITE(ilu,'(I15,I4,''D increments'')') nincr(ii),ii
-	  end do
 	  call timestamp(ilu,'  SORT  completed')
+
+	  write(ilu,'(/,''  RUN / TOTAL increments:'')')
+	  do ii=1,MAXMATDIM
+	    WRITE(ilu,'(I6,''D  '',I13,'' / ''I0)') ii,nincr(ii)-nincr0(ii),nincr(ii)
+*	    WRITE(ilu,'(I15,I4,''D increments [ Total ]'')') nincr(ii),ii
+	  end do
+	  write(ilu,*)
 	enddo
 	call FINIT_RUN(1)
 	call showtypes
+	call gs_statusline(0.00,0)
+	do ii=1,MAXMATDIM
+	    nincr0(ii) = nincr(ii)
+	enddo
 	if(stopsort) goto 500
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -522,6 +532,7 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 	ANAL(39)='COPY            Copy one detector or parameter into another'
 	ANAL(40)='USEFUL          Put Run#, Record#, Event# and Count# in header parameters'
 	ANAL(41)='THRESHOLDS      Eliminate out-of-range values for a parameter. Threshold values taken from file'
+	ANAL(42)='DMULT           Store the multiplicity defined by intervals for several detector parameters in a header parameter'
 
 	ANAL(44)='MULT            Multiply 2 parameters into a 3rd one with gain'
 	ANAL(45)='MEAN_VALUE      Put in a header parameter the mean value of the given detector parameter '
@@ -567,6 +578,7 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 
  	ANAL(125)='SORT3D_PAIR    *3-D sort of Pn-Pn-Pair_index'
 	ANAL(127)='SORT3D_DIFF    *3-D sort of Pn-Pn-Difference'
+	ANAL(128)='SORT3D_DDIFF    3-D sort of Aa-Bb-Difference( Ac - Dd + offset )'
 
 	ANAL(131)='SORT2D_HSYMM   *Half-Symmetrized 2-D sort'
 	ANAL(132)='SORT3D_HSYMM   *Half-Symmetrized 3-D sort'
@@ -962,7 +974,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 341	call gs0_thresholds(com(icmd))
 	goto 800
 	
-342	goto 900
+342	call gs0_dmult(com(icmd))
+	goto 800
+
 343	goto 900
 	
 344	call gs0_mult(com(icmd))
@@ -1131,7 +1145,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 427	call gs0_sort3d_diff(com(icmd))
 	goto 800
 
-428	goto 900
+428	call gs0_sort3d_ddiff(com(icmd))
+	goto 800
+
 429	goto 900
 430	goto 900
 
@@ -1419,7 +1435,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 341	  call gs1_thresholds(com(icmd),%val(com(icmd).addr))
 	  goto 800
 	  
-342	  goto 900
+342	  call gs1_dmult(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
 343	  goto 900
 
 344	  call gs1_mult(com(icmd),%val(com(icmd).addr))
@@ -1588,7 +1606,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 427	call gs1_sort3d_diff(com(icmd), %VAL(com(icmd).addr))
 	goto 800
 
-428	goto 900
+428	call gs1_sort3d_ddiff(com(icmd),  %VAL(com(icmd).addr))
+	goto 800
+
 429	goto 900
 430	goto 900
 
@@ -1796,7 +1816,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 341	  call gs2_thresholds(com(icmd),%val(com(icmd).addr))
 	  goto 800
 
-342	  goto 900
+342	  call gs2_dmult(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
 343	  goto 900
 
 344	  call gs2_mult(com(icmd),%val(com(icmd).addr))
@@ -1965,7 +1987,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 427	call gs2_sort3d_diff(com(icmd), %VAL(com(icmd).addr))
 	goto 800
 
-428	goto 900
+428	call gs2_sort3d_ddiff(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+
 429	goto 900
 430	goto 900
 
@@ -2163,7 +2187,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 341	  call gs3_thresholds(com(icmd),%val(com(icmd).addr))
 	  goto 800
 
-342	  goto 900
+342	  call gs3_dmult(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
 343	  goto 900
 
 344	  call gs3_mult(com(icmd),%val(com(icmd).addr))
@@ -2332,7 +2358,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 427	call gs3_sort3d_diff(com(icmd), %VAL(com(icmd).addr))
 	goto 800
 
-428	goto 900
+428	call gs3_sort3d_ddiff(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+	
 429	goto 900
 430	goto 900
 
@@ -2870,7 +2898,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 341	  call gs3_thresholds(com(icmd),%val(com(icmd).addr))
 	  goto 800
 
-342	  goto 900
+342	  call gs3_dmult(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
 343	  goto 900
 
 344	  call gs3_mult(com(icmd),%val(com(icmd).addr))
@@ -3039,7 +3069,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 427	call gs3_sort3d_diff(com(icmd), %VAL(com(icmd).addr))
 	goto 800
 
-428	goto 900
+428	call gs3_sort3d_ddiff(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+	
 429	goto 900
 430	goto 900
 
@@ -3260,7 +3292,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 341	  call gs4_thresholds(com(icmd),%val(com(icmd).addr))
 	  goto 800
 
-342	  goto 900
+342	  call gs4_dmult(com(icmd),%val(com(icmd).addr))
+	  goto 800
+
 343	  goto 900
 
 344	  call gs4_mult(com(icmd),%val(com(icmd).addr))
@@ -3429,7 +3463,9 @@ CVMS	CALL CPU_SECONDS(TIM_END_T)
 427	call gs4_sort3d_diff(com(icmd), %VAL(com(icmd).addr))
 	goto 800
 
-428	goto 900
+428	call gs4_sort3d_ddiff(com(icmd), %VAL(com(icmd).addr))
+	goto 800
+	
 429	goto 900
 430	goto 900
 

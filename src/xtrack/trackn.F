@@ -4033,14 +4033,15 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  IREORD1=MAX(1,IREORD-1)
 	  if(sqrterm)then
 	    write(nm_char,'(i6)')ireord1+1
-	    WRITE(8,'(I5,I5,I3,F9.3,F10.6,'//nm_char//'G14.6)')
+	    WRITE(8,'(I5,I5,I3,F9.3,F10.6,'//nm_char//'ES18.6)')
 	1   ITAPpp,IADCcc,-(IREORD+2),(ecaltmp(LL),LL=1,IREORD+1),
 	2   ecaltmp(IREORD+2)
 	  else
 	    write(nm_char,'(i6)')ireord1
-	    WRITE(8,'(I5,I5,I3,F9.3,F10.6,'//nm_char//'G14.6)')
+	    WRITE(8,'(I5,I5,I3,F9.3,F10.6,'//nm_char//'ES18.6)')
 	1   ITAPpp,IADCcc,IREORD+1,(ecaltmp(LL),LL=1,IREORD+1)
 	  endif
+	  call flush(8)
 	endif
 
 200	NMIN=IKA
@@ -4183,10 +4184,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	1	 FNAMEI(1:LFNAMEI),chichi
 	write(6,'('' Order of E_cal polynomial is'',i3)')IREORD
 	write(nm_char,'(i6)')ireord
-	WRITE(6,'(F9.3,F10.6,'//nm_char//'G)') (ecaltmp(LL),LL=1,IREORD+1)
+	WRITE(6,'(F9.3,F10.6,'//nm_char//'ES18.6)') (ecaltmp(LL),LL=1,IREORD+1)
 	write(6,'('' Order of W_cal polynomial is'',i3)')IRWORD
 	write(nm_char,'(i6)')irword
-	WRITE(6,'(F9.3,F10.6,'//nm_char//'G)') (wcaltmp(LL),LL=1,IRWORD+1)
+	WRITE(6,'(F9.3,F10.6,'//nm_char//'ES18.6)') (wcaltmp(LL),LL=1,IRWORD+1)
 
 	artot=a1172+a1332
 	if(artot.le.0) goto 100
@@ -4605,9 +4606,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	endif
 
 	write(nm_char,'(i6)')ireord
-	WRITE(6,'('' ECAL'',F11.3,F10.6,'//nm_char//'G)') (ecal(LL),LL=1,IREORD+1)
+	WRITE(6,'('' ECAL'',F11.3,F10.6,'//nm_char//'ES18.6)') (ecal(LL),LL=1,IREORD+1)
 	write(nm_char,'(i6)')irword
-	WRITE(6,'('' WCAL'',F11.3,F10.6,'//nm_char//'G)') (wcal(LL),LL=1,IRWORD+1)
+	WRITE(6,'('' WCAL'',F11.3,F10.6,'//nm_char//'ES18.6)') (wcal(LL),LL=1,IRWORD+1)
 
 	if(waitcom) then
 	  loccom=' '
@@ -4667,7 +4668,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	IF(WRecoefs) then
 	  IREORD1=MAX(1,IREORD-1)
 	  write(nm_char,'(i6)')ireord1
-	  WRITE(lunoutc,'(I5,I5,I3,F9.3,F10.6,'//nm_char//'G14.6,F8.2)')
+	  WRITE(lunoutc,'(I5,I5,I3,F9.3,F10.6,'//nm_char//'ES18.6,F8.2)')
 	1   ITAP,IADC,IREORD+1,(ecal(LL),LL=1,IREORD+1)		!,CHICHI
 	endif
 

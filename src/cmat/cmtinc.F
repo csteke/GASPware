@@ -687,14 +687,18 @@ c#include "cmtlib.def"
 	endif
 
 	if( cmt.ndim .gt. 2 ) then
-		if( megabytes .lt. 96 ) megabytes = 96
+		if( megabytes .lt. 256 ) megabytes = 256
 	else
-		if( megabytes .gt. 32 ) megabytes = 32	
+		if( megabytes .lt. 64 ) megabytes = 64	
 	endif
 	
 	ii=inp_i1('Please give the amount of memory for this sort (MegaBytes) ',megabytes)
 	if(ii.lt.0) call exit
 	if(megabytes.le.0) stop 'Invalid memory size'
+	if(megabytes.gt.1536)then
+	    write(6,*)' Warning: memory request is too large, 1536 MB will be used instead'
+	    megabytes = 1536
+	endif 
 
 	if(.not.mlm_init(cmt.mlmbase,cmt.nseg,nbyt,megabytes,n1)) then
 	  write(6,*) 'CMT_INCR_INIT: Bad status from MLM_INIT'

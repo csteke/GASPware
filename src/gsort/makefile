@@ -35,7 +35,7 @@ DigitalLIB = -L../libr -linter ../libr/inter_isl.o ../libr/inter_inpx.o -laio
 
 ############################### PGI compilers for Linux/ix86 and MacOS
 pgi: FOR = pgf77 -Mextend  -Mdollar,X  $(GS_OPT) $(GS_AIO)
-pgi: CC  = pgcc    $(GS_AIO)
+pgi: CC  = pgcc   $(GS_OPT) $(GS_AIO)
 pgi: LIB = $(LinuxLIB)
 pgi:all
 

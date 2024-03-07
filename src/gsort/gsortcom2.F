@@ -3244,9 +3244,13 @@ CCCC	call gs_getmatmode(mat.matmode,mat.msdim)
 	call gs_getindpar(mat.ind(2),mat.par(2),mat.res(2))
 	mat.step(2)=min(mat.res(2),DEFSTEP3D)
 
-	if(mat.ind(1).NE.mat.ind(2) .OR.
-	1  mat.par(1).NE.mat.par(2) ) call gs_syntax('Must be same Index and same Parameter')
+*	if(mat.ind(1).NE.mat.ind(2) .OR.
+*	1  mat.par(1).NE.mat.par(2) ) call gs_syntax('Must be same Index and same Parameter')
+*	if(mat.step(1).LE.0) mat.step(1)=min(mat.res(1),DEFSTEP3D)
+
+	if(mat.ind(1).NE.mat.ind(2) ) call gs_syntax('Must be same Index (detector type)')
 	if(mat.step(1).LE.0) mat.step(1)=min(mat.res(1),DEFSTEP3D)
+	if(mat.step(2).LE.0) mat.step(2)=min(mat.res(2),DEFSTEP3D)
 
 	call gs_getpair(mat.par(3),mat.res(3))
 	mat.step(3)=1
@@ -3284,9 +3288,6 @@ CCCC	call gs_getmatmode(mat.matmode,mat.msdim)
 #include "gsort.inc"
 	record/matrix/mat
 
-#if defined( __GFORTRAN__ )
-	character*64 dyn_format
-#endif
 
 	call gs_putindpar(mat.ind(1),mat.par(1))
 	llist=llist+2
@@ -3296,8 +3297,7 @@ CCCC	call gs_getmatmode(mat.matmode,mat.msdim)
 	if(mat.par(3).GE.10) lgi=2
 
 #if defined( __GFORTRAN__ )
-	write(dyn_format,'(i0)')jpar
-	write(list(llist+2:),'(A,'//dyn_format(1:len(dyn_format))//')')'P',mat.par(3)
+	write(list(llist+2:),'(A,I0)')'P',mat.par(3)
 #else
 	write(list(llist+2:),4201)'P',mat.par(3)
 4201	format(A,I<lgi>)
@@ -3357,7 +3357,7 @@ CCCC	call gs_getmatmode(mat.matmode,mat.msdim)
 	  do j2=j1f,j1l
 	   if(j2 .ne. j1) then
 	    id2=det(j2).id
-	    incr(2)=det(j2).ival(mat.par1)
+	    incr(2)=det(j2).ival(mat.par2)
 	    id3=dat.pind(id1,id2)
 	    if(id3.ge.0) then
 	      incr(3)=id3
@@ -3383,7 +3383,7 @@ CCCC	call gs_getmatmode(mat.matmode,mat.msdim)
 	      nn2=nn1
 	      if(hltrue(j2)) nn2=nn2-1
 	      if(nn2.lt.nhash) goto 120
-	    incr(2)=det(j2).ival(mat.par1)
+	    incr(2)=det(j2).ival(mat.par2)
 	    id2=det(j2).id
 	    id3=dat.pind(id1,id2)
 	    if(id3.ge.0) then
@@ -3778,6 +3778,158 @@ CVMS	integer   n1,n2
 	end
 
 	subroutine gs4_sort3d_diff(mat)
+
+#include "gsort.inc"
+	record/matrix/mat
+
+CVMS	integer   n1,n2
+	integer*8 n1,n2
+
+	call cmt_infoincr(%val(mat.cmtbase),n1,n2)
+	nincr(mat.ndim)=nincr(mat.ndim) + n1
+	flushed=flushed + n2
+	  
+	if(finit_mode.EQ.2) then
+	  call gs_matclose(mat)
+	endif
+
+	return
+
+	end
+
+	subroutine gs0_sort3d_ddiff(mat)
+
+#include "gsort.inc"
+	record/matrix/mat
+
+	synt(1)='SORT3D_DDIFF Aa Bb Ac Bd offset matrixname [RES Rx Rx Rz] [STEP Sx Sx Sz]'
+	synt(2)='for a combination (i,j) of detectors A and B, 3rd parameter  will be:  Ac(i) - Bd(j) + offset '
+
+	if(syntax) then
+	  call gs_syntax(' ')
+	  return
+	endif
+
+	mat.ndim=3
+
+	call gs_getindpar(mat.ind(1),mat.par(1),mat.res(1))
+	mat.step(1)=min(mat.res(1),DEFSTEP3D)
+
+	call gs_getindpar(mat.ind(2),mat.par(2),mat.res(2))
+	mat.step(2)=min(mat.res(2),DEFSTEP3D)
+
+	if(mat.ind(1).EQ.mat.ind(2)) call gs_syntax('Must be different detectors')
+
+	call gs_getindpar(mat.ind(3),mat.par(3),mat.res(3))
+	if(mat.ind(1).NE.mat.ind(3)) call gs_syntax('Must be the same detector as the first')
+	mat.step(3)=min(mat.res(3),DEFSTEP3D)
+
+	call gs_getindpar(mat.ind(4),mat.par(4),mat.res(4))
+	if(mat.ind(2).NE.mat.ind(4)) call gs_syntax('Must be the same detector as the second')
+
+	nn=istr_i1(comline,mat.doffset)
+
+	call istr_ch(comline,mat.file)
+	if(lengthc(mat.file).LT.1) call gs_syntax('Filename of matrix expected')
+	call filetype(mat.file,'cmat')
+
+	call gs_resstep(mat.res,mat.step,mat.ndim)
+
+	call gs_gethash(mat.ihash,mat.nhash,mat.hind,mat.hpar,mat.spherical)
+	mat.hsame=.FALSE.
+	if(mat.ihash.GE.0) then
+	  if(mat.ind(1).EQ.mat.hind) mat.hsame=.TRUE.
+	endif
+
+	mat.ind1=mat.ind(1)
+	mat.ind2=mat.ind(2)
+	mat.ind3=mat.ind(3)
+	mat.ind4=mat.ind(4)
+
+	mat.par1=mat.par(1)
+	mat.par2=mat.par(2)
+	mat.par3=mat.par(3)
+	mat.par4=mat.par(4)
+
+	mat.matmode=0
+
+	return
+
+	end
+
+	subroutine gs1_sort3d_ddiff(mat)
+
+#include "gsort.inc"
+	record/matrix/mat
+
+	matndim=mat.ndim+1
+	do nn=1,matndim
+	  call gs_putindpar(mat.ind(nn),mat.par(nn))
+	  llist=llist+2
+	end do
+
+	llist=max(1,lengthc(list))+2
+	write(list(llist:),'(i6)') mat.doffset
+
+	lfile=max(1,lengthc(mat.file))
+	write(list(llist:),'(1x,a)') mat.file(1:lfile)
+
+	llist=lengthc(list)+3
+	call gs_putres(mat.res,matndim)
+
+	llist=llist+3
+	call gs_putstep(mat.step,matndim)
+
+
+	return
+
+	end
+
+	subroutine gs2_sort3d_ddiff(mat)
+
+#include "gsort.inc"
+	record/matrix/mat
+
+	if(init_mode.EQ.0) then
+	  call gs_matopen(mat)
+	endif
+
+	return
+
+	end
+
+	subroutine gs3_sort3d_ddiff(mat)
+
+#include "gsort.inc"
+	record/matrix/mat
+
+	integer incr(3)
+
+
+	j1f=doff(mat.ind1)
+	j1l=doff(mat.ind1)+ndet(mat.ind1)-1
+
+	j2f=doff(mat.ind2)
+	j2l=doff(mat.ind2)+ndet(mat.ind2)-1
+
+	matres3=mat.res(3)
+	do j1=j1f,j1l
+	  do j2=j2f,j2l
+	    incr(1)=det(j1).ival(mat.par1)
+	    incr(2)=det(j2).ival(mat.par2)
+	    rrtmp=det(j1).xval(mat.par3) - det(j2).xval(mat.par4)
+	    id3= rrtmp + mat.doffset
+	    if(id3.ge.0 .and. id3.lt.matres3) then
+	      incr(3)=id3
+	      call cmt_3dincr(%val(mat.cmtbase),incr)
+	    endif	    	    
+	  end do
+	end do
+	return
+
+	end
+
+	subroutine gs4_sort3d_ddiff(mat)
 
 #include "gsort.inc"
 	record/matrix/mat

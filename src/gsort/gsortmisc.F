@@ -1691,13 +1691,13 @@ c	hashpnt=hashaddr(ihash)
 
 	if(secondi.le.0) then
 	  do ii=1,MAXMATDIM
-	    nincr_p(ii)=0
+	    nincr_p(ii)=nincr(ii)
 	  enddo
 	  iio.evcount=0
 	  oio.evcount=0
 	  ievents_p=0
 	  oevents_p=0
-	  flushed_p=0
+	  flushed_p=flushed
 	  return
 	endif
 
@@ -1746,7 +1746,7 @@ c	hashpnt=hashaddr(ihash)
 	  nincr_p(ii)=nincr(ii)
 	enddo
 
-121	FORMAT('Rec#',I7,' (',f6.1,'/s)',I6,'w',I6,'ev/r',F10.2,'inc/r')
+121	FORMAT('Rec#',I7,' (',f8.1,'/s)',I6,'w',I6,'ev/r',F10.2,'inc/r')
 122	FORMAT(I6,'oev/r',I7,'rec_out')
 123	FORMAT(f6.1,'sw/s')
 

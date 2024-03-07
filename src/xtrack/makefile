@@ -33,7 +33,7 @@ SunLIB=-L/usr/X11R6/lib -L../libr -linter -L../Ygl-4.0 -lYgl -lX11 -lXext -lposi
 
 ############################### PGI compilers for Linux/ix86 and MacOS
 pgi: FOR = pgf77 $(GS_ONLINE) 
-pgi: CC  = pgcc   $(GS_ONLINE) 
+pgi: CC  = pgcc  $(GS_ONLINE)   $(GS_OPT)
 pgi: OPT = -Mextend -Mdollar,X  $(GS_OPT)
 pgi: LIB = $(LinuxLIB)
 pgi: all

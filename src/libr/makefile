@@ -40,7 +40,7 @@ P40 = autobgmin
 
 ############################### PGI compilers for Linux/ix86 and MacOS
 pgi: FOR = pgf77 -Mextend  -Mdollar,X -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
-pgi: CC  = pgcc  -c  $(GS_ONLINE) $(GS_AIO)
+pgi: CC  = pgcc  -c                      $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
 pgi: all
 
 ############################### Intel compilers on Linux/ix86 and 
@@ -50,7 +50,7 @@ intel: all
 
 ############################### GCC(>6.x) compilers on Linux/ix86 and MacOS
 gnu: FOR = $(GNU_FOR) -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
-gnu: CC  = $(GNU_CC)  -c    $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
+gnu: CC  = $(GNU_CC)  -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
 gnu: all
 
 ############################### Solaris Studio FORTRAN compiler for Linux/ix86

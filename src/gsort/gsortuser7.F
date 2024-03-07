@@ -29,7 +29,7 @@
 	elseif(flag.eq.3) then			! from EVANA
 	       call gs3_diffgate(gate)
 	elseif(flag.eq.4) then			! from FINIT_RUN
-	       call gs4_diffgate(gate)
+	       call gs4_diffgate
 	endif
 
 	return

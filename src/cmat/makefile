@@ -37,7 +37,7 @@ INCLUDE = $(OPTX11) -I../Ygl-4.0
 
 ############################### PGI compilers for Linux/ix86 and MacOS
 pgi: FOR = pgf77
-pgi: CC  = pgcc  
+pgi: CC  = pgcc $(GS_OPT)
 pgi: OPT = -Mextend  -Mdollar,X $(GS_OPT)
 pgi: $(P00)
 

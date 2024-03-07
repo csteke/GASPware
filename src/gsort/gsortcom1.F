@@ -1435,7 +1435,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	call gs_getfoldgate(rcl.ind,rcl.fl,rcl.fh,rcl.same)
 
 	ibsize=MAXDET + MAXRCL_ORD*MAXDET
-	ibsize=4*ibsize
+	ibsize=8*ibsize
 	if(.NOT.getmem(ibsize,com(icmd).addr)) Stop 'Error allocating memory for RECAL'
 	com(icmd).size=ibsize
 
@@ -1482,7 +1482,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	record/recal/rcl
 	record/calcoef/dat(0:1)
 
-	REAL	  TEMP   (0:MAXDET-1)
+	REAL*8	  TEMP   (0:MAXDET-1)
 	LOGICAL	  MISSING(0:MAXDET-1)
 
 	if(init_mode.EQ.0) then
@@ -1682,9 +1682,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 
 #include "gsort.inc"
 	record/recal/rcl
+	character*4 aaa
 	logical*1 getmem
 
-	synt(1)='RECAL_MULT  Pn  file.mcal [NORUN|RUN]  offset gain  Wl Wh  FOLD_GATE'
+	synt(1)='RECAL_MULT  Pn  file.mcal [NORUN|RUN]  [ZERO]  offset gain  Wl Wh  FOLD_GATE'
 
 	if(syntax) then
 	  call gs_syntax(' ')
@@ -1702,6 +1703,16 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	call filetype(rcl.file,'mcal')
 
 	call gs_getrunmode(rcl.run)
+
+	if( lengthn(comline) .le. 0 )then
+	call istr_ch(comline, aaa)
+	if(lengthc(aaa).EQ.4)then
+	   call str_toupper(aaa)
+	   if( aaa .eq. 'ZERO' ) rcl.zero = .TRUE.
+	elseif( lengthc(aaa).GT.0 )then
+	   call gs_syntax('Invalid keyword')
+	endif
+	endif
 
 	ii=istr_r2(comline,rcl.offs,rcl.gain)
 	if(ii.ne.2) call gs_syntax('Wrong number of parameters')
@@ -1732,6 +1743,12 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 
 	llist=lengthc(list)+3
 	call gs_putrunmode(rcl.run)
+
+	if( rcl.zero )then
+	   llist=lengthc(list)+2
+	   write(list(llist:),'(''ZERO'')') 
+           llist=lengthc(list)+2
+	endif
 
 	write(list(llist+1:),'(F12.2,F12.4,2I6)') rcl.offs,rcl.gain,rcl.wlo,rcl.whi
 
@@ -1916,6 +1933,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 	        DO II=ncoef-1,1,-1
 	          ENX=ENX*XCAN+dat(id).coef(ii,ireg)
 	        end do
+		if(rcl.zero) then
+		  if( enx .lt. 0.0E0 ) enx = 0.0E0
+		endif
 	        xcan=enx			! offset,gain inclusi nei coefficienti
 	        ICAN=xcan
 	      endif
@@ -4628,7 +4648,7 @@ C	    Xcan=Xcan*(1.-beta*costh)*sqbetainv	! Relativistic
 	if(ii.ne.1) call gs_syntax('Wrong number of parameters')
 
 	if(PIN.Nban.LT.1 .OR. PIN.Nban.GT.maxNban)
-	1	call gs_syntax1('Number of bananas must be between     1 and',MAXNban)
+	1	call gs_syntax1('Number of bananas must be between     1 and ',MAXNban)
 
 	call gs_getbanres(pin.res)
 
@@ -4950,6 +4970,122 @@ C	    Xcan=Xcan*(1.-beta*costh)*sqbetainv	! Relativistic
 	return
 
 	end
+
+
+
+	subroutine gs0_dmult(dmult)
+
+#include "gsort.inc"
+	record/dmult/dmult
+
+
+	synt(1)='DMULT  Fn  #intervals'
+	synt(2)='       Dm  low high'
+	synt(3)='       ..  ...  ...'
+
+	if(syntax) then
+	  call gs_syntax(' ')
+	  return
+	endif
+
+	call gs_getindpar(ii,dmult.fix,ires)
+	if(ii.ne.0) call gs_syntax('A HEADER parameter expected')
+
+	ii=istr_i1(comline,dmult.ngates)
+	if(ii.ne.1) call gs_syntax('Wrong number of parameters')
+
+	if(dmult.ngates.LT.1 .OR. dmult.ngates.GT.MAXDMULT)
+	1	call gs_syntax1('Number of intervals must be between     1 and ',MAXDMULT)
+
+	ii=lengthc(comline)
+	if(ii.ne.0) call gs_syntax('Too many parameters')
+	do ii=1,dmult.ngates
+	  call gs_readline
+	  if(lcomline.LT.1) call gs_syntax('Missing input data')
+	  call gs_getindpar(dmult.ind(ii),dmult.par(ii),ires)
+	  iin=istr_i2(comline,dmult.lo(ii),dmult.hi(ii))
+	  if(iin.ne.2) call gs_syntax('Interval limits expected here')
+	  if( dmult.lo(ii) .lt. 0 )    call gs_syntax('Invalid interval value(s)')
+	  if( dmult.lo(ii) .gt. ires ) call gs_syntax('Invalid interval value(s)')
+	  if( dmult.hi(ii) .lt. 0 )    call gs_syntax('Invalid interval value(s)')
+	  if( dmult.hi(ii) .gt. ires ) call gs_syntax('Invalid interval value(s)')
+	  if( dmult.lo(ii) .gt. dmult.hi(ii) ) then
+	      iin = dmult.lo(ii)
+	      dmult.lo(ii) = dmult.hi(ii)
+	      dmult.hi(ii) = iin
+	  endif
+	  iin=lengthc(comline)
+	  if(iin.ne.0) call gs_syntax('Too many parameters')
+	enddo
+	
+	return
+	end
+	
+	
+	subroutine gs1_dmult(dmult)
+
+#include "gsort.inc"
+	record/dmult/dmult
+	  
+	  
+	call gs_putindpar(0,dmult.fix)
+	llist=lengthc(list)+3
+
+	write(list(llist+2:),'(i2)') dmult.ngates
+	call gs_writeline(LLUN,list,INDENT)
+
+	do ii=1,dmult.ngates
+	  list=' '
+	  llist=INDENT
+	  call gs_putindpar(dmult.ind(ii),dmult.par(ii))
+	  llist=llist+3
+	  write(list(llist:),'(2i8)') dmult.lo(ii),dmult.hi(ii)
+	  call gs_writeline(llun,list,INDENT)
+	end do
+
+	return
+
+	end
+
+	subroutine gs2_dmult
+
+	return
+
+	end
+
+	subroutine gs3_dmult(dmult)
+
+#include "gsort.inc"
+	record/dmult/dmult
+	
+	integer i, ii, jj, lo, hi, ival, M
+	
+	M = 0
+	
+	do i = 1, dmult.ngates
+	  ii = dmult.ind(i)
+	  lo = dmult.lo(i)
+	  hi = dmult.hi(i)
+	  do jj = doff(ii), doff(ii)+ndet(ii)-1
+	    ival = det(jj).ival(dmult.par(i))
+	    if( (ival.ge.lo) .and. (ival.le.hi) ) M = M+1
+	  enddo
+	enddo
+       
+	det(0).ival(dmult.fix) = M
+	det(0).xval(dmult.fix) = M
+	
+	return
+	
+	end
+	
+	subroutine gs4_dmult
+
+	return
+
+	end
+
+	
 
 
 
