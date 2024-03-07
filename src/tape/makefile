@@ -50,13 +50,13 @@ digital:=LIB = $(DigitalLIB)
 
 
 all:$(P00).o $(P01).o $(LIBS)
-	$(FOR)  -o $(P00) $(P00).o    $(LIB)
+	$(FOR)  -o $(P00) $(P00).o  $(LIB)
 	$(FOR)  -o $(P01) $(P01).o  $(LIB)
 
-$(P00).o: $(P00).F   $(LIBS)
+$(P00).o: $(P00).F   
 	$(FOR) $(OPT) $(P00).F
 
-$(P01).o: $(P01).F $(LIBS)
+$(P01).o: $(P01).F 
 	$(FOR) $(OPT) $(P01).F
 
 clean:

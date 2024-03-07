@@ -93,7 +93,7 @@ $(P03).o:$(P03).F
 	ar  -rs libinter.a $(P03).o
 
 $(P04).o:$(P04).F
-	$(FOR) $(P04).F
+	$(FOR) $(P04).F -O0
 	ar  -rs libinter.a $(P04).o
 
 $(P05).o:$(P05).F

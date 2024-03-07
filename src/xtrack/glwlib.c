@@ -18,10 +18,12 @@
 #define GLW_MINYSIZE 574
 #define GLW_FRAMEWIDTH 84  */
 
-#define GLW_MINXSIZE 720
-#define GLW_MINYSIZE 560
+Int32 GLW_MINXSIZE = 800;
+Int32 GLW_MINYSIZE = 560;
+Int32 GLW_FRAMEWIDTH = 80;
+float RATIO_W = 5.0 / 8.0;
 
-#define GLW_FRAMEWIDTH 80
+// #define GLW_FRAMEWIDTH 80
 #define GLW_FRAMECOLOR 8
 #define GLW_FRAMECOLOR_DARK 9
 #define GLW_FRAMECOLOR_LIGHT 10
@@ -153,7 +155,9 @@ static Int32 NofPlots;
 static Int32 TrackMenu;
 
 static int _global_BS, _global_ForceRedraw = 0;
+/*
 static int _global_LastX = GLW_MINXSIZE, _global_LastY = GLW_MINYSIZE;
+*/
 static double _global_px, _global_py;
 static char _DB_Off = 0;
 static Int32 XWp, YWp;
@@ -2825,8 +2829,22 @@ void MapGLWcolors(void){
 
 void LoadGLWfont(void){
 
-  loadXfont(GLW_FONTID12, "-*-times-medium-r-*-*-12-120-*-*-*-*-iso8859-1");
-  loadXfont(GLW_FONTID14, "-*-times-medium-r-*-*-14-140-*-*-*-*-iso8859-1");
+  Int32 startW, startH;
+  
+  startH = XDisplayHeight( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) ); 
+  startW = XDisplayWidth ( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) ); 
+
+  if ( startW >= 3840 && startW < 3*startH ) { 
+	GLW_FRAMEWIDTH = 90;
+	loadXfont(GLW_FONTID12, "-*-times-medium-r-*-*-24-120-*-*-*-*-iso8859-1");
+    loadXfont(GLW_FONTID14, "-*-times-medium-r-*-*-24-140-*-*-*-*-iso8859-1");
+  }
+
+  else {
+	loadXfont(GLW_FONTID12, "-*-times-medium-r-*-*-12-120-*-*-*-*-iso8859-1");
+	loadXfont(GLW_FONTID14, "-*-times-medium-r-*-*-14-140-*-*-*-*-iso8859-1");
+  }
+
 /*
   loadXfont(GLW_FONTID12, "-*-helvetica-medium-r-*-*-10-100-*-*-*-*-iso8859-1");
   loadXfont(GLW_FONTID14, "-*-helvetica-bold-r-*-*-12-120-*-*-*-*-iso8859-1");
@@ -3186,7 +3204,7 @@ void DrawFrame(void){
  Coord FrameBorder[4][2];
  Int32 x1Wp, x2Wp, y1Wp, y2Wp;
  float x1,x2,y1,y2,pixelsizeX,pixelsizeY;
-  
+ 
 
  pixelsizeX = _global_px;
  pixelsizeY = _global_py;
@@ -3210,6 +3228,7 @@ void DrawFrame(void){
  rectf((Coord)x1Wp-1,(Coord)y2Wp+1,(Coord)x2Wp+1,(Coord)y2Wp-y1+1);
  /*sleep(0); XSync((Display *)getXdpy(),False);*/
  
+
  color(GLW_LABELCOLOR_1);
  FrameBorder[0][0]=(float)x1Wp+x2; FrameBorder[0][1]=(float)y1Wp+y2;
  FrameBorder[1][0]=(float)x1Wp+x1;  FrameBorder[1][1]=(float)y1Wp+y1;
@@ -3694,9 +3713,24 @@ void DrawTrackFrame(Int32 win){
 
 Int32 GLWTrackInit(void){
 
-  Int32 dev;
+  Int32 dev, startW, startH;
 
+
+/*
   minsize(GLW_MINXSIZE,GLW_MINYSIZE);
+*/
+
+  ginit();
+  
+  startH = XDisplayHeight( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) ); 
+  startW = XDisplayWidth ( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) ); 
+
+  if( startW > 3*startH ) startW /= 2;   /* Most likely two monitors used to extend the screen */
+  
+  GLW_MINXSIZE = startW*RATIO_W;
+  GLW_MINYSIZE = startH*RATIO_W;
+  minsize(GLW_MINXSIZE,GLW_MINYSIZE);
+
   stepunit(20,20);
   dev=winopen("GASPware-->Track");
   SetMouseShape(XC_left_ptr);
@@ -3705,6 +3739,7 @@ Int32 GLWTrackInit(void){
   LoadGLWfont();
   doublebuffer();
   gconfig();
+  
   DrawTrackFrame(dev);
   DOUBLEBUFF_OFF
 

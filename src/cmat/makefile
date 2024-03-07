@@ -42,15 +42,17 @@ pgi: OPT = -Mextend  -Mdollar,X $(GS_OPT)
 pgi: $(P00)
 
 ################################ Intel compilers for Linux/ix86 and MacOS
-intel: FOR = ifort @../../etc/ifc.cfg 
+intel: FOR = ifort @../../etc/ifc.cfg  
 intel: CC  = icc @../../etc/icc.cfg  $(GS_OPT) 
 intel: OPT =  $(GS_OPT)
+intel: OPT_OMP =  -qopenmp
 intel: $(P00)
 
 ############################### GCC(>6.x) compilers on Linux/ix86 and MacOS
-gnu: FOR = $(GNU_FOR)  
+gnu: FOR = $(GNU_FOR) 
 gnu: CC  = $(GNU_CC)    $(GS_OPT) 
 gnu: OPT = $(GS_OPT)
+gnu: OPT_OMP = -fopenmp
 gnu: $(P00)
 
 ############################### Solaris Studio FORTRAN compiler for Linux/ix86
@@ -76,16 +78,16 @@ digital:= LIB = $(DigitalLIB)
 
 
 $(P00): $(P00).o $(P01).o $(P02).o $(LIBS)
-	$(FOR) $(OPT) -o $(P00) $(P00).o $(P01).o $(P02).o  $(LIB)
+	$(FOR) $(OPT) $(OPT_OMP) -o $(P00) $(P00).o $(P01).o $(P02).o  $(LIB)
 
 $(P00).o: $(P00).F $(P00).inc
 	$(FOR) $(OPT) -c $(P00).F
 
 $(P01).o: $(P01).c
-	$(CC) -c $(INCLUDE) $(P01).c
+	$(CC) -c $(INCLUDE) $(OPT_OMP) $(P01).c
 
 $(P02).o: $(P02).c
-	$(CC) -c $(INCLUDE) $(P02).c
+	$(CC) -c $(INCLUDE) $(OPT_OMP) $(P02).c
 
 clean:
 	rm -rf core $(P00) $(P00)*.o $(P01).o $(P02).o

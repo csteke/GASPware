@@ -19,7 +19,7 @@ C  Get a free logical*1 unit
 C
 	entry lib$get_lun(lun)
 	lib$get_lun=.FALSE.
-	do i=20,100
+	do i=30,100
 	  if (luns(i).eq.0) then
 	    lun=i
 	    luns(i)=1
@@ -33,7 +33,7 @@ C  Unlock a logical unit
 C
 	entry lib$free_lun(lun)
 	lib$free_lun=.FALSE.
-	if (lun.ge.20.and.lun.le.100) then
+	if (lun.ge.30.and.lun.le.100) then
 	  luns(lun)=0
 	  lib$free_lun=.TRUE.
 	endif
