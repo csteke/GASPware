@@ -57,8 +57,8 @@ sstudio : $(P00)
 ################################ Sun 
 sun: $(P00)
 sun: FOR = f77
-sun: CC  = cc -D__sun_c__ -xO2 -xtarget=native
-sun: OPT = -e -D__sun_c__ -xpp=cpp -xO2 -xtarget=native
+sun: CC  = cc -D__sun_c__ -xO2 
+sun: OPT = -e -D__sun_c__ -xO2 
 sun: LIB = $(SunLIB)
 
 ############################### DEC OSF/Alpha

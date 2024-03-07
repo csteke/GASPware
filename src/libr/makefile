@@ -56,8 +56,8 @@ sstudio: all
 
 ################################ Sun 
 sun: all
-sun: FOR = f77 -e -D__sun_c__ -xpp=cpp -xO2 -xtarget=native -c $(GS_ONLINE) $(GS_AIO)
-sun: CC = cc -D__sun_c__ -xO2 -xtarget=native -c $(GS_ONLINE) $(GS_AIO)
+sun: FOR = f77 -e -D__sun_c__  -xO2 -c $(GS_ONLINE) $(GS_AIO)
+sun: CC = cc -D__sun_c__ -xO2  -c $(GS_ONLINE) $(GS_AIO)
 
 ############################### DEC OSF/Alpha
 digital : all

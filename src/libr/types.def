@@ -3,7 +3,7 @@
 #   define _GW_LITTLE_ENDIAN
 #   define _GW_32_BYTES
 
-#elif defined( __x86_64__ )
+#elif defined( __x86_64__ ) || defined( __amd64 ) || defined(__AMD64__) || defined(__amd64__)
 #	define MACHINE_POINTERSIZE integer*8
 #   define _GW_LITTLE_ENDIAN
 #   define _GW_64_BYTES

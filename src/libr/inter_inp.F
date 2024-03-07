@@ -79,7 +79,7 @@ C  LUOUT	Output LU (Se LUOUT=0 i prompts non vengono presentati)
 C
 C$-
 
-	LOGICAL	FUNCTION INP_YES(TEXT)
+	LOGICAL*1	FUNCTION INP_YES(TEXT)
 
 	CHARACTER*(*)	TEXT
 
@@ -101,7 +101,7 @@ C$-
 
 	END
 
-	LOGICAL	FUNCTION INP_NOT(TEXT)
+	LOGICAL*1	FUNCTION INP_NOT(TEXT)
 
 	CHARACTER*(*)	TEXT
 
@@ -126,7 +126,8 @@ C$-
 	LOGICAL	FUNCTION INP_ASK(TEXT,LVAL)
 
 	CHARACTER*(*)	TEXT
-	logical*1 LVAL
+	logical*1 LVAL, inp_yes, inp_not
+	external inp_yes, inp_not
 
 	CHARACTER*256 BB,CC
 	DOUBLE PRECISION DDD

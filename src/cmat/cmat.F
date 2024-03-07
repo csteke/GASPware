@@ -3950,7 +3950,7 @@ c	endif
 	INTEGER   SPETTRO_t(-MAXRES:MAXRES-1)
 	logical*1 write_part /.TRUE./
 	logical*1 write_tot/.TRUE./
-	logical*1 lunin/0/
+	integer lunin/0/
 *	byte lunin/0/
 
 

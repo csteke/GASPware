@@ -345,11 +345,14 @@ CVMS	integer   ivfhandle
 	integer  lengthc
 	external lengthc
 
-	logical	 ivf_open,ivf_read,ivf_close,ivf_info,cmt__open,getmem,freemem
-	external ivf_open,ivf_read,ivf_close,ivf_info,cmt__open,getmem,freemem
+	logical	 ivf_open,ivf_read,ivf_close,ivf_info,getmem,freemem
+	external ivf_open,ivf_read,ivf_close,ivf_info,getmem,freemem
 
 	logical*1  ivf__get_old_head
 	external ivf__get_old_head
+
+	logical*1  cmt__open
+	external cmt__open
 
 	lfn=max(1,lengthc(filemat))
 	if(index(filemat(1:lfn),'.').gt.0) then
@@ -669,7 +672,7 @@ CVMS	integer   n1,n2
 
 	end
 
-	logical	function cmt__write(cmt,iseg,dat,nchan,nrec)
+	logical*1	function cmt__write(cmt,iseg,dat,nchan,nrec)
 
 #include "cmtlib.inc"
 	record/cmtdef/cmt
@@ -731,7 +734,7 @@ cccccccccc compressione
 
 	end
 
-	logical	function cmt__read(cmt,iseg,dat,nchan,nrec)
+	logical*1	function cmt__read(cmt,iseg,dat,nchan,nrec)
 
 #include "cmtlib.inc"
 	record/cmtdef/cmt

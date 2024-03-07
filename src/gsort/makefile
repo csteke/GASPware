@@ -53,8 +53,8 @@ sstudio: all
 
 ################################ Sun 
 sun:  all
-sun: FOR = f77 -e -D__sun_c__ -xO2 -xtarget=native -xpp=cpp $(GS_AIO)
-sun: CC = cc -D__sun_c__ -xO2 -xtarget=native  $(GS_AIO)
+sun: FOR = f77 -e -D__sun_c__ -xO2   $(GS_AIO)
+sun: CC =  cc     -D__sun_c__ -xO2   $(GS_AIO)
 sun: LIB = $(SunLIB)
 
 ############################### DEC OSF/Alpha

@@ -732,7 +732,7 @@ void mt_errmes_(int *ierr)
 void cswab_(char *data, int *bytes)
 {
 
-#if !defined(__APPLE__)
+#if !( defined(__APPLE__) || defined(__sun) )
     void swab(char *, char *, int);
 #endif
 

@@ -32,7 +32,7 @@ C!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C
 	endif
 	lun=laslun
 CVMS	OPEN(LASLUN,FILE=FILENAME,STATUS='NEW',DEFAULTFILE='.ps',
-#if defined( __linux__ ) && defined( __sun_c__ )
+#if defined( __sun_c__ )
 	OPEN(LASLUN,FILE=FILENAME,STATUS='UNKNOWN',ERR=100)
 #else
 	OPEN(LASLUN,FILE=FILENAME,STATUS='UNKNOWN',CARRIAGECONTROL='LIST',ERR=100)
