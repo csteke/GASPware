@@ -103,7 +103,12 @@ Utility routines: fortran callable
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
+
+#if defined(__APPLE__)
+#include <Apple/mtio.h>
+#else
 #include <sys/mtio.h>
+#endif
 #ifdef Digital
 #include <sys/devio.h>
 #else

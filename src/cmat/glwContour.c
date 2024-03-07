@@ -248,6 +248,7 @@ extern int ISLGetInput ( void );
 extern int ISLPutInput ( unsigned char *c, int n);
 extern int ISLGetString ( unsigned char *c, int *n);
 
+
 /*************************************************************************/
 
 

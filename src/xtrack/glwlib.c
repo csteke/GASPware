@@ -156,6 +156,7 @@ static int _global_BS, _global_ForceRedraw = 0;
 static int _global_LastX = GLW_MINXSIZE, _global_LastY = GLW_MINYSIZE;
 static double _global_px, _global_py;
 static char _DB_Off = 0;
+static Int32 XWp, YWp;
 
 /* Functions: ---> some of them TRACKN specific */
 void ClosestColor ( Int16 *r, Int16 *g, Int16 *b);
@@ -200,6 +201,7 @@ void TermFocus(void);
 void GraphFocus(void);
 void PutTrackData(struct TrackPlot *);
 float Nintf(float );
+void ReshapeWindow ( void );
 
 /****************** XTP - FORTRAN callable functions for TRACK *******************/
 void xtpinit_(void);
@@ -229,7 +231,6 @@ void xtpsamey_(void);
 void xtpbell_(void);
 void xtpoutfile_(char *Name, Int32 *length);
 extern void put_comment_(void); 
-
 
 /************************************* input library (inter_isl.c) ********/
 
@@ -1703,9 +1704,72 @@ void xtpget_(float *x, float *y, Int32 *c){
 		      }
 		   break;}
      case REDRAW: { 
+
+#if defined(__APPLE__) && ( defined( __MAC_10_7 ) || defined( __MAC_10_8 ) )
+redraw:	  
+          ReshapeWindow();
+	      while( qtest() )
+	      {
+	     	 dev = qread( &val );
+	     	 if( dev == REDRAW ) goto redraw;
+	      }
+
+          ReshapeWindow();
+
+	      DOUBLEBUFF_ON
+	      DrawTrackFrame(GLWindow->ID);
+     	  XFlush((Display *)getXdpy());
+
+	
+	      WriteInLabel(TrackDisplayed);
+	      TrackPlotMap(Plot->Row,Plot->Col);
+          if(OldPlot == NULL)																      
+		  { 																				      
+                sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",CrtPlot->Xmin[CrtPlot->ActiveData]);     
+                WriteInLabel(TrackXMinValue);													      
+                sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",CrtPlot->Xmax[CrtPlot->ActiveData]);     
+                WriteInLabel(TrackXMaxValue);													      
+                sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",CrtPlot->Ymin);					      
+                WriteInLabel(TrackYMinValue);													      
+                sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",CrtPlot->Ymax);					      
+                WriteInLabel(TrackYMaxValue);													      
+                sprintf(TrackChannelValue.Text,"Channel \0");									      
+		        sprintf(TrackEnergyValue.Text,"Energy \0"); 										 
+		        sprintf(TrackCountsValue.Text,"Counts \0"); 										 
+		        sprintf(TrackCursorYValue.Text,"Y \0"); 											 
+		        WriteInLabel(TrackChannelValue);													 
+		        WriteInLabel(TrackEnergyValue); 													 
+		        WriteInLabel(TrackCountsValue); 													 
+		        WriteInLabel(TrackCursorYValue);													 
+		        if(TrackDisplayed.Text != CrtPlot->Comment) 										 
+		        {																					 
+		          TrackDisplayed.Text = CrtPlot->Comment;											 
+		          WriteInLabel(TrackDisplayed); 													 
+		        }																					 
+           } 																				      
+		   p=Plot;
+		   while(p)
+		   {
+		        DrawPlotFrame(p);
+		        DrawPlot(p); 
+		        p=p->Next;
+		   }
+			  
+		   DrawActivePlotFrame(CrtPlot);			  
+
+
+
+		   DOUBLEBUFF_OFF
+		   _global_ForceRedraw = 0;
+
+
+
+#else
 		   int xWp, yWp;
 		   /*usleep( 1000 );*/
-redraw:    reshapeviewport();
+
+redraw:    
+                   reshapeviewport();
 		   getsize(&xWp,&yWp);
     	   if( _global_BS && (!_global_ForceRedraw) )
 		   {
@@ -1794,7 +1858,7 @@ redraw:    reshapeviewport();
 			  
 		   }
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !( defined( __MAC_10_7 ) || defined( __MAC_10_8 ) )
            while( qtest() )
 		   {
 		       dev = qread( &val );
@@ -1808,8 +1872,10 @@ redraw:    reshapeviewport();
 		   }
 #endif
 
+
 		   DOUBLEBUFF_OFF
 		   minsize ( GLW_MINXSIZE, GLW_MINYSIZE ); maxsize ( 3200, 2400 ); winconstraints ();
+#endif
 		   break;}
 
      case WINQUIT: {/*printf("\n Quiting ...\n");
@@ -3664,3 +3730,9 @@ float Nintf( float x){
    }
    
 
+void ReshapeWindow ( void ){
+
+   reshapeviewport();
+   getsize(&XWp, &YWp);
+   viewport( (Screencoord) 0,(Screencoord) (XWp-1),(Screencoord) 0,(Screencoord) (YWp-1));
+}

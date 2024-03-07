@@ -6,7 +6,7 @@
        integer fileopenro
        external fileopenro
 
-	character iodev*1	/'T'/
+	character iodev*1	/'D'/
 
 	break=.true.
 
@@ -15,7 +15,7 @@
 	write(6,*)
 5	if(dataformat .ne. tndb)then
 	   if( iio.lun .le. 0 ) then
-		iic=inp_ch('Get events from Disk_file or from Tape [T]',IODEV)
+		iic=inp_ch('Get events from Disk_file or from Tape [D]',IODEV)
 		if(iic.lt.0) call exit(0)
 	   else
 	        IODEV = 'D'

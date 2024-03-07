@@ -18,7 +18,7 @@ linux: all
 
 ############################### Intel compilers on Linux/ix86
 intel: FOR = ifort @../../etc/ifc.cfg  $(GS_OPT) $(GS_AIO)
-intel: CC  = icc @../../etc/icc.cfg  -O2 $(GS_AIO)
+intel: CC  = icc @../../etc/icc.cfg -O2 $(GS_AIO)
 intel: LIB = $(LinuxLIB)
 intel: all
 

@@ -258,6 +258,9 @@ void gflush(void) {
 Display *getXdpy(void) {
   const char * MyName = "getXdpy";
   I(MyName);
+/*
+  printf(" DEBUG:         getXdpy = %16.16lx\n", D);
+*/
   return D;
 }
 

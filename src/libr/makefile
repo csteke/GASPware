@@ -153,7 +153,7 @@ $(P25).o:$(TAPE)$(P25).F
 	ar  -rs libinter.a $(P25).o
 
 $(P26).o:$(TAPE)$(P26).c
-	$(CC) $(TAPE)$(P26).c
+	$(CC) -I$(TAPE) $(TAPE)$(P26).c
 	ar  -rs libinter.a $(P26).o
 
 $(P27).o:$(P27).c

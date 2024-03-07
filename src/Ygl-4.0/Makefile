@@ -51,7 +51,14 @@ COPTS = $(X11) $(OGL) $(DOUBLEBUF) $(MULTIBUF) $(HASXMU)
 
 # End of configuration
 
-CFLAGS		= -I. $(CDEBUGFLAGS) $(COPTS) $(YGL_PREFIX)
+ifeq ($(wildcard /opt/X11/include),)
+	OPTX11=
+else
+	OPTX11=-I/opt/X11/include
+endif
+
+
+CFLAGS		= -I. $(OPTX11) $(CDEBUGFLAGS) $(COPTS) $(YGL_PREFIX)
 
 all: 	$(TARGET)
 

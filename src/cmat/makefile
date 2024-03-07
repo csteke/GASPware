@@ -5,8 +5,20 @@ P02 = Autoban
 LIBS = ../libr/libinter.a ../libr/inter_isl.o ../libr/inter_inpx.o
 
 
+ifeq ($(wildcard /usr/X11R6/lib64),)
+	LIBX64=
+else
+	LIBX64=-L/usr/X11R6/lib64
+endif
+
+ifeq ($(wildcard /usr/X11R6/lib),)
+	LIBX=
+else
+	LIBX=-L/usr/X11R6/lib
+endif
+
 LIB = -L../libr -linter ../libr/inter_isl.o ../libr/inter_inpx.o \
--L/usr/X11R6/lib64 -L/usr/X11R6/lib -L../Ygl-4.0 -lYgl -lX11 -lXext -lpthread
+$(LIBX64) $(LIBX) -L../Ygl-4.0 -lYgl -lX11 -lXext -lpthread
 
 DigitalLIB = -L../libr -linter ../libr/inter_isl.o ../libr/inter_inpx.o \
 -L/usr/X11R6/lib  -L../Ygl-4.0 -lYgl -lX11 -lXext
@@ -14,7 +26,13 @@ DigitalLIB = -L../libr -linter ../libr/inter_isl.o ../libr/inter_inpx.o \
 SunLIB =  -L../libr -linter ../libr/inter_isl.o ../libr/inter_inpx.o \
 -L/usr/X11R6/lib  -L../Ygl-4.0 -lYgl -lX11 -lXext -lposix4
 
-INCLUDE = -I../Ygl-4.0
+ifeq ($(wildcard /opt/X11/include),)
+	OPTX11=
+else
+	OPTX11=-I/opt/X11/include
+endif
+
+INCLUDE = $(OPTX11) -I../Ygl-4.0
 
 
 ############################### Linux is the default choice

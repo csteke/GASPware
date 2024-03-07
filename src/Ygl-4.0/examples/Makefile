@@ -5,8 +5,22 @@
 #
 #    $Id: Makefile.std,v 3.3 1997-03-13 16:19:21+01 fred Exp fred $
 
+
+
+ifeq ($(wildcard /usr/X11R6/lib64),)
+	LIBX64=
+else
+	LIBX64=-L/usr/X11R6/lib64
+endif
+
+ifeq ($(wildcard /usr/X11R6/lib),)
+	LIBX=
+else
+	LIBX=-L/usr/X11R6/lib
+endif
+
 # Uncomment next line to use X11 bindings
-X11LIB	= -lX11
+X11LIB	= $(LIBX64) $(LIBX) -lX11 
 
 # Uncomment next line to use OpenGL bindings
 #OGLIB	= -lGL -lGLU
@@ -14,11 +28,33 @@ X11LIB	= -lX11
 # Uncomment next line to use DoubleBuffer or MultiBuffer extension with X11
 MBUFLIB	= -lXext
 
-CDEBUGFLAGS = -O3
 
-COPTS =
-# COPTS = -Aa -D_HPUX_SOURCE -L/usr/lib/X11R4 -I/usr/include/X11R4 # For HP-UX 8.0x
-# COPTS = -Ae -L/usr/lib/X11R5 -I/usr/include/X11R5 # For HP-UX 9.0x
+linux: CDEBUGFLAGS = -mpreferred-stack-boundary=2 -march=i686
+linux: CC = gcc
+linux: all
+
+intel: CDEBUGFLAGS = -O2
+intel: CC = icc @../../../etc/icc.cfg
+intel: all
+
+sun: all
+sun: CDEBUGFLAGS	= -xO2 -xtarget=native
+sun: CC=cc 
+
+digital: all
+digital:= CDEBUGFLAGS	= -O3 -arch host
+digital:=CC=cc 
+
+ifeq ($(wildcard /opt/X11/include),)
+	OPTX11=
+else
+	OPTX11=-I/opt/X11/include
+endif
+
+CDEBUGFLAGS = -O2
+
+COPTS = $(OPTX11)
+
 
 # *************************** End of configuration *************************
 
@@ -29,7 +65,8 @@ CFLAGS= $(CDEBUGFLAGS) $(COPTS) -I..
 REQUIREDLIBS 	= -L.. -lYgl $(MBUFLIB) $(X11LIB) $(OGLIB)
 
 GLTARGETS	= coltest.gl lines.gl rgbtest.gl smile.gl popup.gl lmbind.gl
-YGLTARGETS	= coltest    lines    rgbtest    smile    popup    lmbind
+YGLTARGETS	= coltest    lines    rgbtest    smile    popup
+#    lmbind
 
 all: 	$(YGLTARGETS)
 gl: 	$(GLTARGETS)

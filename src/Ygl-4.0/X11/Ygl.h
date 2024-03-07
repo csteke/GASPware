@@ -449,7 +449,7 @@ extern "C" {
   
   extern void  gflush		( void );
   
-#ifdef _XLIB_H_ 		/* Declare if <X11/Xlib.h> is included */
+#if defined (_XLIB_H_) || defined (_X11_XLIB_H_)		/* Declare if <X11/Xlib.h> is included */
   extern Display *getXdpy 	( void );
   extern Window   getXwid 	( void );
   extern Window   getXdid 	( void );
@@ -575,7 +575,7 @@ extern "C" {
   extern void  winclose		( Int32 );
   extern void  gexit		( void );
   
-#ifdef _XLIB_H_ 		/* Declare if <X11/Xlib.h> is included */
+#if defined (_XLIB_H_) || defined (_X11_XLIB_H_)		/* Declare if <X11/Xlib.h> is included */
   extern Int32 winX 		( Display *, Window );
   extern Display * getXdpy 	( void );
   extern Window getXwid         ( void );

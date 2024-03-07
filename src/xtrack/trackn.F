@@ -3870,7 +3870,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  call str_toint(FNAMEI(ldot+1:) , 10,ii,npostap)
 	  if(npostap.gt.0) itappp=ii
 	  if(iask.eq.1 .or. nposadc.lt.1 .or. npostap.lt.1) then
-	    idmmy=inp_i2('ADC , Tape',IADCCC,itappp)
+	    idmmy=inp_i2('ADC # , RUN #',IADCCC,itappp)
 	  endif
 	  IREORD1=MAX(1,IREORD-1)
 	  if(sqrterm)then
@@ -4161,15 +4161,15 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  OPEN(UNIT=LISTLUN,FILE=SPECLIST,FORM='FORMATTED',STATUS='OLD',ERR=200)
 	endif
 
-	lnch=inp_ask('Want to read TAPE# from spectrum name',readtapnum)
+	lnch=inp_ask('Want to read RUN number from spectrum name',readtapnum)
 	if(lnch.eq.-1) goto 44
 	if(readtapnum) then
 	else
-	  call inp_i1('Tape #',ITAP)
+	  call inp_i1('RUN number',ITAP)
 	  if(itap.lt.0) goto 200
 	endif
 
-	lnch=inp_ask('Want to read  ADC# from spectrum name',readadcnum)
+	lnch=inp_ask('Want to read  ADC number from spectrum name',readadcnum)
 	if(lnch.eq.-1) goto 44
 	if(readadcnum) then
 	   writadcnum=.false.
@@ -4845,7 +4845,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	CHARACTER*5 SOURCE(NSOURCES)
 	DATA SOURCE/' 22Na',' 56Co',' 57Co',' 60Co',' 88Y ','133Ba',
 	1	    '134Cs','137Cs','152Eu','226Ra','241Am'/
-	DATA NGAMMA / 2,16,3,2,3,9,9,1,12,17,2/
+	DATA NGAMMA / 2,16,3,2,3,9,9,1,13,17,2/
 	DATA GAMMA  / 511.006 ,1274.545 , 18*0.0,
 	1	      846.771 ,977.373, 1037.840 ,1175.102 ,1238.282 ,1360.215  ,
 	1	     1771.351 ,2015.181 ,2034.755 ,2598.459 , 3009.596, 3201.962 ,
@@ -4859,8 +4859,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	6	      801.86  ,1038.53  ,1167.89  ,1365.17  , 11*0.0,
 	7	      661.661 , 19*0.0,
 	8	      121.7817, 244.6975, 344.2785, 411.1165 , 443.965 ,
-	8	      778.9040 , 964.079 ,1085.869 ,1089.737 ,1112.069 ,
-	8	      1299.140, 1408.006 , 8*0.0,
+	8	      778.9045, 867.3780, 964.079 ,1085.869 ,1089.737 ,
+	8	      1112.076,1299.1420,1408.013 , 7*0.0,
 	9 	      186.211 , 241.981 , 295.213 , 351.921 , 609.312 ,
 	9 	      768.356 , 934.061 ,1120.287 ,1238.110 ,1377.669 ,
 	9 	     1509.228 ,1729.595 ,1764.494 ,1847.420 ,2118.551 ,
@@ -4879,8 +4879,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	6	        0.03  ,   0.05  ,   0.06  ,   0.10  , 11*0.0,
 	7	        0.003 , 19*0.0,
 	8	        0.0003,   0.0008,   0.0017,   0.008 ,   0.006 ,
-	8	        0.009 ,   0.034 ,   0.034 ,   0.034 ,   0.070 ,
-	8	        0.035 ,   0.035 , 8*0.0,
+	8	        0.009 ,   0.0300,   0.034 ,   0.034 ,   0.034 ,   
+	8	        0.070 ,   0.035 ,   0.035 , 7*0.0,
 	9	        0.010 ,   0.008 ,   0.008 ,   0.008 ,   0.007 ,
 	9	        0.010 ,   0.012 ,   0.010 ,   0.012 ,   0.012 ,
 	9	        0.015 ,   0.015 ,   0.014 ,   0.025 ,   0.030 ,

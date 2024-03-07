@@ -7,9 +7,27 @@ P04 = effcor
 
 LIBS = ../libr/libinter.a
 
-INCLUDE = -I../Ygl-4.0
+ifeq ($(wildcard /opt/X11/include),)
+	OPTX11=
+else
+	OPTX11=-I/opt/X11/include
+endif
 
-LinuxLIB = -L/usr/X11R6/lib64 -L/usr/X11R6/lib -L../libr -linter -L../Ygl-4.0 -lYgl -lX11 -lXext -lpthread
+INCLUDE = $(OPTX11) -I../Ygl-4.0
+
+ifeq ($(wildcard /usr/X11R6/lib64),)
+	LIBX64=
+else
+	LIBX64=-L/usr/X11R6/lib64
+endif
+
+ifeq ($(wildcard /usr/X11R6/lib),)
+	LIBX=
+else
+	LIBX=-L/usr/X11R6/lib
+endif
+
+LinuxLIB = $(LIBX64) $(LIBX) -L../libr -linter -L../Ygl-4.0 -lYgl -lX11 -lXext -lpthread
 DigitalLIB = -L/usr/X11R6/lib -L../libr -linter -L../Ygl-4.0 -lYgl -lX11 -lXext
 SunLIB=-L/usr/X11R6/lib -L../libr -linter -L../Ygl-4.0 -lYgl -lX11 -lXext -lposix4
 
@@ -54,7 +72,7 @@ $(P02).o:$(P02).c
 	$(CC) -c $(P02).c $(INCLUDE)
 
 $(P03).o:../libr/$(P03).c
-	$(CC) -c ../libr/$(P03).c $(INCLUDE)
+	$(CC) -c ../libr/$(P03).c $(INCLUDE) 
 
 $(P04).o:$(P04).F $(P04).inc
 	$(FOR) $(OPT) -c $(P04).F
