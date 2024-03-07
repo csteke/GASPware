@@ -15,21 +15,21 @@ linux: all
 
 ############################### Intel compilers on Linux/ix86
 intel: FOR = ifort @../../etc/ifc.cfg  $(GS_OPT)
-intel: CC  = icc @../../etc/icc.cfg  -O2
+intel: CC  = icc @../../etc/icc.cfg  $(GS_OPT)
 intel: LIB = $(LinuxLIB)
 intel: all
 
-############################### Intel compilers on Linux/ix86
-sstudio: FOR = f90 -f77 -ftrap=%none -e -D__sun_c__ -xpp=cpp $(GS_OPT)
-sstudio: CC  = cc  -O2
+############################### Solaris Studio compilers on Linux/ix86
+sstudio: FOR = sunf90 -silent -f77 -ftrap=%none -e -D__sun_c__ -xpp=cpp $(GS_OPT)
+sstudio: CC  = suncc  $(GS_OPT)
 sstudio: LIB = $(LinuxLIB)
 sstudio: all
 
 
 ################################ Sun 
 sun:  all
-sun: FOR = f77 -e -D__sun_c__ -xpp=cpp
-sun:  CC = cc -D__sun_c__
+sun: FOR = f77 -silent -e -D__sun_c__ -xpp=cpp $(GS_OPT)
+sun:  CC = cc -D__sun_c__ $(GS_OPT)
 sun: LIB = $(SunLIB)
 
 ############################### DEC OSF/Alpha

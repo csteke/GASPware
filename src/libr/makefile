@@ -45,19 +45,19 @@ linux: all
 
 ############################### Intel compilers on Linux/ix86
 intel: FOR = ifort @../../etc/ifc.cfg  -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
-intel: CC  = icc @../../etc/icc.cfg -c  -O2 $(GS_ONLINE) $(GS_AIO)
+intel: CC  = icc @../../etc/icc.cfg -c    $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
 intel: all
 
 ############################### Solaris Studio FORTRAN compiler for Linux/ix86
-sstudio: FOR = f90 -f77 -ftrap=%none -e -D__sun_c__ -xpp=cpp -xO2  -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
-sstudio: CC  = cc  -c  -O2 $(GS_ONLINE) $(GS_AIO)
+sstudio: FOR = sunf90 -silent -f77 -ftrap=%none -e -D__sun_c__  -c $(GS_OPT) $(GS_ONLINE) $(GS_AIO)
+sstudio: CC  = suncc  -c $(GS_ONLINE) $(GS_AIO) $(GS_OPT)
 sstudio: all
 
 
 ################################ Sun 
 sun: all
-sun: FOR = f77 -e -D__sun_c__  -xO2 -c $(GS_ONLINE) $(GS_AIO)
-sun: CC = cc -D__sun_c__ -xO2  -c $(GS_ONLINE) $(GS_AIO)
+sun: FOR = f77 -silent -e -D__sun_c__  $(GS_OPT) -c $(GS_ONLINE) $(GS_AIO)
+sun: CC = cc -D__sun_c__       $(GS_OPT) -c $(GS_ONLINE) $(GS_AIO)
 
 ############################### DEC OSF/Alpha
 digital : all

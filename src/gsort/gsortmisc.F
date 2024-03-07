@@ -296,7 +296,7 @@ CVMS	  CALL STR_TOUPPER(TAPEDEVR)
 	
 	IF(NSEEN.GT.LHEADOFFLINE) THEN		! assumed to be GASP style numbering
 	  IF( AUTOSTRING(7:8).NE.'HG' .AND. AUTOSTRING(7:8).NE.'DG' .AND. AUTOSTRING(7:8).NE.'XG') goto 100
-#ifdef sun
+#ifdef _GW_BIG_ENDIAN
 	  call swap_bytes(ievheader(3),2)
 #endif
 	  iio.run=ievheader(3)

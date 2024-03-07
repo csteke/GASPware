@@ -14,7 +14,7 @@
 	PARAMETER (NSYNT=5)
 
 	INTEGER MAXRES		! Risoluzione massima gestita
-	PARAMETER (MAXRES=32768)
+	PARAMETER (MAXRES=65536)
 	INTEGER MINRES		! Risoluzione minima gestita
 	PARAMETER (MINRES=16)
 	INTEGER MAXDET		! MAX # di rivelatori

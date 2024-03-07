@@ -43,22 +43,22 @@ linux : $(P00)
 
 ################################ Intel compilers for Linux/ix86 
 intel: FOR = ifort @../../etc/ifc.cfg
-intel: CC  = icc @../../etc/icc.cfg  -O2
+intel: CC  = icc @../../etc/icc.cfg  $(GS_OPT)
 intel: OPT =  $(GS_OPT)
 intel: $(P00)
 
 ############################### Solaris Studio FORTRAN compiler for Linux/ix86
-sstudio: FOR = f90 -f77 -ftrap=%none
-sstudio: CC  = cc  -O2
-sstudio: OPT = -e -D__sun_c__ -xpp=cpp -xO2 $(GS_OPT)
+sstudio: FOR = sunf90 -silent -f77 -ftrap=%none
+sstudio: CC  = suncc $(GS_OPT)
+sstudio: OPT = -e -D__sun_c__  $(GS_OPT)
 sstudio : $(P00)
 
 
 ################################ Sun 
 sun: $(P00)
-sun: FOR = f77
-sun: CC  = cc -D__sun_c__ -xO2 
-sun: OPT = -e -D__sun_c__ -xO2 
+sun: FOR = f77 -silent
+sun: CC  = cc -D__sun_c__ $(GS_OPT) 
+sun: OPT = -e -D__sun_c__ $(GS_OPT)
 sun: LIB = $(SunLIB)
 
 ############################### DEC OSF/Alpha

@@ -48,7 +48,7 @@
 	PARAMETER (M$PEAKS=1024)	! max # picchi in peak_buffer
 	PARAMETER (N$P=50)		! max # picchi in TRACKfit
 	PARAMETER (N$T=1000)		! Max # tapes      "
-	PARAMETER (M$CH=16384*4)		! max # canali spettri TRACKfit
+	PARAMETER (M$CH=16384*4)	! max # canali spettri TRACKfit
 	PARAMETER (M$P=1000)		! max # parametri in   TRACKfit
 	COMMON /TRA_PEAK/ PEAKS(M$PEAKS),NPEAKS
 	COMMON /TRA_EREC/ RENE(N$P),DRENE(N$P),NRENE,IREORD,IRWORD,IRESAV,IRWSAV

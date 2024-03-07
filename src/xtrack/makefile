@@ -40,22 +40,22 @@ linux: all
 
 ############################### Intel compilers on Linux/ix86
 intel: FOR = ifort @../../etc/ifc.cfg $(GS_ONLINE) 
-intel: CC  = icc @../../etc/icc.cfg  -O2 $(GS_ONLINE) 
+intel: CC  = icc @../../etc/icc.cfg   $(GS_ONLINE) $(GS_OPT)
 intel: OPT =  $(GS_OPT)
 intel: LIB = $(LinuxLIB)
 intel: all
 
 ############################### Linux is the default choice
-sstudio: FOR = f90 -f77 -ftrap=%none -e -D__sun_c__ -xpp=cpp -xO2 $(GS_ONLINE) 
-sstudio: CC  = cc  -O2  $(GS_ONLINE) 
+sstudio: FOR = sunf90 -silent -f77 -ftrap=%none -e -D__sun_c__  $(GS_ONLINE) 
+sstudio: CC  = suncc   $(GS_ONLINE) $(GS_OPT)
 sstudio: OPT = $(GS_OPT)
 sstudio: LIB = $(LinuxLIB)
 sstudio: all
 
 ################################ Sun 
 sun: all
-sun: FOR = f77 -xO2  $(GS_ONLINE) 
-sun:  CC = cc -D__sun_c__ -xO2   $(GS_ONLINE) 
+sun: FOR = f77  -silent    $(GS_ONLINE) $(GS_OPT)
+sun:  CC = cc -D__sun_c__  $(GS_ONLINE) $(GS_OPT)
 sun: OPT = -e -D__sun_c__
 sun: LIB = $(SunLIB)
 

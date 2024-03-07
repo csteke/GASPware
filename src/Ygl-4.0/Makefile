@@ -32,16 +32,16 @@ linux: CDEBUGFLAGS = -mpreferred-stack-boundary=2 -march=i686
 linux: CC = gcc
 linux: all
 
-intel: CDEBUGFLAGS = -O2
+intel: CDEBUGFLAGS = $(GS_OPT)
 intel: CC = icc @../../etc/icc.cfg
 intel: all
 
-sstudio: CDEBUGFLAGS = -O2
-sstudio: CC = cc
+sstudio: CDEBUGFLAGS = $(GS_OPT)
+sstudio: CC = suncc
 sstudio: all
 
 sun: all
-sun: CDEBUGFLAGS	= -xO2 -xtarget=native
+sun: CDEBUGFLAGS	= $(GS_OPT)
 sun: CC=cc 
 
 digital: all

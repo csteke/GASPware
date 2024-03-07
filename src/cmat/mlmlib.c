@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "types.def"
 
 #define FRACT 8
 #define MLM_GAP 2
@@ -6,6 +7,7 @@
 #define BOOL  char
 #define FALSE 0
 #define TRUE  1
+
 
 typedef struct mlmque
 {
@@ -179,7 +181,7 @@ BOOL mlm_insert_( MLM *mlm, int *Seg, int *Val)
    if( mlm->que[iseg].next > mlm->que[iseg].end ) return FALSE;
    
    buf = mlm->listbase + mlm->nbyt*mlm->que[iseg].next;
-#ifdef sun
+#if defined(sun) && defined(__BIG_ENDIAN__)
    for( ii = 0; ii < mlm->nbyt; ii++, buf++ ) *buf = bval[3-ii];
 #else
    for( ii = 0; ii < mlm->nbyt; ii++, buf++ ) *buf = bval[ii];
@@ -241,7 +243,7 @@ BOOL mlm_flush_( MLM *mlm, int *Seg, int **Out, int *NofEntries)
   for( ii = 0; ii < nentries; ii++, obuf+=4 )
   {
       for( jj = 0; jj < mlm->nbyt; jj++, buf++ )
-#ifdef sun
+#if defined( _GW_BIG_ENDIAN)
          obuf[3-jj] = *buf;
 #else
 	 obuf[jj] = *buf;

@@ -1,9 +1,14 @@
-#if defined( __i386__ ) || defined( i386 )
+#if defined(__sun_c__) && defined ( _LP64 )
+#       undef __i386__
+#       undef i386
+#endif
+
+#if (defined( __i386__ ) || defined( i386 )) 
 #	define MACHINE_POINTERSIZE integer*4
 #   define _GW_LITTLE_ENDIAN
 #   define _GW_32_BYTES
 
-#elif defined( __x86_64__ ) || defined( __amd64 ) || defined(__AMD64__) || defined(__amd64__)
+#elif (defined( __x86_64__ ) || defined( __amd64 ) || defined(__AMD64__) || defined(__amd64__)) 
 #	define MACHINE_POINTERSIZE integer*8
 #   define _GW_LITTLE_ENDIAN
 #   define _GW_64_BYTES
@@ -26,3 +31,4 @@
 #else
 #   error "Undefined platform"
 #endif
+
