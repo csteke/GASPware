@@ -58,10 +58,14 @@ C
 
 	SUBROUTINE TIMESTAMP(LUN,string)
 
-	CHARACTER CDATE*9,CTIME*8
+	CHARACTER CDATE*11,CTIME*8
 	character*(*) string
 
+#if defined(__IFC) || defined(__INTEL_COMPILER)
+	CALL DATE4(CDATE)
+#else
 	CALL DATE(CDATE)
+#endif
 	CALL TIME(CTIME)
 	lstring=lengthc(string)
 	if(lstring.gt.0) then

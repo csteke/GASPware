@@ -4,13 +4,13 @@
 	structure/detector/
 	  union
 	    map
-	      integer id
+	      integer*4 id
 	    endmap
 	    map
-	      integer ival(-1:maxpar-1)
+	      integer*4 ival(-1:maxpar-1)
 	    endmap
 	  endunion
-	  real    xval( 0:maxpar-1)
+	  real*4    xval( 0:maxpar-1)
 	endstructure
 
 	structure/hashdat/
@@ -20,13 +20,13 @@
 	  logical*1 FROMFILE			! dati da file
 	  INTEGER NGATES(0:MAXDET-1)		! quanti gates ha letto
 	  CHARACTER*72 FILE			! File dei gates
-	  REAL    DIST2(0:1)			! Distanza**2 normalizzata per gate sferici
+	  REAL*4    DIST2(0:1)			! Distanza**2 normalizzata per gate sferici
 	endstructure
 	
 	structure/pairsdat/
-	  INTEGER INDMAX
+	  INTEGER*4 INDMAX
 	  CHARACTER*72 FILE			! nomi dei file con i dati
-	  INTEGER PIND(0:MAXDET-1,0:MAXDET-1)
+	  INTEGER*4 PIND(0:MAXDET-1,0:MAXDET-1)
 	endstructure
 
 	structure/recall/
@@ -94,12 +94,12 @@
 
 	structure/bananadat/
 	  character*72 file
-	  integer ban(2,0:1)
+	  integer*4 ban(2,0:1)
 	endstructure
 
 	structure/bananasdat/
 	  character*72 file(MAXNBAN)
-	  integer ban(2,0:1)
+	  integer*4 ban(2,0:1)
 	endstructure
 
 	structure/pairgate/
@@ -184,10 +184,10 @@
 	endstructure
 
 	structure/mcalcoef/
-	  integer nregs
-	  INTEGER ORD(MAXRCL_REGS)
-	  REAL    COEF(MAXRCL_ORD,MAXRCL_REGS)
-	  real    limit(0:MAXRCL_REGS)
+	  integer*4 nregs
+	  INTEGER*4 ORD(MAXRCL_REGS)
+	  REAL*4    COEF(MAXRCL_ORD,MAXRCL_REGS)
+	  real*4    limit(0:MAXRCL_REGS)
 	endstructure
 
 
@@ -218,7 +218,7 @@
 	endstructure
 
 	structure/dopplerdat/
-	  real costheta(0:1)
+	  real*4 costheta(0:1)
 	endstructure
 	
 	structure/polar/
@@ -250,7 +250,7 @@
 	endstructure
 	
 	structure/polardat/
-	  real cdir(3,0:MAXDET-1)
+	  real*4 cdir(3,0:MAXDET-1)
 	endstructure
 
 	structure/meanvalstr/
@@ -352,14 +352,14 @@
 	endstructure
 
 	structure/kinenewdat/
-	  REAL    ACMP,ECMP		! il nucleo composto
-	  REAL    XMOMCM		! suo momento
-	  real    ecal
-	  real    afac
-	  real cdir_ge(3,0:MAXDET-1)
-	  real cdir_si(3,0:MAXDET-1)
-	  integer nregs
-	  integer reg(MAXRES,2)
+	  REAL*4    ACMP,ECMP		! il nucleo composto
+	  REAL*4    XMOMCM		! suo momento
+	  real*4    ecal
+	  real*4    afac
+	  real*4 cdir_ge(3,0:MAXDET-1)
+	  real*4 cdir_si(3,0:MAXDET-1)
+	  integer*4 nregs
+	  integer*4 reg(MAXRES,2)
 	endstructure
 
 	structure/sltocm/
@@ -573,8 +573,8 @@ c	  logical*1 SAME		! Same as before gate
 
 	structure/projedat/
 	  CHARACTER*16 NAME(0:MAXPAR-1,0:NDTYPE)
-	  INTEGER      ADDR(0:MAXDET-1,0:MAXPAR-1,0:NDTYPE)
-	  INTEGER      SPEC(0:1)
+	  INTEGER*4      ADDR(0:MAXDET-1,0:MAXPAR-1,0:NDTYPE)
+	  INTEGER*4      SPEC(0:1)
 	endstructure
 
 	structure/spectrum/
@@ -592,7 +592,7 @@ c	  logical*1 SAME		! Same as before gate
 	endstructure
 
 	structure/specdat/
-	  INTEGER SPEC(0:1)
+	  INTEGER*4 SPEC(0:1)
 	endstructure
 
 	structure/matrix/

@@ -2271,7 +2271,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 
 #include "gsort.inc"
 	record/recal/rcl
-	integer dat(0:1)
+	integer*4 dat(0:1)
 
 	if(init_mode.EQ.0) then
 	  if(rcl.run) return
@@ -2332,7 +2332,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCC Filtri, ricalibrazioni e varie CCCCCCCCCCCCC
 
 #include "gsort.inc"
 	record/recal/rcl
-	integer dat(0:1)
+	integer*4 dat(0:1)
 
 	ji=rcl.ind
 	jp=rcl.par
@@ -3617,7 +3617,7 @@ C	    if(beta.GT.0) Xcan=Xcan*(1.-beta*dat.costheta(kger))/sqrt(1.-beta*beta)
 
 	character*72 angfil
 	
-	logical*1 getmem
+*	logical*1 getmem
 
 	synt(1)='ESL_TO_ECM Pn Pm (ISIS|Agles_file_Si) MeV_per_channel v_CM/c[%]'
 
@@ -4197,7 +4197,7 @@ C	    Xcan=Xcan*(1.-beta*costh)*sqbetainv	! Relativistic
 
 	isize=3 + 4*MAXNban +  MAXDET*MAXNban + 2*3*MAXDET
 	namesize= 72*MAXNban
-	isize= 4*isize +namesize + 4*(2*kine.bres(1)*kine.nban)
+	isize= 8*isize +namesize + 8*(2*kine.bres(1)*kine.nban)
 	isize=isize+16 ! di guardia
 	if(.NOT.getmem(isize,com(icmd).addr)) Stop 'Error allocating memory for RECAL_KINE'
 	com(icmd).size=isize

@@ -876,7 +876,7 @@ c	pointer (hashpnt,dat)
 
 	integer hind,hpar,hres,hlen,hngates
 	logical*1hfromfile,hsameforall
-	real    dist2(0:MAXRES)
+	real*4    dist2(0:MAXRES)
 	character*72 hfile
 
 	logical*1getmem
@@ -1204,7 +1204,7 @@ c	pointer (hashpnt,dat)
 
 	integer hind,hpar,hres,hlen,hngates
 	logical*1hfromfile,hsameforall
-	real    dist2(0:MAXRES)
+	real*4    dist2(0:MAXRES)
 	character*72 hfile
 
 c	hashpnt=hashaddr(hashgiven)
@@ -1234,7 +1234,7 @@ c	pointer (pairspnt,dat)
 
 	character*72 pfile
 	
-	logical*1getmem
+	logical*1 getmem
 
 	synt(1)='PAIRDEF file_with_index_of_pairs'
 

@@ -921,7 +921,7 @@ c	hashpnt=hashaddr(ihash)
 
 	include 'gsort.par'
 
-	real gate(0:1),dist2(0:1)
+	real*4 gate(0:1),dist2(0:1)
 	integer nchan
 
 	logical*1 ingate(0:MAXRES-1)
@@ -938,13 +938,15 @@ c	hashpnt=hashaddr(ihash)
 	    if(ingate(ii)) i1=ii
 	  else
 	    if(.NOT.ingate(ii)) then
-              i2=ii
-	      gcenter=(i1+i2+1)/2.
-	      gaxis=(i2-i1+1)/2.
-	      if(i2.GT.i1) then
+              i2=ii-1
+	      gcenter=(i1+i2+1.0)/2.
+	      gaxis=(i2-i1+1.0)/2.
+*	      write(*,*) gcenter, gaxis
+	      if(i2.GE.i1) then
 	        do jj=i1,i2
 	          dd=(gcenter-(jj+0.5))/gaxis
 	          dist2(jj)=dd*dd
+*	      write(*,*)i1,i2,jj,dd*dd
 	        end do
 	      endif
 	      i1=-1

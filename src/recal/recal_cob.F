@@ -15,7 +15,7 @@
 	character Tfname*60
 	character*78 comment,labinfo
 
-	CHARACTER CDATE*9,CTIME*8
+	CHARACTER CDATE*11,CTIME*8
 
 	logical*1 graphics	/.FALSE./
 
@@ -68,7 +68,11 @@
 
 *	call inp_ask('Graphics',graphics)
 
+#if defined(__IFC) || defined(__INTEL_COMPILER)
+	CALL DATE4(CDATE)
+#else
 	CALL DATE(CDATE)
+#endif
 	CALL TIME(CTIME)
 
 	do nspec=1,nspectra
