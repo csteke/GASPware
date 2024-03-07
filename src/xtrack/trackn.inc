@@ -68,7 +68,7 @@
 	common /fit_trpar/Ntrpar,trpar,IWFREE(M$P),trchichi
 	common /fit_trind/iestart,jestart,netrpar,iwstart,jwstart,nwtrpar,i_w_e(M$P),i_e_w(M$P)
 
-	PARAMETER (MAXRES=8192)		! max res per matrici
+	PARAMETER (MAXRES=4*8192)		! max res per matrici
 	PARAMETER (M$GATE=1000)		! max # coppie di gates
 	INTEGER NGATES,NGNEXT
 	REAL EGATE(2,M$GATE),CGATE(2,M$GATE)

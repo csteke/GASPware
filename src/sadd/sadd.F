@@ -995,6 +995,7 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 	SUBROUTINE OUTPUT
 
 #include "sadd.inc"
+	character*4 nm_fmt(2)
 
 	CALL INP_SHOWBUFF(IL)
 	IF(IL.NE.0)CALL INP_SPNAME('Filename[|Format:Length]',FNOUT,FORMO,KLO)
@@ -1008,9 +1009,11 @@ CVMS	OPEN(UNIT=10,FILE='SADD.LOG',STATUS='NEW')
 	IF(KLO.GT. 9) LNKAP=2
 	IF(KLO.GT.99) LNKAP=3
 	LFNAM=LENGTHC(FNOUT)
-	WRITE(10,15) FNOUT(1:lfnam),FORMO,KLO
-	WRITE(6,15)  FNOUT(1:lfnam),FORMO,KLO
-15	FORMAT(' OUT',4X,A,'|',A1,':',I1)
+	write(nm_fmt(1),'(i4)')lfnam
+	write(nm_fmt(2),'(i4)')lnkap
+	WRITE(10,'('' OUT '',4X,A'//nm_fmt(1)//',''|'',A1,'':'',I'//nm_fmt(2)//')') FNOUT(1:lfnam),FORMO,KLO
+	WRITE(6,'('' OUT '',4X,A'//nm_fmt(1)//',''|'',A1,'':'',I'//nm_fmt(2)//')')  FNOUT(1:lfnam),FORMO,KLO
+*15	FORMAT(' OUT',4X,A,'|',A1,':',I1)
 
 99	ISUC=0
 100	RETURN

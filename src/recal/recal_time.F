@@ -278,7 +278,7 @@
 	if(display) call lib$wait(0.1)
 
 	if(baricentro) ipo=iposfin-(p1+0.5)
-	if(wrtcoefs)WRITE(luc,'(I5,I5,I3,I6,I3)')ITAP,IADC,2,ipo,1
+	if(wrtcoefs)WRITE(luc,'(I5,I5,I5,I12,I5)')ITAP,IADC,2,ipo,1
 	if(writeres)WRITE(lur,'(1X,A,I,3G)')fname(1:lfname),maxch,p1+0.5,p0,xfwhm
 	if(list) goto 1
 

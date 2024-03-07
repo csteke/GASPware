@@ -563,8 +563,8 @@ D	call cmt_show(%val(cmthandle),6)
 	endif
 	
 	write(nm_fmt,'(i2)')cmt.ndim
-	WRITE(lun,'('' Dimension = ('','//nm_fmt//'I5,'' ) =>'',i16)')(cmt.RES(ii),ii=1,cmt.ndim),ll
-	WRITE(lun,'('' Blocksize = ('','//nm_fmt//'I5,'' ) =>'',i16)')(cmt.STEP(ii),ii=1,cmt.ndim),cmt.segsize
+	WRITE(lun,'('' Dimension = ('','//nm_fmt//'I6,'' ) =>'',i16)')(cmt.RES(ii),ii=1,cmt.ndim),ll
+	WRITE(lun,'('' Blocksize = ('','//nm_fmt//'I6,'' ) =>'',i16)')(cmt.STEP(ii),ii=1,cmt.ndim),cmt.segsize
 	write(lun,'('' #Segments =''I7)') cmt.nseg
 
 	return

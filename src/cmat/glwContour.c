@@ -18,7 +18,6 @@
 #include <X11/Ygl.h>
 #include <glwidget.h>
 
-
 #define GLW_XSIZE 640
 #define GLW_YSIZE 480
 #define GLW_FRAMEWIDTH_LB 56
@@ -1607,6 +1606,7 @@ void DrawPlot ( void ){
       
       x1 = Plot.Xmin + XChPix*xb;
       x2 = Plot.Xmin + XChPix*(xb+1)+1; x2 = ( x2 < Plot.Xmax+1 )?x2:Plot.Xmax+1;
+
       for( y = 0, yb = Ypixels-1 ; y <= yb; y++, yb--){
         y1 = Plot.Ymin + YChPix*y;
 	y2 = Plot.Ymin + YChPix*(y+1)+1; y2 = ( y2 < Plot.Ymax+1 )?y2:Plot.Ymax+1;
@@ -1648,6 +1648,7 @@ void DrawPlot ( void ){
 	      Plot.Image[yb] = CellValue/ColorStep + 1;
 	      Plot.Image[yb] = (Plot.Image[yb] > 16)?ContColor[16]:ContColor[Plot.Image[yb]];}
 	}
+
       crectwrite((Screencoord) (MatPlot.x1+xb+1),(Screencoord) (MatPlot.y1+1),
                 (Screencoord) (MatPlot.x1+xb+1),(Screencoord) (MatPlot.y2-1),
 		Plot.Image);

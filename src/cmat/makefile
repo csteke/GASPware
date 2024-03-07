@@ -42,8 +42,8 @@ linux: OPT = -Mextend  -Mdollar,X $(GS_OPT)
 linux : $(P00)
 
 ################################ Intel compilers for Linux/ix86 
-intel: FOR = ifort @../../etc/ifc.cfg
-intel: CC  = icc @../../etc/icc.cfg  $(GS_OPT)
+intel: FOR = ifort @../../etc/ifc.cfg 
+intel: CC  = icc @../../etc/icc.cfg  $(GS_OPT) 
 intel: OPT =  $(GS_OPT)
 intel: $(P00)
 
