@@ -7,8 +7,8 @@
 
 	DIMENSION PM(0:5)
 
-	CHARACTER SPEclist*60
-	character fname*60
+	CHARACTER*60 SPEclist
+	character*60 fname 
 
 	character*60  fncoefs,fnres
 	character*1 fmt,ach
@@ -147,7 +147,7 @@
 
 1	if(list) READ(LISTLUN,'(A)',ERR=200,END=200) FNAME
 	if(writadcnum) then
-	  ldir=index(fname,']')
+	  ldir=index(fname,'/', BACK=.TRUE.)
 	  ldot=index(fname(ldir+1:),'.')
 	  if(ldot.le.0) then
 	    ldot=lengthc(fname)+1
@@ -164,6 +164,11 @@
 	  endif
 	endif
 	LFNAME=MAX(1,LENGTHC(FNAME))
+	if( LFNAME .ge. 60 ) then
+	   fname(60:60)='\0'
+	else
+	   fname(LFNAME+1:LFNAME+1) = '\0'
+	endif
 
 	CALL READSPEC(FNAME,fSPEK(0),fmt,nchan,KV)
 	IF(KV.LE.0) THEN
