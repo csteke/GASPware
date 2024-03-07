@@ -23,7 +23,7 @@ Int32 GLW_MINYSIZE = 560;
 Int32 GLW_FRAMEWIDTH = 80;
 float RATIO_W = 5.0 / 8.0;
 
-// #define GLW_FRAMEWIDTH 80
+/* #define GLW_FRAMEWIDTH 80 */
 #define GLW_FRAMECOLOR 8
 #define GLW_FRAMECOLOR_DARK 9
 #define GLW_FRAMECOLOR_LIGHT 10
@@ -2835,7 +2835,7 @@ void LoadGLWfont(void){
   startH = XDisplayHeight( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) ); 
   startW = XDisplayWidth ( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) );
   
-   GLW_FRAMEWIDTH = 0.020 *(float) startH + 67.60;
+   GLW_FRAMEWIDTH = 0.020 *(float) startH + 62.00;
    GLW_FRAMEWIDTH += GLW_FRAMEWIDTH%2;
    FontSize = (float)startH * 0.0577 + 45.0;
    FontSize -= FontSize%20 -20;
