@@ -5,6 +5,7 @@
 
 #include "cmat.inc"
 
+	external EXIT_CMAT
 	CHARACTER*80 CMD(31)
 
 	CMD( 1)='OPEN             Connect (READONLY)   to a compressed matrix'
@@ -43,6 +44,10 @@
 CVMS
 *	open(6,carriagecontrol='FORTRAN',status='OLD')
 	call xinpmode(1)
+#if defined(__IFC) || defined(__INTEL_COMPILER)
+	call signal(2,EXIT_CMAT,-1)
+	call signal(15,EXIT_CMAT,-1)
+#endif
 
 10	IF(error) THEN
 	  CALL INP_MODE(0)
@@ -153,6 +158,24 @@ CVMS
 	GOTO 10
 
 	END
+	
+	
+	
+	SUBROUTINE EXIT_CMAT
+
+#include "cmat.inc"
+	
+	  do nmat=1,MAXNMAT
+	    if(opened(nmat)) call MADD_close(nmat)
+	  end do
+	  CALL EXIT(0)
+	  
+	  RETURN
+	  END
+
+
+
+
 
 	SUBROUTINE MADD_OPEN(nmat,mode,prompt)
 

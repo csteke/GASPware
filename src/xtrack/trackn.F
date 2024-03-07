@@ -25,6 +25,7 @@ cpgi$g novector
 	external filexist
 	integer*4 fileremove
 	external fileremove
+	external EXIT_TRACK
 	
 
 	CALL STARTPARAMETERS
@@ -68,6 +69,12 @@ cpgi$g novector
 	CMD='= '			! EMPTY SPECTRUM & FULL DISPLAY
 	NCMD=1
 	emptyframe=.true.
+
+#if defined(__IFC) || defined(__INTEL_COMPILER)
+	call signal(2,EXIT_TRACK,-1)
+	call signal(15,EXIT_TRACK,-1)
+#endif
+
 
 	GOTO 20
 
@@ -967,7 +974,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	1      CMD(1:NCMD) .EQ. CHAR(25) .OR.
 	1      CMD(1:NCMD) .EQ. CHAR(26) ) THEN
 	  call xtptermfocus
-	  IF(.NOT.INP_YES('You really want to exit this program')) then
+	  IF(.NOT.INP_YES('Do you really want to exit this program')) then
 	    CYCLE=.FALSE.
 	    GOTO 100
 	  ENDIF
@@ -992,6 +999,18 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	GOTO 100
 
 	END
+
+	
+	SUBROUTINE EXIT_TRACK
+	
+	IF(INP_NOT('Do you really want to exit this program')) THEN
+	    CALL EXIT(0)
+	ENDIF
+	
+	RETURN
+	END
+	
+	
  
 	SUBROUTINE HELP
 
@@ -2052,6 +2071,7 @@ C	ITYP=-IIC	! se ityp negativo disabilita compressione disegno
 	XD0=0
 	XD1=0
 	XD2=0
+	XD4=0
 
 	NIREL=(II1+II2)/2
 	DO II=II1,II2
@@ -2070,6 +2090,7 @@ C	ITYP=-IIC	! se ityp negativo disabilita compressione disegno
 	   XD0=XD0+XSY
 	   XD1=XD1+XSY*XWW
 	   XD2=XD2+XSY*XWW*XWW
+	   XD4=XD4+XSY*XWW*XWW*XWW*XWW
 	end do
 C	IF(XD0.LT.0) GOTO 100
 	AREA=XC0
@@ -2083,6 +2104,10 @@ C	IF(DPOSI.LE.0) GOTO 100
 	FWHM=XC2/XC0-XPOS**2
 	IF(FWHM.LE.0) GOTO 100
 	FWHM=2.35482*SQRT(FWHM)
+	DFWHM=4.00*XPOS*XPOS*DPOSI*DPOSI+XD4/XC0/XC0-2.00*XC2*XD2/XC0**3+
+     1  XC2*XC2*XD0/XC0**4
+	IF(DFWHM.LE.0) GOTO 100
+        DFWHM=SQRT(DFWHM)/(XC2/XC0-XPOS**2)/2.00*FWHM     
 	IFINT=1
 	ikkk=kkk/2+1
 	if(ishow.eq.1) call showint(llunout,ikkk)
@@ -2108,6 +2133,10 @@ C	IF(DPOSI.LE.0) GOTO 100
 	call showmarkers(xmint,nmint,2,3)
 	call xtpshownumpeak(POSI,ii,3)
 
+	if( ii .eq. 1 ) then
+	write(6,'(''Integ#  Channel    Energy          Area                       Width'')')
+	endif
+
 	  genergy = cpol(POSI,ECAL,-m$k)
 	  sgenergy = (cpol(POSI+dposi/2,ECAL,-m$k)-cpol(POSI-dposi/2,ECAL,-m$k))
 
@@ -2127,7 +2156,7 @@ C	IF(DPOSI.LE.0) GOTO 100
 	  elseif( k_se .ge. 1000 .and. k_se .lt. 10000 )then
 	    write(string,'(''('',i4,'')   '')')k_se
 	  else
-	    write(string,'(''(err)         '')')
+	    write(string,'(''(***)         '')')
 	  endif
 
 	  IF(ABS(AREA).LT.9.9E7) THEN
@@ -2137,22 +2166,53 @@ C	IF(DPOSI.LE.0) GOTO 100
 	  ENDIF
 	  call string_strip(string(10:))
 	  iss=lengthc(string(10:))+9
+	  do jjj = iss+1,34
+	  	string(jjj:jjj) = ' '
+	  enddo
+	  iss = 34
+
 	  if(iecal.eq.0) then
 	    rrr=FWHM
 	  else
 	    rrr=abs(cpol(POSI+FWHM/2,ECAL,-m$k)-cpol(POSI-FWHM/2,ECAL,-m$k))
 	  endif
-	  write(6,'(i3,2x,2f10.2,a,$)')ii,posi,genergy,string(1:iss)
-	  write(6,'(''   FWHM : '',f10.2)')rrr
+	  drrr = DFWHM/FWHM*rrr
+	  rrr = nint(100.00*rrr)
+	  rrr = 0.010000*rrr
+	  write(string(iss+1:),'(f7.2)')rrr
+	  iss=iss+8
+
+	  k_se = nint(drrr*100.00)
+	  if( k_se .ge. 0 .and. k_se .lt. 10 )then
+	    write(string(iss:),'(''('',i1,'')'')')k_se
+	    iss = iss + 3
+	  elseif( k_se .ge. 10 .and. k_se .lt. 100 )then
+	    write(string(iss:),'(''('',i2,'')'')')k_se
+	    iss = iss + 4
+	  elseif( k_se .ge. 100 .and. k_se .lt. 1000 )then 
+	    write(string(iss:),'(''('',i3,'')'')')k_se
+	    iss = iss + 5
+	  elseif( k_se .ge. 1000 .and. k_se .lt. 10000 )then
+	    write(string(iss:),'(''('',i4,'')'')')k_se
+	    iss = iss + 6
+	  else
+	    write(string,'(''(***)'')')
+	    iss = iss + 5
+	  endif
+
+	  
+	  write(6,'(i3,2x,2f10.2,a)')ii,posi,genergy,string(1:iss)
 
 	  if(llunout.gt.0 .and. llunout.ne.6) then
 	    ttt=abs(cpol(POSI+FWHM/2,ECAL,-m$k)-cpol(POSI-FWHM/2,ECAL,-m$k))
 	    IF(ABS(AREA).LT.9.9E8) THEN
-	      WRITE(lLUNOUT,'(1X,A,2F10.3,f8.3,F13.2,f13.2,2F9.3,i3)')
-	1	FNAMEI(1:20),POSI,genergy,sgenergy,AREA,darea,FWHM,ttt,ii
+	      WRITE(lLUNOUT,'(1X,A,2F10.3,f8.3,F13.2,f13.2,4F9.3,i3)')
+	1  FNAMEI(1:20),POSI,genergy,sgenergy,AREA,darea,FWHM,DFWHM,
+	2    ttt,drrr,ii
 	    ELSE
-	      WRITE(lLUNOUT,'(1X,A,2F10.3,f8.3,1PE13.6,e13.6,2F9.3,i3)')
-	1	FNAMEI(1:20),POSI,genergy,sgenergy,AREA,darea,FWHM,ttt,ii
+	      WRITE(lLUNOUT,'(1X,A,2F10.3,f8.3,1PE13.6,e13.6,4F9.3,i3)')
+	1 FNAMEI(1:20),POSI,genergy,sgenergy,AREA,darea,FWHM,DFWHM,
+	2    ttt,drrr,ii
 	    ENDIF
 	    call flush(llunout)
 	  endif
@@ -3315,20 +3375,27 @@ c	write(6,*) ' '
 
 	if( varwidth .and. (nmgau .gt. 1) )then
 	   do ii = 0, nmgau-1
-	      p_nm(2*ii+1) = fitpar(2*ii+5) 
-	      pl_nm(2*ii+1) = 0.0000
-	      pu_nm(2*ii+1) = 3.00*fitpar(2*ii+5)
-	      p_nm(2*ii+2)  = fitpar(3)
-	      pl_nm(2*ii+2)  = fitpar(3)/1.50
-	      pu_nm(2*ii+2)  = fitpar(3)*1.50
-	      sp_nm(2*ii+1) = p_nm(3*ii+2)/100.00
-	      sp_nm(2*ii+2) = p_nm(3*ii+3)/10.0000
+	      p_nm (3*ii+1) = fitpar(2*ii+5)        ! Area
+	      pl_nm(3*ii+1) = 0.0000
+	      pu_nm(3*ii+1) = 3.00*fitpar(2*ii+5)
+	      sp_nm(3*ii+1) = p_nm(3*ii+1)/100.00  
+	      
+	      p_nm (3*ii+2) = fitpar(2*ii+4)        ! Area
+	      pl_nm(3*ii+2) = p_nm(3*ii+2)*0.8000
+	      pu_nm(3*ii+2) = p_nm(3*ii+2)*1.2000
+	      sp_nm(3*ii+2) = p_nm(3*ii+2)/1000.00  
+	      
+	      
+	      p_nm (3*ii+3)  = fitpar(3)            ! Width
+	      pl_nm(3*ii+3)  = fitpar(3)/8.00
+	      pu_nm(3*ii+3)  = fitpar(3)*8.00
+	      sp_nm(3*ii+3) = fitpar(3)/10.00  !p_nm(3*ii+3)/10.0000
 	   enddo
 	   chq_nm=1e-6
 	   mc_nm=0
 	   it_nm=0
 	   niter_nm=1000
-	   np_nm = 2*nmgau
+	   np_nm = 3*nmgau
 	   do ii = 1, np_nm
 	     cf_nm(ii)=0
 	   enddo
@@ -3342,10 +3409,12 @@ c	write(6,*) ' '
 	     if( chq_nm .le. 1.000 )chq_nm=1.000
 	     iwoff = 2*nmgau+3
 	     do ii=1,nmgau
-	       fitpar(2*ii+3)=p_nm(2*ii-1)
-	       fitpar(ii+iwoff) = p_nm(2*ii)
-	       sfitpar(2*ii+3)=sp_nm(2*ii-1)!*chq_nm
-	       sfitpar(ii+iwoff) = sp_nm(2*ii)
+	       fitpar(2*ii+3)=p_nm(3*ii-2)
+	       fitpar(2*ii+2)=p_nm(3*ii-1)
+	       fitpar(ii+iwoff) = p_nm(3*ii)
+	       sfitpar(2*ii+3)=sp_nm(3*ii-2)
+	       sfitpar(2*ii+2)=sp_nm(3*ii-1)
+	       sfitpar(ii+iwoff) = sp_nm(3*ii)
 	     enddo
 	   else
 	     do ii=1,Nfitpar
@@ -3403,7 +3472,16 @@ c	write(6,*) ' '
 	do ii=1,nmgau
 	  gposi=GFPAR(2*ii+2)+N0GAU
 	  call xtpshownumpeak(gposi,ii,3)
-	  sigma=GFPAR(3)
+
+	  if( VarWidth .and. (nmgau.gt.1) ) then
+	  	gfwhm=GFPAR(3+2*nmgau+ii)*2.35482
+	        sigma=GFPAR(3+2*nmgau+ii)
+	        dfwhm = sfitpar(3+2*nmgau+ii)*2.35482
+	  else
+	  	gfwhm=GFPAR(3)*2.35482
+	        sigma=GFPAR(3)
+	        dfwhm = sfitpar(3)*2.35482
+	  endif
 	  garea=GFPAR(2*ii+3)*sqrt(2*3.141593*sigma**2)
 ***** N.M.
 	   sgarea=(sfitpar(2*ii+3)*sigma)**2+(gfpar(2*ii+3)*sfitpar(3))**2
@@ -3427,14 +3505,9 @@ c	write(6,*) ' '
 	  elseif( k_se .ge. 1000 .and. k_se .lt. 10000 )then
 	    write(string,'(''('',i4,'')   '')')k_se
 	  else
-	    write(string,'(''(err)         '')')
+	    write(string,'(''(***)         '')')
 	  endif
 	  
-	  if( VarWidth .and. (nmgau.gt.1) ) then
-	  	gfwhm=GFPAR(3+2*nmgau+ii)*2.35482
-	  else
-	  	gfwhm=GFPAR(3)*2.35482
-	  endif
 
 	  IF(ABS(gAREA).LT.9.9E7) THEN
 	    WRITE(string(10:),'(i10,''('',i10,'')'')')nint(gAREA),nint(sgarea)
@@ -3444,19 +3517,45 @@ c	write(6,*) ' '
 	  call string_strip(string(10:))
 	  iss=lengthc(string(10:))+9
 	  ttt=abs(cpol(gPOSI+gFWHM/2,ECAL,-m$k)-cpol(gPOSI-gFWHM/2,ECAL,-m$k))
-	  do jjj = iss+1,36
+	  dttt = dfwhm*ttt/gfwhm
+	  do jjj = iss+1,34
 	  	string(jjj:jjj) = ' '
 	  enddo
-	  iss = 36
-	  write(6,'(i3,2x,2f10.2,a,f7.3)')ii,gposi,genergy,string(1:iss),ttt
+	  iss = 34
+	  
+	  ttt = nint(100.00*ttt)
+	  ttt = 0.010000*ttt
+	  write(string(iss+1:),'(f7.2)')ttt
+	  iss=iss+8
+
+	  k_se = nint(dttt*100.00)
+	  if( k_se .ge. 0 .and. k_se .lt. 10 )then
+	    write(string(iss:),'(''('',i1,'')'')')k_se
+	    iss = iss + 3
+	  elseif( k_se .ge. 10 .and. k_se .lt. 100 )then
+	    write(string(iss:),'(''('',i2,'')'')')k_se
+	    iss = iss + 4
+	  elseif( k_se .ge. 100 .and. k_se .lt. 1000 )then 
+	    write(string(iss:),'(''('',i3,'')'')')k_se
+	    iss = iss + 5
+	  elseif( k_se .ge. 1000 .and. k_se .lt. 10000 )then
+	    write(string(iss:),'(''('',i4,'')'')')k_se
+	    iss = iss + 6
+	  else
+	    write(string,'(''(***)'')')
+	    iss = iss + 5
+	  endif
+
+	  
+	  write(6,'(i3,2x,2f10.2,a,f7.2)')ii,gposi,genergy,string(1:iss)
 
 	  if(llunout.gt.0 .and. llunout.ne.6) then
 	    IF(ABS(gAREA).LT.9.9E8) THEN
-	      WRITE(lLUNOUT,'(1X,A,2F10.3,f8.3,F13.2,f13.2,2F9.3,i3)')
-	1	FNAMEI(1:20),gPOSI,genergy,sgenergy,gAREA,sgarea,gFWHM,ttt,ii
+	      WRITE(lLUNOUT,'(1X,A,2F10.3,f8.3,F13.2,f13.2,4F9.3,i3)')
+	1	FNAMEI(1:20),gPOSI,genergy,sgenergy,gAREA,sgarea,gFWHM,dfwhm,ttt,dttt,ii
 	    ELSE
-	      WRITE(lLUNOUT,'(1X,A,2F10.3,f8.3,1PE13.6,e13.6,2F9.3,i3)')
-	1	FNAMEI(1:20),gPOSI,genergy,sgenergy,gAREA,sgarea,gFWHM,ttt,ii
+	      WRITE(lLUNOUT,'(1X,A,2F10.3,f8.3,1PE13.6,e13.6,4F9.3,i3)')
+	1	FNAMEI(1:20),gPOSI,genergy,sgenergy,gAREA,sgarea,gFWHM,dfwhm,ttt,dttt,ii
 	    ENDIF
 	    call flush(llunout)
 	  endif
@@ -7730,7 +7829,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	real*8 function PK_FUNCT(x,p)
 	
 #include "trackn.inc"
-	real*8 x,p(20),dum,dum1
+	real*8 x,p(200),dum,dum1
 	
 	dum=0
 	do ii=1,nmgau
@@ -7744,12 +7843,12 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	real*8 function VW_FUNCT(x,p)
 	
 #include "trackn.inc"
-	real*8 x,p(20),dum,dum1
+	real*8 x,p(200),dum,dum1
 	
 	dum=0
 	do ii=0,nmgau-1
-	  dum1=(x-fitpar(2*ii+4))/p(2*ii+2)
-	  dum=dum+p(2*ii+1)*dexp(-dum1*dum1*0.500000D0)
+	  dum1=(x-p(3*ii+2))/p(3*ii+3)
+	  dum=dum+p(3*ii+1)*dexp(-dum1*dum1*0.500000D0)
 	enddo
 	vw_funct=dum
 	return
@@ -7793,10 +7892,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
      &   cf(m),chq
 
 
-	COMMON /A/A(20)/PL/PL0(20)/AU/AU(20)/AL/AL(20)
+	COMMON /A/A(200)/PL/PL0(200)/AU/AU(200)/AL/AL(200)
 	COMMON /NED/NED(2)
 *        COMMON /BARI/PARX,NSPA
-	COMMON /EXDA/exda(20000)/SIGMA/SIGMA(20)/R/R(20)
+	COMMON /EXDA/exda(20000)/SIGMA/SIGMA(200)/R/R(200)
 *	COMMON /ERROR/ERROR(100)
 	EXTERNAL FUNCT
 
@@ -7838,8 +7937,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       SUBROUTINE FUMILI (S,M,N1,N2,N3,EPS,funct,IT,MC )
 C     ENTRY FOR CHISQ MINIMISATION                                              
       IMPLICIT REAL*8(A-H,O-Z)                                                  
-      COMMON /Z/Z(410)/G/G(20)/A/A(20)/PL/PL0(20)/SIGMA/SIGMA(20)/         
-     1PLU/PL(20)/R/R(20)/DA/DA(20)/AU/AMX(20)/AL/AMN(20)/Z0/Z0(410        
+      COMMON /Z/Z(41000)/G/G(20000)/A/A(200)/PL/PL0(200)/SIGMA/SIGMA(200)/         
+     1PLU/PL(200)/R/R(200)/DA/DA(200)/AU/AMX(200)/AL/AMN(200)/Z0/Z0(41000        
      2)/ENDFLG/ENDFLG,NA,INDFLG(5)                                              
       COMMON /NED/NED(2)                                                        
       COMMON /NFREED/NFREED                                                     
@@ -7847,7 +7946,7 @@ C     ENTRY FOR CHISQ MINIMISATION
       external funct
 
 C-----  THE MAXIMUM RELATIVE PRECISION IN DOUBLE PRECISION ON IBM 370 IS 1.D-16
-      DATA RP/1.D-14/                                                           
+      DATA RP/1.000D-14/                                                           
       INDFLG(3)=it
     1 continue  !IF(IT.GE.0) WRITE(2,84)
       NN2=0                                                                     
@@ -8098,8 +8197,8 @@ C
 C-----  SUBROUTINE SGZ SETS UP S(OBJECTIVE FUNCTION), G(GRADIENT OF S) AND      
 C-----  Z(APPROXIMATE COVARIANCE MATRIX)                                        
       IMPLICIT REAL*8(A-H,O-Z)                                                  
-      COMMON /G/G(20)/Z/Z(410)/A/A(20)/DF/DF(20)/NED/NED(2)/EXDA/           
-     1exda(20000)/X/X(10)/PL/PL(20)/ENDFLG/ENDFLG,NA,INDFLG(5)
+      COMMON /G/G(20000)/Z/Z(41000)/A/A(200)/DF/DF(200)/NED/NED(2)/EXDA/           
+     1exda(20000)/X/X(1000)/PL/PL(200)/ENDFLG/ENDFLG,NA,INDFLG(5)
       external funct
       K=NED(1)                                                                  
       K2=1                                                                      
@@ -8154,8 +8253,8 @@ C----- -VE OR ZERO Y IN MAXIMUM LIKLEHOOD
       SUBROUTINE SCAL(M,ER)                                                    
 C       SUBROUTINE SCAL CALCULATES ER=VARIANCE OF THEORETICAL FUNCTION Y        
       IMPLICIT REAL*8(A-H,O-Z)                                                  
-      COMMON /Z/Z(410)/DF/DF(20)                                              
-      COMMON /PLU/PL(20)                                                       
+      COMMON /Z/Z(41000)/DF/DF(200)                                              
+      COMMON /PLU/PL(200)                                                       
       ER=0.0D0                                                                  
       N=0                                                                       
       DO 2 J=1,M                                                                
@@ -8177,7 +8276,7 @@ C       SUBROUTINE SCAL CALCULATES ER=VARIANCE OF THEORETICAL FUNCTION Y
       SUBROUTINE MONIT (S,M,NN3,IT,EPS,GT,AKAPPA,ALAMBD)                       
 C-----  ITERATION PROGRESS OUTPUT                                               
       IMPLICIT REAL*8(A-H,O-Z)                                                  
-      COMMON /A/A(20)/SIGMA/SIGMA(20)/R/R(20)/PL/PL(20)/PLU/PL0(20)
+      COMMON /A/A(200)/SIGMA/SIGMA(200)/R/R(200)/PL/PL(200)/PLU/PL0(200)
      1/ENDFLG/ENDFLG,NA,INDFLG(5)                                               
       IF(IT) 11,3,1                                                             
     1 IF(NN3) 4,4,2                                                             
@@ -8238,8 +8337,8 @@ C
       SUBROUTINE ARITH(Y,funct)
 C----- ARITHM SETS Y AND CALCULATES DY/DA                                       
       IMPLICIT REAL*8(A-H,O-Z)                                                  
-      COMMON /DF/DF(20)/A/A(20)/X/X(10)                                       
-      COMMON /PL/PL(20)/AU/AMX(20)/AL/AMN(20)                                
+      COMMON /DF/DF(200)/A/A(200)/X/X(1000)                                       
+      COMMON /PL/PL(200)/AU/AMX(200)/AL/AMN(200)                                
       COMMON /ENDFLG/ ENDFLG,NA,INDFLG(5)
       real*8 funct
       external funct
@@ -8273,7 +8372,7 @@ C-----  MCONV INVERTS THE POSITIVE DEFINITE PACKED SYMMETRIC MATRIX Z
 C-----  BY THE SQUARE-ROOT METHOD                                               
       IMPLICIT REAL*8(A-H,O-Z)                                                  
       COMMON /Z/Z(410)                                                         
-      COMMON /PLU/PL0(20)/R/R(20)                                             
+      COMMON /PLU/PL0(200)/R/R(200)                                             
       COMMON /ENDFLG/ ENDFLG,NA,INDFLG(5)                                       
 C-----  MAXIMUM REAL NUMBER AND MAXIMUM REL. PRECISION IN DOUBLE PRECISION      
 C-----  ON IBM 370                                                              

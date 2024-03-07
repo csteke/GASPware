@@ -1914,8 +1914,13 @@ void MapGLWcolors(void){
 
 void LoadGLWfont(void){
 
-  loadXfont(GLW_FONTID12, "-*-times-medium-r-*-*-*-120-*-*-*-*-iso8859-1");
-  loadXfont(GLW_FONTID14, "-*-times-medium-r-*-*-*-140-*-*-*-*-iso8859-1");
+  loadXfont(GLW_FONTID12, "-*-times-medium-r-*-*-12-120-*-*-*-*-iso8859-1");
+  loadXfont(GLW_FONTID14, "-*-times-medium-r-*-*-14-140-*-*-*-*-iso8859-1");
+/*
+  loadXfont(GLW_FONTID12, "-*-helvetica-medium-r-*-*-10-100-*-*-*-*-iso8859-1");
+  loadXfont(GLW_FONTID14, "-*-helvetica-bold-r-*-*-12-120-*-*-*-*-iso8859-1");
+*/
+
   font(GLW_FONTID14);
  }
 
