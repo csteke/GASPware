@@ -2975,7 +2975,7 @@ c	  write(6,'(4i3,8i8)') ww,ntotp,itotp,ntotb,itotb,int(apart)
 	memsize = ( (res(1,m2)+1) * res(1,m2) )/2
 	if(getmem(4*memsize,mat2)) then		! direttamente in memoria
 	  call MADD_M2D_FROM_M3D_SL(m1,m2,step(1,m1),bufl(0,m1),bufl(0,m2),%val(mat2),hash(0,1),mhash(0,1))
-	  error=.not.FREEMEM(4*memsize,inbuf)
+	  error=.not.FREEMEM(4*memsize,mat2)
 	else
 	  call MADD_M2D_FROM_M3D_S(m1,m2,step(1,m1),bufl(0,m1),bufl(0,m2),hash,mhash)
 	endif
@@ -2985,7 +2985,7 @@ c	  write(6,'(4i3,8i8)') ww,ntotp,itotp,ntotb,itotb,int(apart)
 c	memsize = ( (res(1,m2)+1) * res(1,m2) )/2
 c	if(getmem(4*memsize,mat2)) then		! direttamente in memoria
 c	  call MADD_M2D_FROM_M4D_SL(m1,m2,step(1,m1),bufl(0,m1),bufl(0,m2),%val(mat2),hash(0,1),mhash(0,1))
-	  error=.not.FREEMEM(4*memsize,inbuf)
+c	  error=.not.FREEMEM(4*memsize,mat2)
 c	else
 c	  call MADD_M2D_FROM_M4D_S(m1,m2,step(1,m1),bufl(0,m1),bufl(0,m2),hash,mhash)
 c	endif
