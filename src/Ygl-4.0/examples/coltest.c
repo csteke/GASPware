@@ -1,10 +1,12 @@
 /* coltest.c by Fred Hucht (C) 1993-96.
  * Example for color animation with private colormap */
 
-static char vcid[] = "$Id: coltest.c,v 3.3 1996/07/18 16:35:57 fred Exp $";
+static const char vcid[] __attribute__((unused)) = "$Id: coltest.c,v 3.3 1996/07/18 16:35:57 fred Exp $";
 
 #include <X11/Ygl.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include <math.h>
 
@@ -35,6 +37,7 @@ int main() {
   /* setenv("YGL_PCM","1",1); *//* use this ones under BSD unixes */
   
   win = winopen("Coltest, <ESC> to quit");
+  (void)win;
 
   qdevice(ESCKEY);
   qdevice(REDRAW);

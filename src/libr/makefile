@@ -36,6 +36,7 @@ P35 = cmtinc
 P36 = cmtspe
 
 P40 = autobgmin
+P41 = smooth_3pt
 
 
 ############################### PGI compilers for Linux/ix86 and MacOS
@@ -74,7 +75,7 @@ digital:= CC = cc -c -DDigital -arch host $(GS_ONLINE) $(GS_AIO)
 all:     $(P00).o $(P01).o $(P02).o $(P03).o $(P04).o $(P05).o $(P06).o $(P07).o \
          $(P08).o $(P09).o $(P10).o  $(P11).o $(P12).o $(P13).o $(P14).o $(P15).o\
          $(P20).o $(P21).o $(P22).o $(P23).o $(P24).o $(P25).o $(P26).o $(P27).o \
-         $(P30).o $(P31).o $(P32).o $(P33).o $(P34).o $(P35).o $(P36).o $(P40).o
+         $(P30).o $(P31).o $(P32).o $(P33).o $(P34).o $(P35).o $(P36).o $(P40).o $(P41).o
 
 $(P00).o:$(P00).F
 	$(FOR) $(P00).F
@@ -228,6 +229,10 @@ $(P36).o:$(CMAT)$(P36).F $(CMAT)$(P34).inc $(CMAT)$(P34).def $(CMAT)$(P34).par
 $(P40).o:$(P40).c
 	$(CC) $(P40).c
 	ar  -rs libinter.a $(P40).o
+
+$(P41).o:$(P41).F
+	$(FOR) $(P41).F
+	ar  -rs libinter.a $(P41).o
 
 clean:
 	rm -f *.o *.a *~

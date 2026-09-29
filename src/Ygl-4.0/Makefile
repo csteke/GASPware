@@ -36,7 +36,8 @@ intel: CDEBUGFLAGS = $(GS_OPT)
 intel: CC = icc @../../etc/icc.cfg
 intel: all
 
-gnu: CC  = $(GNU_CC)  -Wno-deprecated-declarations
+GNU_CC ?= cc
+gnu: CC  = $(GNU_CC) -Wno-deprecated-declarations
 gnu: CDEBUGFLAGS = $(GS_OPT)
 gnu: all
 

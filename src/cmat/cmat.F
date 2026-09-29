@@ -29,8 +29,8 @@
 	CMD(19)='MDIAGN_2D_SYMM   Get cuts normal to main diagonal (spectrum of differences)'
 	CMD(20)='AUTO_BANANA      Find lower and upper banana limits automatically (energy-time)'
 	CMD(21)='BANANA           Get 1D spectrum puting a banana the other indexes(3d only)'
-	CMD(22)='SET_BACKGROUND   Set the background subtraction parameters (2d symm only)'
-	CMD(23)='GET_BACKGROUND   Get the background spectrum (2d symm only)'
+	CMD(22)='SET_BACKGROUND   Set the background subtraction parameters (2D only)'
+	CMD(23)='GET_BACKGROUND   Get the background spectrum (2D only)'
 	CMD(24)=' '
 	CMD(25)=' '
 	CMD(26)=' '
@@ -6194,6 +6194,7 @@ c	error = .false.
 	
 	integer mdim, mmode,mres(4),mstep(4)
 	integer mproj(0:maxres-1)
+	integer idim, ii
 	
 	call AUTOBG_CmatChangeNotify
 	
@@ -6215,8 +6216,8 @@ c	error = .false.
 		return
 	endif
 	
-	if( mdim .ne. 2 .or. mmode .eq. 0 )then
-		i1dmmy = inp_msg('Automatic background implemented only for 2d-symm matrices')
+	if( mdim .ne. 2 )then
+		i1dmmy = inp_msg('Automatic background implemented only for 2d matrices')
 		error = .TRUE.
 		return
 	endif
@@ -6234,21 +6235,30 @@ c	error = .false.
 		error = .TRUE.
 		return
 	endif
-	autobg.RES = mres(1)
-	
-	if(.not.cmt_getproje(%val(cmt(1)),1,mproj))then
-		i1dmmy = inp_msg('Errror reading projection from compressed matrix')
-		error = .TRUE.
-		return
-	endif
-	call cmt_readspec_reset		 ! reset internal buffers
 
 	autobg.TOT = 0
-	do ii = 0, autobg.RES
-		autobg.P(ii) = mproj(ii)
-		autobg.TOT = autobg.TOT + mproj(ii)
+	do idim = 1, 2
+	   do ii = 0, MAXRES-1
+	      autobg.P(ii, idim) = 0.
+	      autobg.BP(ii, idim) = 0.
+	   enddo
 	enddo
-	call autobgmin(autobg.P(0),autobg.BP(0),autobg.RES,1,autobg.RES,autobg.M,autobg.ITMAX,autobg.FSTEP)
+	do idim = 1, 2
+	   autobg.RES(idim) = mres(idim)
+	   if(.not.cmt_getproje(%val(cmt(1)),idim,mproj))then
+	      i1dmmy = inp_msg('Errror reading projection from compressed matrix')
+	      error = .TRUE.
+	      return
+	   endif
+	   call cmt_readspec_reset
+
+	   do ii = 0, autobg.RES(idim)-1
+	      autobg.P(ii, idim) = mproj(ii)
+	      if( idim .eq. 1 ) autobg.TOT = autobg.TOT + mproj(ii)
+	   enddo
+	   call autobgmin(autobg.P(0,idim),autobg.BP(0,idim),autobg.RES(idim),
+     &	                  1,autobg.RES(idim),autobg.M,autobg.ITMAX,autobg.FSTEP)
+	enddo
 
 	call AUTOBG_CmatAcknowledge
 	error  = .FALSE.
@@ -6260,7 +6270,7 @@ c	error = .false.
 
 #include "cmat.inc"
 	
-	CALL WRITEDATR(1,autobg.SPECNAME,autobg.BG,autobg.RES,3,KV)
+	CALL WRITEDATR(1,autobg.SPECNAME,autobg.BG,autobg.CRES,3,KV)
 	
 	if( KV .le. 0)error = .TRUE.
 
@@ -6278,35 +6288,50 @@ c	error = .false.
 	integer   partial(0:MAXRES-1)
 	real      cut(0:MAXRES-1)
 	real      e2cut(0:MAXRES-1)
+	real      d_slice(0:MAXRES-1)
+	real      b_cross(0:MAXRES-1)
+	real      s_slice(0:MAXRES-1)
+	real      s_cross(0:MAXRES-1)
+	real      fcross
 
 	integer ngates(MAXMATDIM)
 	integer wl(MAXGATES,MAXMATDIM)
 	integer wh(MAXGATES,MAXMATDIM)
 	integer ws(MAXGATES,MAXMATDIM) 
 	
-	integer cside    /1/
-	integer gside    /2/
+	integer cside
+	integer gside
+	integer cres
+	integer ii, nn
 
-	
 	call AUTOBG_CmatReset
 *	if( .not. autobg.YES ) call AUTOBG_Output
 	if( error )return
 
+	cside = 1
+	if( matmode(1) .eq. 0 ) then
+	  ii = inp_i1('Which index do you want to project (1 or 2)', cside)
+	  if( cside .lt. 1 .or. cside .gt. 2 ) cside = 1
+	endif
+	gside = mod(cside, 2) + 1
+	cres  = autobg.RES(cside)
+	autobg.cside = cside
+	autobg.gside = gside
+	autobg.cres  = cres
+
 	NMarkers = (inp_ia('Gates markers [Low_1,High_1, ... ,Low_n,High_n]',Marker,20)/2)*2
 *	write(*,*) NMarkers
 
-	
 	if( NMarkers .lt. 2 )then
 		i1dmmy = inp_msg('At least a couple of valid markers must be given')
 		error = .TRUE.
 		return
 	endif
 
-	if( (Marker(1) .eq. autobg.RES) .and. (Marker(2) .eq. autobg.RES) ) then
-	     do ii=0,autobg.RES-1
-	     	     autobg.BG(ii) = autobg.BP(ii)
+	if( (Marker(1) .eq. autobg.RES(gside)) .and. (Marker(2) .eq. autobg.RES(gside)) ) then
+	     do ii=0,cres-1
+	     	     autobg.BG(ii) = autobg.BP(ii, cside)
 	     enddo
-	     write(6,*) autobg.RES, autobg.RES
 	     call AUTOBG_Output
 	     return
 	endif
@@ -6319,7 +6344,8 @@ c	error = .false.
 	ngates(gside) = 0
 	
 	do ii = 1,NMarkers,2
-	   if( Marker(ii).ge.0.and.Marker(ii+1).ge.0.and.Marker(ii).lt.autobg.RES.and.Marker(ii+1).lt.autobg.RES)then 
+	   if( Marker(ii).ge.0 .and. Marker(ii+1).ge.0 .and.
+     &	       Marker(ii).lt.autobg.RES(gside) .and. Marker(ii+1).lt.autobg.RES(gside))then 
 		ngates(gside) = ngates(gside)+1
 		wl(ngates(gside),gside) = min(Marker(ii),Marker(ii+1))
 		wh(ngates(gside),gside) = max(Marker(ii),Marker(ii+1))
@@ -6337,66 +6363,51 @@ c	error = .false.
 
 	autobg.GSC=0.0
 	autobg.GBC=0.0
-	do ii=0,autobg.RES-1
+	do ii=0,cres-1
 		autobg.SP(ii) = spettro(ii)
 	  	autobg.GSC    = autobg.GSC+spettro(ii)
 	enddo
 	do nn=1,ngates(gside)
 	  do ii=wl(nn,gside),wh(nn,gside)
-	    autobg.GBC=autobg.GBC+autobg.BP(ii)
+	    autobg.GBC=autobg.GBC+autobg.BP(ii, gside)
 	  enddo
-*	  write(*,*) nn, autobg.GBC
 	enddo
-	call autobgmin(autobg.SP(0),autobg.BG(0),autobg.RES,1,autobg.RES,autobg.M,autobg.ITMAX,autobg.FSTEP)
+	call autobgmin(autobg.SP(0),autobg.BG(0),cres,1,cres,autobg.M,autobg.ITMAX,autobg.FSTEP)
 
         autobg.GSC=autobg.GSC/autobg.TOT
         autobg.GBC=autobg.GBC/autobg.TOT
-        do ii=0,autobg.RES-1
-          autobg.RR=sqrt(4.0*autobg.BG(ii)+1.96)+1.4
-          autobg.RR=1-4.0*autobg.BG(ii)/autobg.RR/autobg.RR
-          autobg.BG(ii)=autobg.BG(ii)+autobg.GSC*autobg.RR*autobg.BP(ii)
-        enddo
-        do ii=0,autobg.RES-1
-          autobg.BG(ii)=autobg.BG(ii)+(autobg.P(ii)-autobg.BP(ii))*autobg.GBC
-	  cut(ii) = spettro(ii)
-          e2cut(ii)= abs(cut(ii))+abs(autobg.BG(ii))
-          cut(ii) = cut(ii)-autobg.BG(ii)
-          autobg.SP(ii)=0.00000
-          autobg.MARK(ii)=.FALSE.
-          if(cut(ii)+sqrt(e2cut(ii))*(1.00+2.00/(0.10+e2cut(ii))) .le. 0.0000)then
-            if(ii.gt.0)then
-              if(.not. autobg.MARK(ii-1))autobg.SP(ii-1)=cut(ii-1)+sqrt(e2cut(ii-1))
-            endif
-            autobg.SP(ii)=-cut(ii)
-            autobg.MARK(ii)=.true.
-          else
-            if(ii.gt.0)then
-              if(autobg.MARK(ii-1))autobg.SP(ii)=cut(ii)+sqrt(e2cut(ii))
-            endif
-          endif
-        enddo
-        r_sum=0
-        do ii=1,autobg.RES-2
-          autobg.BG(ii)=(autobg.SP(ii-1)/2.000+autobg.SP(ii)+autobg.SP(ii+1)/2.000)/2.000
-          if(autobg.BG(ii) .gt.autobg.SP(ii))autobg.BG(ii)=autobg.BG(ii)*0.25+autobg.SP(ii)*0.75
-          if(autobg.bg(ii) .le. 0.000)autobg.BG(ii)=0.000
-          if(autobg.MARK(ii))then
-             cut(ii)=cut(ii)+autobg.BG(ii)
-             e2cut(ii)=e2cut(ii)+autobg.BG(ii)
-             if( cut(ii)+sqrt(e2cut(ii))*(1.00+2.00/(0.10+e2cut(ii))) .lt. 0.00000 )then
-        	 cut(ii) = cut(ii)+sqrt(e2cut(ii))/2.000
-             endif
-          endif
-        enddo
 
-	do ii=0,autobg.RES-1
+*** Adaptive Coincidence Bound Background Subtraction
+*** 1. Single-Continuum: autobg.BG directly holds the slice continuum B_S(y).
+***    The redundant projection continuum term (GSC * R * BP) is eliminated.
+*** 2. Physical Coincidence Bound: B_cross is bounded by the observed slice excess above continuum.
+	do ii=0,cres-1
+	  d_slice(ii) = max(0.0, real(spettro(ii)) - autobg.BG(ii))
+	  b_cross(ii) = max(0.0, (autobg.P(ii, cside) - autobg.BP(ii, cside)) * real(autobg.GBC))
+	enddo
+	call smooth_3pt(d_slice(0), s_slice(0), cres)
+	call smooth_3pt(b_cross(0), s_cross(0), cres)
+
+	do ii=0,cres-1
+	  if(s_cross(ii) .gt. 1.0e-6) then
+	    fcross = min(1.0, max(0.0, s_slice(ii) / s_cross(ii)))
+	  else
+	    fcross = 0.0
+	  endif
+	  b_cross(ii) = fcross * b_cross(ii)
+	  autobg.BG(ii) = autobg.BG(ii) + b_cross(ii)
+	  cut(ii) = real(spettro(ii)) - autobg.BG(ii)
+	  e2cut(ii) = abs(real(spettro(ii))) + abs(autobg.BG(ii))
+	enddo
+
+	do ii=0,cres-1
 		autobg.SP(ii) = spettro(ii)
-	  	autobg.BG(ii) = autobg.SP(ii) - cut(ii)
 	enddo
 
 	error = .FALSE.	
 	call AUTOBG_Output
 	
 	end
+
 	
 	

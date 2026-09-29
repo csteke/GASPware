@@ -2535,6 +2535,7 @@ redraw:	ReshapeWindow();
 	break;}
 
      case ESCKEY: { 
+	if( val == 0 ) break;
 	if( Selected )BP_UnselectBanana( Selected );
 	Selected = NULL;
 	break; }
@@ -2745,6 +2746,7 @@ DOUBLEBUFF_OFF
                          DOUBLEBUFF_OFF
 			 break;}
      case UPARROWKEY:    { 
+	if( val == 0 ) break;
  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
 	      DOUBLEBUFF_ON
 	      MovePlotRegion ( MOVE_UP   ); REDRAW_BANANAS;
@@ -2753,6 +2755,7 @@ DOUBLEBUFF_OFF
 	else DrawMarker('O');
         break;}
      case DOWNARROWKEY:  { 
+	if( val == 0 ) break;
  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
 	      DOUBLEBUFF_ON
 	      MovePlotRegion ( MOVE_DOWN   ); REDRAW_BANANAS;
@@ -2761,6 +2764,7 @@ DOUBLEBUFF_OFF
 	else DrawMarker('U');
         break;}
      case RIGHTARROWKEY: { 
+	if( val == 0 ) break;
  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
 	      DOUBLEBUFF_ON
 	      MovePlotRegion ( MOVE_RIGHT   ); REDRAW_BANANAS;
@@ -2769,6 +2773,7 @@ DOUBLEBUFF_OFF
 	else DrawMarker('R');
         break;}
      case LEFTARROWKEY:  { 
+	if( val == 0 ) break;
  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
 	      DOUBLEBUFF_ON
 	      MovePlotRegion ( MOVE_LEFT   ); REDRAW_BANANAS;
@@ -2778,7 +2783,8 @@ DOUBLEBUFF_OFF
         break;}
      
      case DELKEY: 
-     case BACKSPACEKEY:{ while( ( getbutton( BACKSPACEKEY ))||( getbutton(DELKEY )) );
+     case BACKSPACEKEY:{ 
+		 if( val == 0 ) break;
                  val = 'd'; HandleKey( val ); qreset(); break; }
      default: break;
       }
@@ -2812,13 +2818,15 @@ int GetString( unsigned char *String ) {
                    imore = ISLPutInput( &c, 1);
 		   break; }
 
-      case LEFTARROWKEY: { c3[0] = 27; c3[1] =91; c3[2] = 68;
-                   dev = qread(&val);
+      case LEFTARROWKEY: { 
+                   if( val == 0 ) break;
+                   c3[0] = 27; c3[1] =91; c3[2] = 68;
 		   imore = ISLPutInput( &c3[0], 3);
 		   break; }
 
-      case RIGHTARROWKEY: { c3[0] = 27; c3[1] =91; c3[2] = 67;
-                   dev = qread(&val);
+      case RIGHTARROWKEY: { 
+                   if( val == 0 ) break;
+                   c3[0] = 27; c3[1] =91; c3[2] = 67;
 		   imore = ISLPutInput( &c3[0], 3);
 		   break; }
 

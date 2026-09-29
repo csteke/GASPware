@@ -40,10 +40,13 @@
 extern int setitimer(int, struct itimerval *, struct itimerval *);
 #endif
 
+#include <unistd.h>
 #ifdef AUTOFLUSH
 # include <signal.h>
 #endif
 #include "X11/Ygl.h"
+
+int is_wid(Int32 wid);
 
 #define Ygl _Ygl_Control_	/* Alias for readability. _Ygl_Control_ is the only visible external of libYgl.a */
 

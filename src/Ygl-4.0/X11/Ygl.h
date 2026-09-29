@@ -454,6 +454,7 @@ extern "C" {
   extern Window   getXwid 	( void );
   extern Window   getXdid 	( void );
   extern GC       getXgc 	( void );
+  extern unsigned long getXpixel( Colorindex );
 #endif /* _XLIB_H_ */
   
   extern void  wintitle		( Char8 * );

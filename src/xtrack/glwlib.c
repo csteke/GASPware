@@ -8,6 +8,7 @@
 
 #include <math.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
@@ -133,7 +134,6 @@ typedef struct IOTerminal {
 	
 static struct IOTerminal ioTerm, ioFocus;
 static struct TrackData Track;
-static struct DisplayWindow GLW_DisplayWindow;
 struct DisplayWindow *GLWindow;
 static struct LabelInFrame TrackXMinValue, TrackChannelValue,
                            TrackXMaxValue, TrackEnergyValue,
@@ -154,13 +154,10 @@ struct TrackPlot *Plot, *CrtPlot, *OldPlot;
 static Int32 NofPlots;
 static Int32 TrackMenu;
 
-static int _global_BS, _global_ForceRedraw = 0;
-/*
-static int _global_LastX = GLW_MINXSIZE, _global_LastY = GLW_MINYSIZE;
-*/
-static double _global_px, _global_py;
-static char _DB_Off = 0;
-static Int32 XWp, YWp;
+static Int32 _global_LastW = -1, _global_LastH = -1;
+static double _global_px = 1.0, _global_py = 1.0;
+static int _in_redraw_window = 0;
+static unsigned long _global_FramePixel = 0;
 
 /* Functions: ---> some of them TRACKN specific */
 void ClosestColor ( Int16 *r, Int16 *g, Int16 *b);
@@ -206,6 +203,7 @@ void GraphFocus(void);
 void PutTrackData(struct TrackPlot *);
 float Nintf(float );
 void ReshapeWindow ( void );
+void RedrawWindow ( int force_reshape );
 
 /****************** XTP - FORTRAN callable functions for TRACK *******************/
 void xtpinit_(void);
@@ -246,11 +244,6 @@ extern int ISLGetInput ( void );
 extern int ISLPutInput ( unsigned char *c, int n);
 extern int ISLGetString ( unsigned char *c, int *n);
 
-/*************************************************************************/
-
-#define DOUBLEBUFF_ON  {backbuffer(1); _DB_Off = 0;}
-#define DOUBLEBUFF_OFF {swapbuffers();frontbuffer(1); _DB_Off = 1;}
-
 
 /************************************************************************/
 void xtpinit_(void){
@@ -283,8 +276,6 @@ void xtpmap_(Int32 *Row, Int32 *Col){
 
 void xtpmaptmp_(Int32 *Row, Int32 *Col){
 
-  struct TrackPlot *p;
-
   if( OldPlot == NULL )
   {
     OldPlot = Plot;
@@ -294,16 +285,6 @@ void xtpmaptmp_(Int32 *Row, Int32 *Col){
       
   Plot = TrackPlotMap(*Row, *Col);
   CrtPlot = Plot;
-/*
-  p = Plot;
-  while( p )
-  {
-     color(GLW_DRAWBG);
-     rectf( p->x1, p->y1, p->x2, p->y2 );
-     p->ClearBeforeDraw = True;
-     p = p->Next;
-  }
-*/
   qenter(REDRAW,(Int16)GLWindow->ID);
 }
 
@@ -346,22 +327,11 @@ void xtplotnew_(void){
     CrtPlot->Ymin = (CrtPlot->Ymin > 0.00)?log10(CrtPlot->Ymin):0.00 ; 
     CrtPlot->Ymax = (CrtPlot->Ymax > 0.00)?log10(CrtPlot->Ymax):1.00 ; 
     }
- if(CrtPlot->LogScale==2){
-    CrtPlot->Ymin = (CrtPlot->Ymin > 0.00)?pow(CrtPlot->Ymin,0.5000):0.00 ; 
-    CrtPlot->Ymax = (CrtPlot->Ymax > 0.00)?pow(CrtPlot->Ymax,0.5000):1.00 ; 
-    }
- DrawPlot(CrtPlot);
-
- if(OldPlot == NULL){
-   sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",CrtPlot->Xmin[CrtPlot->ActiveData]);
-   WriteInLabel(TrackXMinValue);
-   sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",CrtPlot->Xmax[CrtPlot->ActiveData]);
-   WriteInLabel(TrackXMaxValue);
-   sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",CrtPlot->Ymin);
-   WriteInLabel(TrackYMinValue);
-   sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",CrtPlot->Ymax);
-   WriteInLabel(TrackYMaxValue);
-   }
+  if(CrtPlot->LogScale==2){
+     CrtPlot->Ymin = (CrtPlot->Ymin > 0.00)?pow(CrtPlot->Ymin,0.5000):0.00 ; 
+     CrtPlot->Ymax = (CrtPlot->Ymax > 0.00)?pow(CrtPlot->Ymax,0.5000):1.00 ; 
+     }
+  RedrawWindow(0);
 }
 
 void xtplotreset_(void)
@@ -370,12 +340,10 @@ void xtplotreset_(void)
    if(CrtPlot == NULL)return;
    CleanPlot(CrtPlot);
    CrtPlot->Draw[0] = False;
-
+   RedrawWindow(0);
 }
 
 void xtplotsame_(void){
-
- Int32 Np;
 
  if(CrtPlot == NULL)return;
  CrtPlot->Xmin[CrtPlot->ActiveData]=*(Track.nmin);
@@ -395,7 +363,7 @@ void xtplotsame_(void){
     }
  CrtPlot->ClearBeforeDraw=True;
  KillPeakLabels( CrtPlot );
- DrawPlot(CrtPlot);
+ RedrawWindow(0);
 }
 
 
@@ -423,15 +391,12 @@ void xtplotadd_(void){
  CrtPlot->Xmin[CrtPlot->ActiveData]=0;
  CrtPlot->Xmax[CrtPlot->ActiveData]=CrtPlot->Np[CrtPlot->ActiveData]-1;
  CrtPlot->Imin[CrtPlot->ActiveData]=0;
- CrtPlot->Imax[CrtPlot->ActiveData]=CrtPlot->Np[CrtPlot->ActiveData]-1;
- SetPlotData(Index,&Np, &nmin,&nmax, &xmin,&xmax,
-             &ymin,&ymax, Track.spek, Track.err,CrtPlot);
- CrtPlot->ActiveData=Index;
- backbuffer(1);
- DrawSubPlot(CrtPlot,Index);
- frontbuffer(1);
- DrawSubPlot(CrtPlot,Index);
- KillAllPeakLabels( CrtPlot );
+  CrtPlot->Imax[CrtPlot->ActiveData]=CrtPlot->Np[CrtPlot->ActiveData]-1;
+  SetPlotData(Index,&Np, &nmin,&nmax, &xmin,&xmax,
+              &ymin,&ymax, Track.spek, Track.err,CrtPlot);
+  CrtPlot->ActiveData=Index;
+  KillAllPeakLabels( CrtPlot );
+  RedrawWindow(0);
 }
 
 
@@ -443,14 +408,14 @@ void xtpoverlay_(float func_(float *), float *Xmin, float *Xmax, float *step){
  float *data,x,ymin,ymax,rstep;
 
  if(CrtPlot == NULL)return;
- 
-/* Np=Nintf( (*Xmax-*Xmin+1)/(*step) ); */
+  
  Np=(*Xmax-*Xmin)/(*step); Np+=1;
  if(Np <= 3)return;
  data=(float *)calloc(Np+1,sizeof(float));
+ if(data == NULL)return;
  i=0;
  xmin=*Xmin; xmax=*Xmax;
- rstep=*step;   /*(float)(xmax-xmin)/(float)Np;*/
+ rstep=*step;
  xmax=xmin+rstep*Np;
  for(x=xmin; (x<=xmax)&&(i<=Np); x+=rstep/2.000){ x+=rstep/2.0000; *(data+i)=func_(&x);i++;}
  xmax=xmin+rstep*(Np-1);
@@ -466,10 +431,7 @@ void xtpoverlay_(float func_(float *), float *Xmin, float *Xmax, float *step){
  SetPlotData(Index,&Np, &Imin,&Imax,&xmin,&xmax,
              &ymin,&ymax, data, data,CrtPlot);
  free(data);
- backbuffer(1);
- DrawSubPlot(CrtPlot,Index);
- frontbuffer(1);
- DrawSubPlot(CrtPlot,Index);
+ RedrawWindow(0);
 }
 
 
@@ -478,9 +440,9 @@ void xtpnext_( void )
 
  if( Plot == NULL ) return;
  if( CrtPlot == NULL ){ CrtPlot=Plot; return;}
- 
+  
  CrtPlot=CrtPlot->Next;
- 
+  
  if( CrtPlot == NULL )CrtPlot=Plot;
 
 }
@@ -494,7 +456,7 @@ void xtpoutfile_(char *Name, Int32 *length){
   if( L <= 0 ){
      L = 16;
      TrackOutFile.Text = (char *)realloc(TrackOutFile.Text,L);
-     sprintf(TrackOutFile.Text,"-> <none>\0");
+     sprintf(TrackOutFile.Text,"-> <none>");
      WriteInLabel(TrackOutFile);
      return;
      }
@@ -515,14 +477,14 @@ void xtpcomment_(char *Comment, Int32 *length, Int32 *SpecFormat, Int32 *SpecLen
  L=*length; 
  if(L<=0){
       CrtPlot->Comment=(char *)realloc(CrtPlot->Comment,7);
-      sprintf(CrtPlot->Comment,"<none>\0");
+      sprintf(CrtPlot->Comment,"<none>");
       return;
       }
       
  CrtPlot->Comment=(char *)realloc(CrtPlot->Comment,L+1);
  memcpy(CrtPlot->Comment,Comment,L);
  *(CrtPlot->Comment+L)='\0';
- 
+  
  if( *SpecFormat )
  {
     CrtPlot->LastFile=(char *)realloc(CrtPlot->LastFile,L+1);
@@ -560,36 +522,42 @@ void xtpsamex_(void){
   
   if(CrtPlot == NULL)return;
     
-  DOUBLEBUFF_ON
   p=Plot;
   while(p){
     if(p->Np[p->ActiveData] < CrtPlot->Np[CrtPlot->ActiveData]){
        tmpdata=p->data[p->ActiveData];
        p->data[p->ActiveData]=(float *)calloc(CrtPlot->Np[CrtPlot->ActiveData],sizeof(float));
-       memcpy(p->data[p->ActiveData],tmpdata,p->Np[p->ActiveData]*sizeof(float));
-       free(tmpdata);
+       if(tmpdata){
+         memcpy(p->data[p->ActiveData],tmpdata,p->Np[p->ActiveData]*sizeof(float));
+         free(tmpdata);
+       }
        tmpdata=p->logdata[p->ActiveData];
        p->logdata[p->ActiveData]=(float *)calloc(CrtPlot->Np[CrtPlot->ActiveData],sizeof(float));
-       memcpy(p->logdata[p->ActiveData],tmpdata,p->Np[p->ActiveData]*sizeof(float));
-       free(tmpdata);
+       if(tmpdata){
+         memcpy(p->logdata[p->ActiveData],tmpdata,p->Np[p->ActiveData]*sizeof(float));
+         free(tmpdata);
+       }
        tmpdata=p->sqrtdata[p->ActiveData];
        p->sqrtdata[p->ActiveData]=(float *)calloc(CrtPlot->Np[CrtPlot->ActiveData],sizeof(float));
-       memcpy(p->sqrtdata[p->ActiveData],tmpdata,p->Np[p->ActiveData]*sizeof(float));
-       free(tmpdata);
+       if(tmpdata){
+         memcpy(p->sqrtdata[p->ActiveData],tmpdata,p->Np[p->ActiveData]*sizeof(float));
+         free(tmpdata);
+       }
        tmpdata=p->err[p->ActiveData];
        p->err[p->ActiveData]=(float *)calloc(CrtPlot->Np[CrtPlot->ActiveData],sizeof(float));
-       memcpy(p->err[p->ActiveData],tmpdata,p->Np[p->ActiveData]*sizeof(float));
-       free(tmpdata);
+       if(tmpdata){
+         memcpy(p->err[p->ActiveData],tmpdata,p->Np[p->ActiveData]*sizeof(float));
+         free(tmpdata);
+       }
        p->Np[p->ActiveData]=CrtPlot->Np[CrtPlot->ActiveData];
        }
        p->Xmin[p->ActiveData]=CrtPlot->Xmin[CrtPlot->ActiveData];
        p->Xmax[p->ActiveData]=CrtPlot->Xmax[CrtPlot->ActiveData];
        p->Imin[p->ActiveData]=CrtPlot->Imin[CrtPlot->ActiveData];
        p->Imax[p->ActiveData]=CrtPlot->Imax[CrtPlot->ActiveData];
-       DrawPlot(p);
        p=p->Next;
     }
-  DOUBLEBUFF_OFF
+  RedrawWindow(0);
 }
 
 void xtpsamey_(void){
@@ -598,23 +566,20 @@ void xtpsamey_(void){
   
   if(CrtPlot == NULL)return;
   
-  DOUBLEBUFF_ON
   p=Plot;
   while(p){
        p->Ymin=CrtPlot->Ymin;
        p->Ymax=CrtPlot->Ymax;
        p->LogScale=CrtPlot->LogScale;
-       DrawPlot(p);
        p=p->Next;
-       } 
-  DOUBLEBUFF_OFF
+  } 
+  RedrawWindow(0);
 }
+
 void xtpshowpeak_(float *Channel){
 
-  backbuffer(1);
-  DrawPeakLabel(CrtPlot,Channel);
-  frontbuffer(1);
-  DrawPeakLabel(CrtPlot,Channel);
+  if(CrtPlot == NULL || Channel == NULL) return;
+  DrawPeakLabel(CrtPlot, Channel);
   AddPeakLabel( CrtPlot, *Channel );
 }
  
@@ -622,11 +587,12 @@ void xtpshowpeaks_(void){
 
   Int32 i;
   
+  if(CrtPlot == NULL || Track.npeaks == NULL || Track.peaks == NULL) return;
   KillPeakLabels( CrtPlot );
-  backbuffer(1);
-  for(i=0; i < *(Track.npeaks); i++){ DrawPeakLabel(CrtPlot,(Track.peaks+i)); AddPeakLabel( CrtPlot, *(Track.peaks+i) ); }
-  frontbuffer(1);
-  for(i=0; i < *(Track.npeaks); i++) DrawPeakLabel(CrtPlot,(Track.peaks+i));
+  for(i=0; i < *(Track.npeaks); i++){
+    DrawPeakLabel(CrtPlot, (Track.peaks+i));
+    AddPeakLabel( CrtPlot, *(Track.peaks+i) );
+  }
 }
 
 
@@ -634,25 +600,22 @@ void xtpshownumpeak_(float *Channel, Int32 *Index, Int32 *MarkerColor){
 
   Int32 N, Color;
   
-  if(CrtPlot == NULL)return;
+  if(CrtPlot == NULL || Channel == NULL || Index == NULL || MarkerColor == NULL)return;
   N=*Index; Color=CrtPlot->Color[*MarkerColor];
-  backbuffer(1);
-  DrawNumberedPeakLabel(CrtPlot,Channel,N,Color);
-  frontbuffer(1);
-  DrawNumberedPeakLabel(CrtPlot,Channel,N,Color);
-  AddNumPeakLabel(CrtPlot,*Channel,N,Color);
+  DrawNumberedPeakLabel(CrtPlot, Channel, N, Color);
+  AddNumPeakLabel(CrtPlot, *Channel, N, Color);
 }
 
 
 void xtpmarker_(float *Channel, Int32 *MarkerColor){
 
-  if(CrtPlot == NULL)return;
+  if(CrtPlot == NULL || Channel == NULL || MarkerColor == NULL)return;
   DrawMarker(CrtPlot,Channel,CrtPlot->Color[*MarkerColor]);
 }
 
 void xtpdoublemarker_(float *Channel1, float *Channel2, Int32 *MarkerColor){
 
-  if(CrtPlot == NULL)return;
+  if(CrtPlot == NULL || Channel1 == NULL || Channel2 == NULL || MarkerColor == NULL)return;
   DrawDoubleMarker(CrtPlot,Channel1,Channel2,CrtPlot->Color[*MarkerColor]);
 }
 
@@ -663,19 +626,146 @@ void xtpbell_(void){
   fflush(stdout);
 }
 
+static void UpdateCursorDisplay(struct DataValues *v) {
+  float en;
+  int i;
+  static float Xmin, Xmax, Ymin, Ymax;
+  if (!v || !v->Plot) return;
+
+  sprintf(TrackChannelValue.Text, "Channel: %d", v->Channel);
+  if (Track.ecal != NULL) {
+    en = *(Track.ecal + 5);
+    for (i = 4; i >= 0; i--) en = en * (v->Energy) + *(Track.ecal + i);
+    en += pow(v->Energy, 0.5000000) * (*(Track.ecal + 6));
+  } else {
+    en = v->Energy;
+  }
+  sprintf(TrackEnergyValue.Text, "Energy: %8.2f", en);
+  sprintf(TrackCountsValue.Text, "Counts: %12.2f", v->Counts);
+  sprintf(TrackCursorYValue.Text, "Y: %12.2f", v->Y);
+  WriteInLabel(TrackChannelValue);
+  WriteInLabel(TrackEnergyValue);
+  WriteInLabel(TrackCountsValue);
+  WriteInLabel(TrackCursorYValue);
+  if (TrackDisplayed.Text != v->Plot->Comment) {
+    TrackDisplayed.Text = v->Plot->Comment;
+    WriteInLabel(TrackDisplayed);
+  }
+  if (v->Plot->Xmin[v->Plot->ActiveData] != Xmin) {
+    Xmin = v->Plot->Xmin[v->Plot->ActiveData];
+    sprintf(TrackXMinValue.Text, "X Min: %6.1f", Xmin);
+    WriteInLabel(TrackXMinValue);
+  }
+  if (v->Plot->Xmax[v->Plot->ActiveData] != Xmax) {
+    Xmax = v->Plot->Xmax[v->Plot->ActiveData];
+    sprintf(TrackXMaxValue.Text, "X Max: %6.1f", Xmax);
+    WriteInLabel(TrackXMaxValue);
+  }
+  if (v->Plot->Ymin != Ymin) {
+    Ymin = v->Plot->Ymin;
+    sprintf(TrackYMinValue.Text, "Y Min: %12.2f", Ymin);
+    WriteInLabel(TrackYMinValue);
+  }
+  if (v->Plot->Ymax != Ymax) {
+    Ymax = v->Plot->Ymax;
+    sprintf(TrackYMaxValue.Text, "Y Max: %12.2f", Ymax);
+    WriteInLabel(TrackYMaxValue);
+  }
+  if (v->Plot != CrtPlot) {
+    DrawPlotFrame(CrtPlot);
+    DrawActivePlotFrame(v->Plot);
+  }
+  CrtPlot = v->Plot;
+  PutTrackData(CrtPlot);
+}
+
+void RedrawWindow(int force_reshape) {
+  Int32 curW, curH;
+  struct TrackPlot *p;
+  Int16 val;
+  Display *dpy = (Display *)getXdpy();
+  Window win = (Window)getXwid();
+  XEvent ev;
+
+  if (GLWindow == NULL) return;
+
+  /* 1. Flush pending requests and compress queued resize/expose events */
+  if (dpy && win) {
+    XSync(dpy, False);
+    while (XCheckTypedWindowEvent(dpy, win, ConfigureNotify, &ev)) {}
+    while (XCheckTypedWindowEvent(dpy, win, Expose, &ev)) {}
+  }
+
+  /* 2. Drain any REDRAW events already in Ygl queue */
+  while (qtest() == REDRAW) {
+    qread(&val);
+  }
+
+  getsize(&curW, &curH);
+  if (curW <= 0 || curH <= 0) return;
+
+  /* 3. Re-layout only if dimensions changed, or re-viewport if forced */
+  if (curW != _global_LastW || curH != _global_LastH) {
+    ReshapeWindow();
+    _global_LastW = curW;
+    _global_LastH = curH;
+  } else if (force_reshape) {
+    reshapeviewport();
+  }
+
+  _in_redraw_window = 1;
+  backbuffer(1);
+
+  color(GLW_FRAMECOLOR);
+  clear();
+
+  DrawTrackFrame(GLWindow->ID);
+
+  if (CrtPlot && CrtPlot->Comment) {
+    TrackDisplayed.Text = CrtPlot->Comment;
+  }
+  WriteInLabel(TrackDisplayed);
+
+  if (OldPlot == NULL && CrtPlot != NULL) {
+    sprintf(TrackXMinValue.Text, "X Min: %6.1f", CrtPlot->Xmin[CrtPlot->ActiveData]);
+    WriteInLabel(TrackXMinValue);
+    sprintf(TrackXMaxValue.Text, "X Max: %6.1f", CrtPlot->Xmax[CrtPlot->ActiveData]);
+    WriteInLabel(TrackXMaxValue);
+    sprintf(TrackYMinValue.Text, "Y Min: %12.2f", CrtPlot->Ymin);
+    WriteInLabel(TrackYMinValue);
+    sprintf(TrackYMaxValue.Text, "Y Max: %12.2f", CrtPlot->Ymax);
+    WriteInLabel(TrackYMaxValue);
+    sprintf(TrackChannelValue.Text, "Channel ");
+    sprintf(TrackEnergyValue.Text, "Energy ");
+    sprintf(TrackCountsValue.Text, "Counts ");
+    sprintf(TrackCursorYValue.Text, "Y ");
+    WriteInLabel(TrackChannelValue);
+    WriteInLabel(TrackEnergyValue);
+    WriteInLabel(TrackCountsValue);
+    WriteInLabel(TrackCursorYValue);
+  }
+
+  p = Plot;
+  while (p) {
+    DrawPlot(p);
+    p = p->Next;
+  }
+
+  if (CrtPlot) {
+    DrawActivePlotFrame(CrtPlot);
+  }
+
+  swapbuffers();
+  gflush();
+  _in_redraw_window = 0;
+}
+
 void inpx_( unsigned char *InterString, int *InterLength ){
 
-  Int32 dev,i, testdev, imore;
+  Int32 dev, imore;
   Int16 val;
-  float en;
   struct DataValues *v;
-  struct TrackPlot *p;
-  static int MMoves;
-  static float Xmin, Xmax;
-  static float Ymin, Ymax;
   unsigned char c, c3[3];
-  Bool XQstop;
-  XEvent xevent;
 
   fflush(stdin);
   fflush(stdout);
@@ -686,198 +776,57 @@ void inpx_( unsigned char *InterString, int *InterLength ){
        dev = qread(&val);
    
     switch (dev) {
-     case LEFTMOUSE: { if ( OldPlot == NULL ){ 
-                      if( (v=Values(GLWindow))!=NULL ){
-                      sprintf(TrackChannelValue.Text,"Channel: %d\0",v->Channel);
-		      if(Track.ecal != NULL){
-   				en=*(Track.ecal+5);
-   				for(i=4; i>=0; i--)en=en*(v->Energy)+*(Track.ecal+i);
-				en+=pow(v->Energy,0.5000000)*(*(Track.ecal+6));
-   				}
- 		      else en=v->Energy;
-		      sprintf(TrackEnergyValue.Text,"Energy: %8.2f\0",en);
-		      sprintf(TrackCountsValue.Text,"Counts: %12.2f\0",v->Counts);
-		      sprintf(TrackCursorYValue.Text,"Y: %12.2f\0",v->Y);
-		      WriteInLabel(TrackChannelValue);
-		      WriteInLabel(TrackEnergyValue);
-		      WriteInLabel(TrackCountsValue); 
-		      WriteInLabel(TrackCursorYValue);
-		      if(TrackDisplayed.Text != v->Plot->Comment){
-		        TrackDisplayed.Text = v->Plot->Comment;
-			WriteInLabel(TrackDisplayed);
-			}
-		      if(v->Plot->Xmin[v->Plot->ActiveData] != Xmin){
-		          Xmin=v->Plot->Xmin[v->Plot->ActiveData];
-		          sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",Xmin);
-			  WriteInLabel(TrackXMinValue);
-			  }
-		      if(v->Plot->Xmax[v->Plot->ActiveData] != Xmax){
-		          Xmax=v->Plot->Xmax[v->Plot->ActiveData];
-		          sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",Xmax);
-			  WriteInLabel(TrackXMaxValue);
-			  }
-		      if(v->Plot->Ymin != Ymin){
-		          Ymin=v->Plot->Ymin;
-		          sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",Ymin);
-			  WriteInLabel(TrackYMinValue);
-			  }
-		      if(v->Plot->Ymax != Ymax){
-		          Ymax=v->Plot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
-			  }
-		      if(v->Plot != CrtPlot){
-			DrawPlotFrame(CrtPlot);
-		        DrawActivePlotFrame(v->Plot);
-			}
-		      CrtPlot=v->Plot;
-		      PutTrackData(CrtPlot);
-			     
-		      } }
-		      break; }
+     case LEFTMOUSE: {
+       if ( OldPlot == NULL ){ 
+         if( (v=Values(GLWindow))!=NULL ){
+           UpdateCursorDisplay(v);
+         }
+       }
+       break;
+     }
 
-     case MOUSEX: { if(getbutton(LEFTMOUSE)!=1)break;
-                   if ( OldPlot == NULL ){ 
-                   if( (v=Values(GLWindow))!=NULL ){
-                      sprintf(TrackChannelValue.Text,"Channel: %d\0",v->Channel);
-		      if(Track.ecal != NULL){
-   				en=*(Track.ecal+5);
-   				for(i=4; i>=0; i--)en=en*(v->Energy)+*(Track.ecal+i);
-				en+=pow(v->Energy,0.5000000)*(*(Track.ecal+6));
-   				}
- 		      else en=v->Energy;
-		      sprintf(TrackEnergyValue.Text,"Energy: %8.2f\0",en);
-		      sprintf(TrackCountsValue.Text,"Counts: %12.2f\0",v->Counts);
-		      sprintf(TrackCursorYValue.Text,"Y: %12.2f\0",v->Y);
-		      WriteInLabel(TrackChannelValue);
-		      WriteInLabel(TrackEnergyValue);
-		      WriteInLabel(TrackCountsValue); 
-		      WriteInLabel(TrackCursorYValue);
-		      if(TrackDisplayed.Text != v->Plot->Comment){
-		        TrackDisplayed.Text = v->Plot->Comment;
-			WriteInLabel(TrackDisplayed);
-			}
-		      if(v->Plot->Xmin[v->Plot->ActiveData] != Xmin){
-		          Xmin=v->Plot->Xmin[v->Plot->ActiveData];
-		          sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",Xmin);
-			  WriteInLabel(TrackXMinValue);
-			  }
-		      if(v->Plot->Xmax[v->Plot->ActiveData] != Xmax){
-		          Xmax=v->Plot->Xmax[v->Plot->ActiveData];
-		          sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",Xmax);
-			  WriteInLabel(TrackXMaxValue);
-			  }
-		      if(v->Plot->Ymin != Ymin){
-		          Ymin=v->Plot->Ymin;
-		          sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",Ymin);
-			  WriteInLabel(TrackYMinValue);
-			  }
-		      if(v->Plot->Ymax != Ymax){
-		          Ymax=v->Plot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
-			  }
-		      if(v->Plot != CrtPlot){
-			DrawPlotFrame(CrtPlot);
-			}
-		       DrawActivePlotFrame(v->Plot);
-		       CrtPlot=v->Plot;
-		      } }
-		    break;}
-     case MOUSEY: { if(getbutton(LEFTMOUSE)!=1)break; 
-                   if ( OldPlot == NULL ){
-		   if( (v=Values(GLWindow))!=NULL ){
-                      sprintf(TrackChannelValue.Text,"Channel: %d\0",v->Channel);
-		      if(Track.ecal != NULL){
-   				en=*(Track.ecal+5);
-   				for(i=4; i>=0; i--)en=en*(v->Energy)+*(Track.ecal+i);
-				en+=pow(v->Energy,0.5000000)*(*(Track.ecal+6));
-   				}
- 		      else en=v->Energy;
-		      sprintf(TrackEnergyValue.Text,"Energy: %8.2f\0",en);
-		      sprintf(TrackCountsValue.Text,"Counts: %12.2f\0",v->Counts);
-		      sprintf(TrackCursorYValue.Text,"Y: %12.2f\0",v->Y);
-		      WriteInLabel(TrackChannelValue);
-		      WriteInLabel(TrackEnergyValue);
-		      WriteInLabel(TrackCountsValue); 
-		      WriteInLabel(TrackCursorYValue); 
-		      if(TrackDisplayed.Text != v->Plot->Comment){
-		        TrackDisplayed.Text = v->Plot->Comment;
-			WriteInLabel(TrackDisplayed);
-			}
-		      if(v->Plot->Xmin[v->Plot->ActiveData] != Xmin){
-		          Xmin=v->Plot->Xmin[v->Plot->ActiveData];
-		          sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",Xmin);
-			  WriteInLabel(TrackXMinValue);
-			  }
-		      if(v->Plot->Xmax[v->Plot->ActiveData] != Xmax){
-		          Xmax=v->Plot->Xmax[v->Plot->ActiveData];
-		          sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",Xmax);
-			  WriteInLabel(TrackXMaxValue);
-			  }
-		      if(v->Plot->Ymin != Ymin){
-		          Ymin=v->Plot->Ymin;
-		          sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",Ymin);
-			  WriteInLabel(TrackYMinValue);
-			  }
-		      if(v->Plot->Ymax != Ymax){
-		          Ymax=v->Plot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
-			  }
-		      if(v->Plot != CrtPlot){
-			DrawPlotFrame(CrtPlot);
-			}
-		       DrawActivePlotFrame(v->Plot);
-		       CrtPlot=v->Plot;
-		      }}
-		    break;}
+     case MOUSEX:
+     case MOUSEY: {
+       if (getbutton(LEFTMOUSE)!=1) break;
+       if ( OldPlot == NULL ){ 
+         if( (v=Values(GLWindow))!=NULL ){
+           UpdateCursorDisplay(v);
+         }
+       }
+       break;
+     }
 
-     case REDRAW: { DOUBLEBUFF_ON 
-		   DrawTrackFrame(GLWindow->ID);
-		   swapbuffers();
-		   DrawTrackFrame(GLWindow->ID);
-     		   XFlush((Display *)getXdpy());
-		   if(CrtPlot)TrackDisplayed.Text = CrtPlot->Comment;
-                   WriteInLabel(TrackDisplayed);
-		   TrackPlotMap(Plot->Row,Plot->Col);
-		   p=Plot;
-		   while(p){
-		     DrawPlotFrame(p);
-		     DrawPlot(p); 
-		     p=p->Next;
-		     }
-		     XFlush((Display *)getXdpy());
-                   if(OldPlot == NULL){
-                     sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",CrtPlot->Xmin[CrtPlot->ActiveData]);
-                     WriteInLabel(TrackXMinValue);
-                     sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",CrtPlot->Xmax[CrtPlot->ActiveData]);
-                     WriteInLabel(TrackXMaxValue);
-                     sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",CrtPlot->Ymin);
-                     WriteInLabel(TrackYMinValue);
-                     sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",CrtPlot->Ymax);
-                     WriteInLabel(TrackYMaxValue);
-                     }
-		     DrawActivePlotFrame(CrtPlot);
-		     DOUBLEBUFF_OFF
-		     XFlush((Display *)getXdpy());		   
-                     qreset();sleep(0); XSync((Display *)getXdpy(),False);
-		   break;}
+     case REDRAW: {
+       RedrawWindow(1);
+       break;
+     }
 		      
      case KEYBD: { c = (unsigned char )val;
                    if ( c == 13 ) c = 10;
                    imore = ISLPutInput( &c, 1);
 		   break; }
 
-     case LEFTARROWKEY: { c3[0] = 27; c3[1] =91; c3[2] = 68;
-                   dev = qread(&val);
-		   imore = ISLPutInput( &c3[0], 3);
-		   break; }
+      case LEFTMOUSEWHEEL:
+      case LEFTARROWKEY: { 
+        if (val == 0) break;
+        if (dev == LEFTMOUSEWHEEL) {
+          while (qtest() == dev) { Int16 qv = 0; qread(&qv); }
+        }
+        c3[0] = 27; c3[1] = 91; c3[2] = 68;
+        imore = ISLPutInput( &c3[0], 3);
+        break; 
+      }
 
-     case RIGHTARROWKEY: { c3[0] = 27; c3[1] =91; c3[2] = 67;
-                   dev = qread(&val);
-		   imore = ISLPutInput( &c3[0], 3);
-		   break; }
+      case RIGHTMOUSEWHEEL:
+      case RIGHTARROWKEY: { 
+        if (val == 0) break;
+        if (dev == RIGHTMOUSEWHEEL) {
+          while (qtest() == dev) { Int16 qv = 0; qread(&qv); }
+        }
+        c3[0] = 27; c3[1] = 91; c3[2] = 67;
+        imore = ISLPutInput( &c3[0], 3);
+        break; 
+      }
      
      default : break;
      }
@@ -891,217 +840,206 @@ void inpx_( unsigned char *InterString, int *InterLength ){
   ISLGetString( InterString, InterLength);
   ISLSetTerminal(RESTORE);
  }
-  
 
+static float GetWheelAcceleration(Int32 dev, int queued) {
+  static struct timeval last_tv = {0, 0};
+  static Int32 last_dev = 0;
+  static float accel = 1.0f;
 
+  struct timeval now;
+  gettimeofday(&now, NULL);
+
+  if (last_tv.tv_sec != 0 && dev == last_dev) {
+    long dt_ms = (now.tv_sec - last_tv.tv_sec) * 1000 +
+                 (now.tv_usec - last_tv.tv_usec) / 1000;
+    if (dt_ms < 0) dt_ms = 0;
+
+    if (dt_ms > 200) {
+      /* Pause between gestures: reset to normal base speed */
+      accel = 1.0f;
+    } else if (dt_ms < 30) {
+      /* Very fast swipe */
+      accel += 0.35f;
+    } else if (dt_ms < 60) {
+      /* Moderate fast swipe */
+      accel += 0.20f;
+    } else if (dt_ms < 100) {
+      /* Brisk scroll */
+      accel += 0.10f;
+    } else {
+      /* Gentle scroll */
+      accel -= 0.15f;
+    }
+  } else {
+    /* Direction changed or first event */
+    accel = 1.0f;
+  }
+
+  last_tv = now;
+  last_dev = dev;
+
+  /* Bound acceleration to strict saturation limits */
+  if (accel < 1.0f) accel = 1.0f;
+  if (accel > 2.2f) accel = 2.2f; /* Very limited base acceleration */
+
+  /* Coalesce effect of queued events, capped to avoid runaway */
+  if (queued > 2) queued = 2;
+  float total_mult = accel * (1.0f + 0.35f * (float)queued);
+  if (total_mult > 2.8f) total_mult = 2.8f; /* Strict saturation ceiling */
+
+  return total_mult;
+}
 
 void xtpget_(float *x, float *y, Int32 *c){
 
-  Int32 dev,i, testdev;
+  Int32 dev;
   Int16 val;
-  float en, ShiftFactor;
+  float ShiftFactor;
   struct DataValues *v;
   struct TrackPlot *p;
-  static int MMoves;
-  static float Xmin, Xmax;
-  static float Ymin, Ymax;
-  Bool XQstop;
-  XEvent xevent;
- 
 
   GraphFocus();
-  MMoves=0;
 
   if(OldPlot != NULL){
     KillPlots(Plot);
     Plot=OldPlot;
     OldPlot=NULL;
+    RedrawWindow(0);
+  }
 
-    DrawTrackFrame(GLWindow->ID);
-    NofPlots=(Plot->Row)*(Plot->Col);
-    TrackPlotMap(Plot->Row,Plot->Col);
-    CrtPlot=Plot;
-    sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",CrtPlot->Xmin[CrtPlot->ActiveData]);
+  if (CrtPlot) {
+    DrawActivePlotFrame(CrtPlot);
+    sprintf(TrackXMinValue.Text,"X Min: %6.1f",CrtPlot->Xmin[CrtPlot->ActiveData]);
     WriteInLabel(TrackXMinValue);
-    sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",CrtPlot->Xmax[CrtPlot->ActiveData]);
+    sprintf(TrackXMaxValue.Text,"X Max: %6.1f",CrtPlot->Xmax[CrtPlot->ActiveData]);
     WriteInLabel(TrackXMaxValue);
-    sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",CrtPlot->Ymin);
+    sprintf(TrackYMinValue.Text,"Y Min: %12.2f",CrtPlot->Ymin);
     WriteInLabel(TrackYMinValue);
-    sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",CrtPlot->Ymax);
+    sprintf(TrackYMaxValue.Text,"Y Max: %12.2f",CrtPlot->Ymax);
     WriteInLabel(TrackYMaxValue);
-    p=Plot;
-    while(p){
-	DrawPlotFrame(p);
-	DrawPlot(p); 
-	p=p->Next;
-        }
-    }
-
-   DrawActivePlotFrame(CrtPlot);
-   sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",CrtPlot->Xmin[CrtPlot->ActiveData]);
-   WriteInLabel(TrackXMinValue);
-   sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",CrtPlot->Xmax[CrtPlot->ActiveData]);
-   WriteInLabel(TrackXMaxValue);
-   sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",CrtPlot->Ymin);
-   WriteInLabel(TrackYMinValue);
-   sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",CrtPlot->Ymax);
-   WriteInLabel(TrackYMaxValue);
-   Xmin=CrtPlot->Xmin[CrtPlot->ActiveData];
-   Xmax=CrtPlot->Xmax[CrtPlot->ActiveData];
-   Ymin=CrtPlot->Ymin;
-   Ymax=CrtPlot->Ymax;
+    TrackDisplayed.Text = CrtPlot->Comment;
+    WriteInLabel(TrackDisplayed);
+  }
         
   fflush(stdin);
-  TrackDisplayed.Text = CrtPlot->Comment;
-  WriteInLabel(TrackDisplayed);
   
-  
-  while ( dev = qread(&val) ) {
-
-    testdev=0;
-    while ( qtest()&&(testdev<3) ){
-     testdev++;
-     switch(dev) {
-       case KEYBD: { testdev=5; break;}
-       case REDRAW: { testdev=5; break;}
-       case LEFTMOUSE: { testdev=5; break;}
-       case MOUSEX: { dev=qread(&val); break;}
-       case MOUSEY: { dev=qread(&val); break;}
-       }
-     }
-    
+  while ((dev = qread(&val))) {
    
     switch (dev) {
      case UPMOUSEWHEEL: { 
-			  ShiftFactor = 0.025000;
-			  if(CrtPlot){CrtPlot->Ymax+=ShiftFactor*(CrtPlot->Ymax-CrtPlot->Ymin);
-			  DrawPlot(CrtPlot);
-		          DrawActivePlotFrame(CrtPlot);
-		          PutTrackData(CrtPlot);
-		          Ymax=CrtPlot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
-			  }
-			  break;
-		     }
+       if (val == 0) break;
+       int queued = 0;
+       while (qtest() == dev) {
+         Int16 qv = 0;
+         qread(&qv);
+         if (qv != 0) queued++;
+       }
+       struct TrackPlot *targetPlot = NULL;
+       if ((v = Values(GLWindow)) != NULL) targetPlot = v->Plot;
+       else if (CrtPlot != NULL && CrtPlot->data[CrtPlot->ActiveData] != NULL) targetPlot = CrtPlot;
+       if (targetPlot != NULL && CrtPlot != targetPlot) {
+         DrawPlotFrame(CrtPlot);
+         CrtPlot = targetPlot;
+         DrawActivePlotFrame(CrtPlot);
+       }
+       if (CrtPlot) {
+         float mult = GetWheelAcceleration(dev, queued);
+         ShiftFactor = 0.025000f * mult;
+         CrtPlot->Ymax += ShiftFactor * (CrtPlot->Ymax - CrtPlot->Ymin);
+         PutTrackData(CrtPlot);
+         sprintf(TrackYMaxValue.Text, "Y Max: %12.2f", CrtPlot->Ymax);
+         WriteInLabel(TrackYMaxValue);
+         RedrawWindow(0);
+       }
+       break;
+     }
      case DOWNMOUSEWHEEL: { 
-		          ShiftFactor = 0.025000;
-			  if(CrtPlot){CrtPlot->Ymax-=ShiftFactor*(CrtPlot->Ymax-CrtPlot->Ymin);
-			  DrawPlot(CrtPlot);
-		          DrawActivePlotFrame(CrtPlot);
-		          PutTrackData(CrtPlot);
-		          Ymax=CrtPlot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
-			  }
-			  break;
-		     }
+       if (val == 0) break;
+       int queued = 0;
+       while (qtest() == dev) {
+         Int16 qv = 0;
+         qread(&qv);
+         if (qv != 0) queued++;
+       }
+       struct TrackPlot *targetPlot = NULL;
+       if ((v = Values(GLWindow)) != NULL) targetPlot = v->Plot;
+       else if (CrtPlot != NULL && CrtPlot->data[CrtPlot->ActiveData] != NULL) targetPlot = CrtPlot;
+       if (targetPlot != NULL && CrtPlot != targetPlot) {
+         DrawPlotFrame(CrtPlot);
+         CrtPlot = targetPlot;
+         DrawActivePlotFrame(CrtPlot);
+       }
+       if (CrtPlot) {
+         float mult = GetWheelAcceleration(dev, queued);
+         ShiftFactor = 0.025000f * mult;
+         float range = CrtPlot->Ymax - CrtPlot->Ymin;
+         if (range > 0.001f) {
+           float new_ymax = CrtPlot->Ymax - ShiftFactor * range;
+           if (new_ymax > CrtPlot->Ymin + 0.01f) {
+             CrtPlot->Ymax = new_ymax;
+           }
+         }
+         PutTrackData(CrtPlot);
+         sprintf(TrackYMaxValue.Text, "Y Max: %12.2f", CrtPlot->Ymax);
+         WriteInLabel(TrackYMaxValue);
+         RedrawWindow(0);
+       }
+       break;
+     }
      case LEFTMOUSE: { if( (v=Values(GLWindow))!=NULL ){
-                      sprintf(TrackChannelValue.Text,"Channel: %d\0",v->Channel);
-		      if(Track.ecal != NULL){
-   				en=*(Track.ecal+5);
-   				for(i=4; i>=0; i--)en=en*(v->Energy)+*(Track.ecal+i);
-				en+=pow(v->Energy,0.5000000)*(*(Track.ecal+6));
-   				}
- 		      else en=v->Energy;
-		      sprintf(TrackEnergyValue.Text,"Energy: %8.2f\0",en);
-		      sprintf(TrackCountsValue.Text,"Counts: %12.2f\0",v->Counts);
-		      sprintf(TrackCursorYValue.Text,"Y: %12.2f\0",v->Y);
-		      WriteInLabel(TrackChannelValue);
-		      WriteInLabel(TrackEnergyValue);
-		      WriteInLabel(TrackCountsValue); 
-		      WriteInLabel(TrackCursorYValue);
-		      if(TrackDisplayed.Text != v->Plot->Comment){
-		        TrackDisplayed.Text = v->Plot->Comment;
-			WriteInLabel(TrackDisplayed);
-			}
-		      if(v->Plot->Xmin[v->Plot->ActiveData] != Xmin){
-		          Xmin=v->Plot->Xmin[v->Plot->ActiveData];
-		          sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",Xmin);
-			  WriteInLabel(TrackXMinValue);
-			  }
-		      if(v->Plot->Xmax[v->Plot->ActiveData] != Xmax){
-		          Xmax=v->Plot->Xmax[v->Plot->ActiveData];
-		          sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",Xmax);
-			  WriteInLabel(TrackXMaxValue);
-			  }
-		      if(v->Plot->Ymin != Ymin){
-		          Ymin=v->Plot->Ymin;
-		          sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",Ymin);
-			  WriteInLabel(TrackYMinValue);
-			  }
-		      if(v->Plot->Ymax != Ymax){
-		          Ymax=v->Plot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
-			  }
-		      if(v->Plot != CrtPlot){
-			DrawPlotFrame(CrtPlot);
-			}
-		      DrawActivePlotFrame(v->Plot);
-		      CrtPlot=v->Plot;
-		      PutTrackData(CrtPlot);
+                          UpdateCursorDisplay(v);
 			  if( (getbutton(LEFTCTRLKEY)==1) || (getbutton(RIGHTCTRLKEY)==1) ){
-			       while(getbutton(LEFTMOUSE)==1);
+			       while(getbutton(LEFTMOUSE)==1) usleep(10000);
 		               *x=v->Energy;
 		               *y=v->Y;
 			       *c = 'A'; (*c)<<=8; *c+='G';
 			       qreset();
 			       return;
 			       }
-			       
 		      }
 		    else {
 		       if( (getbutton(LEFTCTRLKEY)==1) || (getbutton(RIGHTCTRLKEY)==1) )ShiftFactor = 0.02500;
 		       else ShiftFactor = 0.200;
 		       if(MouseInLabel(TrackXMinValue) && (val == 1)){
-		          if(CrtPlot)CrtPlot->Xmin[CrtPlot->ActiveData]+=Nintf(ShiftFactor*(CrtPlot->Xmax[CrtPlot->ActiveData]
+		          if(CrtPlot) {
+			    CrtPlot->Xmin[CrtPlot->ActiveData]+=Nintf(ShiftFactor*(CrtPlot->Xmax[CrtPlot->ActiveData]
 			  				  -CrtPlot->Xmin[CrtPlot->ActiveData]))+1;
-			  CrtPlot->Imin[CrtPlot->ActiveData]=CrtPlot->Xmin[CrtPlot->ActiveData];
-			  if(CrtPlot->Imin[CrtPlot->ActiveData] >= CrtPlot->Imax[CrtPlot->ActiveData]){
-			    CrtPlot->Imin[CrtPlot->ActiveData] = CrtPlot->Imax[CrtPlot->ActiveData]-1;
-			    CrtPlot->Xmin[CrtPlot->ActiveData]=CrtPlot->Imin[CrtPlot->ActiveData];
+			    CrtPlot->Imin[CrtPlot->ActiveData]=CrtPlot->Xmin[CrtPlot->ActiveData];
+			    if(CrtPlot->Imin[CrtPlot->ActiveData] >= CrtPlot->Imax[CrtPlot->ActiveData]){
+			      CrtPlot->Imin[CrtPlot->ActiveData] = CrtPlot->Imax[CrtPlot->ActiveData]-1;
+			      CrtPlot->Xmin[CrtPlot->ActiveData]=CrtPlot->Imin[CrtPlot->ActiveData];
 			    }
-			  DrawPlot(CrtPlot);
-		          DrawActivePlotFrame(CrtPlot);
-		          PutTrackData(CrtPlot);
-	   	          Xmin=CrtPlot->Xmin[CrtPlot->ActiveData];
-		          sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",Xmin);
-			  WriteInLabel(TrackXMinValue);
+		            PutTrackData(CrtPlot);
+                            RedrawWindow(0);
 			  }
+		       }
 		       if(MouseInLabel(TrackXMaxValue) && (val == 1) ){
-		          if(CrtPlot)CrtPlot->Xmax[CrtPlot->ActiveData]+=Nintf(ShiftFactor*(CrtPlot->Xmax[CrtPlot->ActiveData]
+		          if(CrtPlot) {
+			    CrtPlot->Xmax[CrtPlot->ActiveData]+=Nintf(ShiftFactor*(CrtPlot->Xmax[CrtPlot->ActiveData]
 			  				  -CrtPlot->Xmin[CrtPlot->ActiveData]))+1;
-			  CrtPlot->Imax[CrtPlot->ActiveData]=CrtPlot->Xmax[CrtPlot->ActiveData];
-			  if(CrtPlot->Imax[CrtPlot->ActiveData] >= CrtPlot->Np[CrtPlot->ActiveData]){
-			    CrtPlot->Imax[CrtPlot->ActiveData] = CrtPlot->Np[CrtPlot->ActiveData]-1;
-			    CrtPlot->Xmax[CrtPlot->ActiveData]=CrtPlot->Imax[CrtPlot->ActiveData];
+			    CrtPlot->Imax[CrtPlot->ActiveData]=CrtPlot->Xmax[CrtPlot->ActiveData];
+			    if(CrtPlot->Imax[CrtPlot->ActiveData] >= CrtPlot->Np[CrtPlot->ActiveData]){
+			      CrtPlot->Imax[CrtPlot->ActiveData] = CrtPlot->Np[CrtPlot->ActiveData]-1;
+			      CrtPlot->Xmax[CrtPlot->ActiveData]=CrtPlot->Imax[CrtPlot->ActiveData];
 			    }
-			  DrawPlot(CrtPlot);
-		          DrawActivePlotFrame(CrtPlot);
-		          PutTrackData(CrtPlot);
-		          Xmax=CrtPlot->Xmax[CrtPlot->ActiveData];
-		          sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",Xmax);
-			  WriteInLabel(TrackXMaxValue);
+		            PutTrackData(CrtPlot);
+                            RedrawWindow(0);
 			  }
+		       }
 		       if(MouseInLabel(TrackYMinValue) && (val == 1) ){
-		          if(CrtPlot)CrtPlot->Ymin+=ShiftFactor*(CrtPlot->Ymax-CrtPlot->Ymin);
-			  DrawPlot(CrtPlot);
-		          DrawActivePlotFrame(CrtPlot);
-		          PutTrackData(CrtPlot);
-		          Ymin=CrtPlot->Ymin;
-		          sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",Ymin);
-			  WriteInLabel(TrackYMinValue);
+		          if(CrtPlot) {
+			    CrtPlot->Ymin+=ShiftFactor*(CrtPlot->Ymax-CrtPlot->Ymin);
+		            PutTrackData(CrtPlot);
+                            RedrawWindow(0);
 			  }
+		       }
 		       if(MouseInLabel(TrackYMaxValue) && (val == 1) ){
-		          if(CrtPlot)CrtPlot->Ymax+=ShiftFactor*(CrtPlot->Ymax-CrtPlot->Ymin);;
-			  DrawPlot(CrtPlot);
-		          DrawActivePlotFrame(CrtPlot);
-		          PutTrackData(CrtPlot);
-		          Ymax=CrtPlot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
+		          if(CrtPlot) {
+			    CrtPlot->Ymax+=ShiftFactor*(CrtPlot->Ymax-CrtPlot->Ymin);
+		            PutTrackData(CrtPlot);
+                            RedrawWindow(0);
 			  }
+		       }
 		       if(MouseInButton(TrackNewSpec) && (val == 1) ) { 
 		          PutTrackData(CrtPlot);
 		          *c = 'N'; *x=1 ; *y=1 ; return; 
@@ -1217,169 +1155,39 @@ void xtpget_(float *x, float *y, Int32 *c){
 			  }
 		       
 		       }		      
-		    break;}
-     case MOUSEX: { if(getbutton(LEFTMOUSE)!=1)break; 
-                   if( (v=Values(GLWindow))!=NULL ){
-                      sprintf(TrackChannelValue.Text,"Channel: %d\0",v->Channel);
-		      if(Track.ecal != NULL){
-   				en=*(Track.ecal+5);
-   				for(i=4; i>=0; i--)en=en*(v->Energy)+*(Track.ecal+i);
-				en+=pow(v->Energy,0.5000000)*(*(Track.ecal+6));
-   				}
- 		      else en=v->Energy;
-		      sprintf(TrackEnergyValue.Text,"Energy: %8.2f\0",en);
-		      sprintf(TrackCountsValue.Text,"Counts: %12.2f\0",v->Counts);
-		      sprintf(TrackCursorYValue.Text,"Y: %12.2f\0",v->Y);
-		      WriteInLabel(TrackChannelValue);
-		      WriteInLabel(TrackEnergyValue);
-		      WriteInLabel(TrackCountsValue); 
-		      WriteInLabel(TrackCursorYValue);
-		      if(TrackDisplayed.Text != v->Plot->Comment){
-		        TrackDisplayed.Text = v->Plot->Comment;
-			WriteInLabel(TrackDisplayed);
-			}
-		      if(v->Plot->Xmin[v->Plot->ActiveData] != Xmin){
-		          Xmin=v->Plot->Xmin[v->Plot->ActiveData];
-		          sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",Xmin);
-			  WriteInLabel(TrackXMinValue);
-			  }
-		      if(v->Plot->Xmax[v->Plot->ActiveData] != Xmax){
-		          Xmax=v->Plot->Xmax[v->Plot->ActiveData];
-		          sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",Xmax);
-			  WriteInLabel(TrackXMaxValue);
-			  }
-		      if(v->Plot->Ymin != Ymin){
-		          Ymin=v->Plot->Ymin;
-		          sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",Ymin);
-			  WriteInLabel(TrackYMinValue);
-			  }
-		      if(v->Plot->Ymax != Ymax){
-		          Ymax=v->Plot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
-			  }
-		      if(v->Plot != CrtPlot){
-			DrawPlotFrame(CrtPlot);
-			}
-		       DrawActivePlotFrame(v->Plot);
-		       CrtPlot=v->Plot;
-		      }
-		    break;}
-     case MOUSEY: { if(getbutton(LEFTMOUSE)!=1)break; 
-                   if( (v=Values(GLWindow))!=NULL ){
-                      sprintf(TrackChannelValue.Text,"Channel: %d\0",v->Channel);
-		      if(Track.ecal != NULL){
-   				en=*(Track.ecal+5);
-   				for(i=4; i>=0; i--)en=en*(v->Energy)+*(Track.ecal+i);
-				en+=pow(v->Energy,0.5000000)*(*(Track.ecal+6));
-   				}
- 		      else en=v->Energy;
-		      sprintf(TrackEnergyValue.Text,"Energy: %8.2f\0",en);
-		      sprintf(TrackCountsValue.Text,"Counts: %12.2f\0",v->Counts);
-		      sprintf(TrackCursorYValue.Text,"Y: %12.2f\0",v->Y);
-		      WriteInLabel(TrackChannelValue);
-		      WriteInLabel(TrackEnergyValue);
-		      WriteInLabel(TrackCountsValue); 
-		      WriteInLabel(TrackCursorYValue); 
-		      if(TrackDisplayed.Text != v->Plot->Comment){
-		        TrackDisplayed.Text = v->Plot->Comment;
-			WriteInLabel(TrackDisplayed);
-			}
-		      if(v->Plot->Xmin[v->Plot->ActiveData] != Xmin){
-		          Xmin=v->Plot->Xmin[v->Plot->ActiveData];
-		          sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",Xmin);
-			  WriteInLabel(TrackXMinValue);
-			  }
-		      if(v->Plot->Xmax[v->Plot->ActiveData] != Xmax){
-		          Xmax=v->Plot->Xmax[v->Plot->ActiveData];
-		          sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",Xmax);
-			  WriteInLabel(TrackXMaxValue);
-			  }
-		      if(v->Plot->Ymin != Ymin){
-		          Ymin=v->Plot->Ymin;
-		          sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",Ymin);
-			  WriteInLabel(TrackYMinValue);
-			  }
-		      if(v->Plot->Ymax != Ymax){
-		          Ymax=v->Plot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
-			  }
-		      if(v->Plot != CrtPlot){
-			DrawPlotFrame(CrtPlot);
-			}
-		       DrawActivePlotFrame(v->Plot);
-		       CrtPlot=v->Plot;
-		      }
-		    break;}
+		       break;
+		     }
+     case MOUSEX:
+     case MOUSEY: {
+       if (getbutton(LEFTMOUSE) != 1) break;
+       if ((v = Values(GLWindow)) != NULL) {
+         UpdateCursorDisplay(v);
+       }
+       break;
+     }
 		    
-     case MIDDLEMOUSE:  { if( (v=Values(GLWindow))!=NULL ) 
-                           	if(v->Plot != CrtPlot){
-			           DrawPlotFrame(CrtPlot);
-				   DrawActivePlotFrame(v->Plot);
-				   CrtPlot=v->Plot;
-			           }
-		       
-                   while( getbutton(MIDDLEMOUSE) ) {
-                   dev=qread(&val);
-                   if( ( (v=Values(GLWindow))!=NULL ) && ( (dev==MOUSEX) || (dev==MOUSEY) ) ){
-                      sprintf(TrackChannelValue.Text,"Channel: %d\0",v->Channel);
-		      if(Track.ecal != NULL){
-   				en=*(Track.ecal+5);
-   				for(i=4; i>=0; i--)en=en*(v->Energy)+*(Track.ecal+i);
-				en+=pow(v->Energy,0.5000000)*(*(Track.ecal+6));
-   				}
- 		      else en=v->Energy;
-		      sprintf(TrackEnergyValue.Text,"Energy: %8.2f\0",en);
-		      sprintf(TrackCountsValue.Text,"Counts: %12.2f\0",v->Counts);
-		      sprintf(TrackCursorYValue.Text,"Y: %12.2f\0",v->Y);
-		      WriteInLabel(TrackChannelValue);
-		      WriteInLabel(TrackEnergyValue);
-		      WriteInLabel(TrackCountsValue); 
-		      WriteInLabel(TrackCursorYValue); 
-		      if(TrackDisplayed.Text != v->Plot->Comment){
-		        TrackDisplayed.Text = v->Plot->Comment;
-			WriteInLabel(TrackDisplayed);
-			}
-		      if(v->Plot->Xmin[v->Plot->ActiveData] != Xmin){
-		          Xmin=v->Plot->Xmin[v->Plot->ActiveData];
-		          sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",Xmin);
-			  WriteInLabel(TrackXMinValue);
-			  }
-		      if(v->Plot->Xmax[v->Plot->ActiveData] != Xmax){
-		          Xmax=v->Plot->Xmax[v->Plot->ActiveData];
-		          sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",Xmax);
-			  WriteInLabel(TrackXMaxValue);
-			  }
-		      if(v->Plot->Ymin != Ymin){
-		          Ymin=v->Plot->Ymin;
-		          sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",Ymin);
-			  WriteInLabel(TrackYMinValue);
-			  }
-		      if(v->Plot->Ymax != Ymax){
-		          Ymax=v->Plot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
-			  }
-		      if(v->Plot != CrtPlot){
-			DrawPlotFrame(CrtPlot);
-			}
-		       DrawActivePlotFrame(v->Plot);
-		       CrtPlot=v->Plot;
-		       }
-		      }
-		      if( (v=Values(GLWindow))!=NULL ){
-		      if(v->Plot != CrtPlot){
-			DrawPlotFrame(CrtPlot);
-			}
-		       DrawActivePlotFrame(v->Plot);
-		       CrtPlot=v->Plot;
-		       PutTrackData(CrtPlot);
-		       *c = 'X' ;
-		       *x=v->Energy ; *y=v->Y ; return; 
-		       }
-		     break;
-		     }	
+     case MIDDLEMOUSE: {
+       if ((v = Values(GLWindow)) != NULL) {
+         UpdateCursorDisplay(v);
+       }
+       while (getbutton(MIDDLEMOUSE)) {
+         usleep(10000);
+         if (qtest()) {
+           dev = qread(&val);
+           if ((dev == MOUSEX || dev == MOUSEY) && (v = Values(GLWindow)) != NULL) {
+             UpdateCursorDisplay(v);
+           }
+         }
+       }
+       if ((v = Values(GLWindow)) != NULL) {
+         UpdateCursorDisplay(v);
+         *c = 'X';
+         *x = v->Energy;
+         *y = v->Y;
+         return;
+       }
+       break;
+     }	
 
 
 
@@ -1388,14 +1196,7 @@ void xtpget_(float *x, float *y, Int32 *c){
 			     case 4: { Plot->Col--;
 			               if(Plot->Col < 1)Plot->Col=1;
 			               TrackPlotMap(Plot->Row,Plot->Col);
-			               p=Plot;
 				       CrtPlot=Plot;
-			               while(p){
-		                          DrawPlotFrame(p);
-		                          DrawPlot(p); 
-		                          p=p->Next;
-		                          }
-			               qreset();sleep(0); XSync((Display *)getXdpy(),True);
 				       break;}
 			     
 			     case 2: { Plot->Col++;
@@ -1410,28 +1211,16 @@ void xtpget_(float *x, float *y, Int32 *c){
 				          xtplotnew_();
 				          CopyComment( OldPlot, CrtPlot);
 				          CrtPlot=OldPlot;
-		                          DrawPlotFrame(p);
 				          OldPlot=NULL; 
 				          }
-		                        else 
-		                          DrawPlot(p); 
-		                          p=p->Next;
-		                          }
-		                        qreset();sleep(0); XSync((Display *)getXdpy(),True);
+		                        p=p->Next;
+		                        }
 			                break;}
 
-			     
 			     case 3: { Plot->Row--;
 			               if(Plot->Row < 1)Plot->Row=1;
 			               TrackPlotMap(Plot->Row,Plot->Col);
-			               p=Plot;
 				       CrtPlot=Plot;
-			               while(p){
-		                          DrawPlotFrame(p);
-		                          DrawPlot(p); 
-		                          p=p->Next;
-		                          }
-			               qreset();sleep(0); XSync((Display *)getXdpy(),True);
 				       break;}
 			     case 1: { Plot->Row++;
 			               if(Plot->Row < 1)Plot->Row=1;
@@ -1445,72 +1234,59 @@ void xtpget_(float *x, float *y, Int32 *c){
 				          xtplotnew_();
 				          CopyComment( OldPlot, CrtPlot);
 				          CrtPlot=OldPlot;
-		                          DrawPlotFrame(p);
 				          OldPlot=NULL; 
 				          }
-		                        else 
-		                          DrawPlot(p); 
-		                          p=p->Next;
-		                          }
-		                        qreset();sleep(0); XSync((Display *)getXdpy(),True);
+		                        p=p->Next;
+		                        }
 			                break;}
-			     case 5: { _global_ForceRedraw = 1; qenter(REDRAW,(Int16)GLWindow->ID);break;}
+			     case 5: { break;}
 			      }
-			     DrawActivePlotFrame(CrtPlot);
-			     if( ! _global_BS ){ _global_ForceRedraw = 1; qenter(REDRAW,(Int16)GLWindow->ID);}
+			     RedrawWindow(0);
 			     break;
 			  }
 		    else {
 		       if( (getbutton(LEFTCTRLKEY)==1) || (getbutton(RIGHTCTRLKEY)==1) )ShiftFactor = 0.02500;
 		       else ShiftFactor = 0.200;
 		       if(MouseInLabel(TrackXMinValue) && (val == 1)){
-		          if(CrtPlot)CrtPlot->Xmin[CrtPlot->ActiveData]-=Nintf(ShiftFactor*(CrtPlot->Xmax[CrtPlot->ActiveData]
+		          if(CrtPlot) {
+			    CrtPlot->Xmin[CrtPlot->ActiveData]-=Nintf(ShiftFactor*(CrtPlot->Xmax[CrtPlot->ActiveData]
 			  				  -CrtPlot->Xmin[CrtPlot->ActiveData]))+1;
-			  CrtPlot->Imin[CrtPlot->ActiveData]=CrtPlot->Xmin[CrtPlot->ActiveData];
-			  if(CrtPlot->Imin[CrtPlot->ActiveData] < 0){
-			    CrtPlot->Imin[CrtPlot->ActiveData] = 0;
-			    CrtPlot->Xmin[CrtPlot->ActiveData]=CrtPlot->Imin[CrtPlot->ActiveData];
+			    CrtPlot->Imin[CrtPlot->ActiveData]=CrtPlot->Xmin[CrtPlot->ActiveData];
+			    if(CrtPlot->Imin[CrtPlot->ActiveData] < 0){
+			      CrtPlot->Imin[CrtPlot->ActiveData] = 0;
+			      CrtPlot->Xmin[CrtPlot->ActiveData]=CrtPlot->Imin[CrtPlot->ActiveData];
 			    }
-			  DrawPlot(CrtPlot);
-		          DrawActivePlotFrame(CrtPlot);
-		          PutTrackData(CrtPlot);
-		          Xmin=CrtPlot->Xmin[CrtPlot->ActiveData];
-		          sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",Xmin);
-			  WriteInLabel(TrackXMinValue);
+		            PutTrackData(CrtPlot);
+                            RedrawWindow(0);
 			  }
+		       }
 		       if(MouseInLabel(TrackXMaxValue) && (val == 1)){
-		          if(CrtPlot)CrtPlot->Xmax[CrtPlot->ActiveData]-=Nintf(ShiftFactor*(CrtPlot->Xmax[CrtPlot->ActiveData]
+		          if(CrtPlot) {
+			    CrtPlot->Xmax[CrtPlot->ActiveData]-=Nintf(ShiftFactor*(CrtPlot->Xmax[CrtPlot->ActiveData]
 			  				  -CrtPlot->Xmin[CrtPlot->ActiveData]))+1;
-			  CrtPlot->Imax[CrtPlot->ActiveData]=CrtPlot->Xmax[CrtPlot->ActiveData];
-			  if(CrtPlot->Imax[CrtPlot->ActiveData] <= CrtPlot->Imin[CrtPlot->ActiveData]){
-			    CrtPlot->Imax[CrtPlot->ActiveData] = CrtPlot->Imin[CrtPlot->ActiveData]+1;
-			    CrtPlot->Xmax[CrtPlot->ActiveData]=CrtPlot->Imax[CrtPlot->ActiveData];
+			    CrtPlot->Imax[CrtPlot->ActiveData]=CrtPlot->Xmax[CrtPlot->ActiveData];
+			    if(CrtPlot->Imax[CrtPlot->ActiveData] <= CrtPlot->Imin[CrtPlot->ActiveData]){
+			      CrtPlot->Imax[CrtPlot->ActiveData] = CrtPlot->Imin[CrtPlot->ActiveData]+1;
+			      CrtPlot->Xmax[CrtPlot->ActiveData]=CrtPlot->Imax[CrtPlot->ActiveData];
 			    }
-			  DrawPlot(CrtPlot);
-		          DrawActivePlotFrame(CrtPlot);
-		          PutTrackData(CrtPlot);
-		          Xmax=CrtPlot->Xmax[CrtPlot->ActiveData];
-		          sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",Xmax);
-			  WriteInLabel(TrackXMaxValue);
+		            PutTrackData(CrtPlot);
+                            RedrawWindow(0);
 			  }
+		       }
 		       if(MouseInLabel(TrackYMinValue) && (val == 1)){
-		          if(CrtPlot)CrtPlot->Ymin-=ShiftFactor*(CrtPlot->Ymax-CrtPlot->Ymin);
-			  DrawPlot(CrtPlot);
-		          DrawActivePlotFrame(CrtPlot);
-		          PutTrackData(CrtPlot);
-		          Ymin=CrtPlot->Ymin;
-		          sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",Ymin);
-			  WriteInLabel(TrackYMinValue);
+		          if(CrtPlot) {
+			    CrtPlot->Ymin-=ShiftFactor*(CrtPlot->Ymax-CrtPlot->Ymin);
+		            PutTrackData(CrtPlot);
+                            RedrawWindow(0);
 			  }
+		       }
 		       if(MouseInLabel(TrackYMaxValue) && (val == 1)){
-		          if(CrtPlot)CrtPlot->Ymax-=ShiftFactor*(CrtPlot->Ymax-CrtPlot->Ymin);;
-			  DrawPlot(CrtPlot);
-		          DrawActivePlotFrame(CrtPlot);
-		          PutTrackData(CrtPlot);
-		          Ymax=CrtPlot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
+		          if(CrtPlot) {
+			    CrtPlot->Ymax-=ShiftFactor*(CrtPlot->Ymax-CrtPlot->Ymin);
+		            PutTrackData(CrtPlot);
+                            RedrawWindow(0);
 			  }
+		       }
 		       if(MouseInButton(TrackIncSpec) && (val == 1) ) { 
 		          PutTrackData(CrtPlot);
 			  if( (getbutton(LEFTCTRLKEY)==1) || (getbutton(RIGHTCTRLKEY)==1) ){
@@ -1528,375 +1304,260 @@ void xtpget_(float *x, float *y, Int32 *c){
 			     *x=1 ; *y=1 ; return;
 			  }
 		       }
+		       break;
 			}
      
-     case LEFTMOUSEWHEEL:
-     case LEFTARROWKEY: {if( (v=Values(GLWindow))!=NULL ){
-			  if( (getbutton(LEFTCTRLKEY)!=1) && (getbutton(RIGHTCTRLKEY)!=1) ){
-			    while(getbutton(LEFTARROWKEY));
-			    if( CrtPlot != v->Plot ){
-			        DrawPlotFrame(CrtPlot);
-				CrtPlot = v->Plot;
-				DrawActivePlotFrame(CrtPlot);
-			    }
-			    qreset();sleep(0); XSync((Display *)getXdpy(),True);
-			    PutTrackData(CrtPlot);
-		            *c = '<' ; *x=1 ; *y=1 ; return;
-			    break;
-			  }
-			  while(getbutton(LEFTARROWKEY));
-                           Plot->Col--;
-			   if(Plot->Col < 1)Plot->Col=1;
-			   TrackPlotMap(Plot->Row,Plot->Col);
-			   p=Plot;
-			   CrtPlot=Plot;
-			   while(p){
-		             DrawPlotFrame(p);
-		             DrawPlot(p); 
-		             p=p->Next;
-		             }
-			   DrawActivePlotFrame(CrtPlot);
-			   }
-		          qreset();sleep(0); XSync((Display *)getXdpy(),True);
-			  break;}
+     case LEFTMOUSEWHEEL: {
+       if (val == 0) break;
+       int queued = 0;
+       while (qtest() == dev) {
+         Int16 qv = 0;
+         qread(&qv);
+         if (qv != 0) queued++;
+       }
+       struct TrackPlot *targetPlot = NULL;
+       if ((v = Values(GLWindow)) != NULL) targetPlot = v->Plot;
+       else if (CrtPlot != NULL && CrtPlot->data[CrtPlot->ActiveData] != NULL) targetPlot = CrtPlot;
+       if (targetPlot != NULL) {
+         if (CrtPlot != targetPlot) {
+           DrawPlotFrame(CrtPlot);
+           CrtPlot = targetPlot;
+           DrawActivePlotFrame(CrtPlot);
+         }
+         float mult = GetWheelAcceleration(dev, queued);
+         float width = CrtPlot->Xmax[CrtPlot->ActiveData] - CrtPlot->Xmin[CrtPlot->ActiveData];
+         float base_delta = (width + 1.0f) * 0.05f;
+         if (base_delta < 1.0f) base_delta = 1.0f;
+         float delta = Nintf(base_delta * mult);
+         if (delta < 1.0f) delta = 1.0f;
 
-     case RIGHTMOUSEWHEEL:
-     case RIGHTARROWKEY: {if( (v=Values(GLWindow))!=NULL ){
-			  if( (getbutton(LEFTCTRLKEY)!=1) && (getbutton(RIGHTCTRLKEY)!=1) ){
-		            while(getbutton(RIGHTARROWKEY));
-			    if( CrtPlot != v->Plot ){
-			        DrawPlotFrame(CrtPlot);
-				CrtPlot = v->Plot;
-				DrawActivePlotFrame(CrtPlot);
-			    }
-			    qreset();sleep(0); XSync((Display *)getXdpy(),True);
-			    PutTrackData(CrtPlot);
-		            *c = '>' ; *x=1 ; *y=1 ; return;
-			    break;
-			  }
-			  while(getbutton(RIGHTARROWKEY));
-                           Plot->Col++;
-			   if(Plot->Col < 1)Plot->Col=1;
-			   TrackPlotMap(Plot->Row,Plot->Col);
-			   p=Plot;
-			   while(p){
-			     if(p->data[p->ActiveData] == NULL){
-			        OldPlot=CrtPlot;
-				CrtPlot=p;
-				CrtPlot->LogScale=OldPlot->LogScale;
-				xtplotnew_();
-				CopyComment( OldPlot, CrtPlot);
-				CrtPlot=OldPlot;
-		                DrawPlotFrame(p);
-				OldPlot=NULL; 
-				}
-		             else 
-		                DrawPlot(p); 
-		             p=p->Next;
-		             }
-			   DrawActivePlotFrame(CrtPlot);
-			    }
-		          qreset();sleep(0); XSync((Display *)getXdpy(),True);
-			  break;}
+         Int32 min_chan = (Track.ika != NULL) ? *(Track.ika) : 0;
+         Int32 max_chan = (Track.ikl != NULL) ? (*(Track.ikl) - 1) : (Int32)(CrtPlot->Np[CrtPlot->ActiveData] - 1);
 
-     case DOWNARROWKEY: {if( (v=Values(GLWindow))!=NULL ){
-			  if( (getbutton(LEFTCTRLKEY)!=1) && (getbutton(RIGHTCTRLKEY)!=1) )break;
-			  while(getbutton(DOWNARROWKEY));
-                           Plot->Row--;
-			   if(Plot->Row < 1)Plot->Row=1;
-			   TrackPlotMap(Plot->Row,Plot->Col);
-			   p=Plot;
-			   CrtPlot=Plot;
-			   while(p){
-		             DrawPlotFrame(p);
-		             DrawPlot(p); 
-		             p=p->Next;
-		             }
-			   DrawActivePlotFrame(CrtPlot);
-			   }
-		          qreset();sleep(0); XSync((Display *)getXdpy(),True);
-			  break;}
+         float new_xmin = CrtPlot->Xmin[CrtPlot->ActiveData] - delta;
+         if (new_xmin < (float)min_chan) new_xmin = (float)min_chan;
+         float new_xmax = new_xmin + width;
+         if (new_xmax > (float)max_chan) {
+           new_xmax = (float)max_chan;
+           new_xmin = new_xmax - width;
+           if (new_xmin < (float)min_chan) new_xmin = (float)min_chan;
+         }
+         CrtPlot->Xmin[CrtPlot->ActiveData] = new_xmin;
+         CrtPlot->Xmax[CrtPlot->ActiveData] = new_xmax;
+         CrtPlot->Imin[CrtPlot->ActiveData] = new_xmin;
+         CrtPlot->Imax[CrtPlot->ActiveData] = new_xmax;
 
-     case UPARROWKEY: {if( (v=Values(GLWindow))!=NULL ){
-			  if( (getbutton(LEFTCTRLKEY)!=1) && (getbutton(RIGHTCTRLKEY)!=1) ){
-		            while(getbutton(UPARROWKEY));
-			    if( CrtPlot != v->Plot ){
-			        DrawPlotFrame(CrtPlot);
-				CrtPlot = v->Plot;
-				DrawActivePlotFrame(CrtPlot);
-			    }
-			    qreset();sleep(0); XSync((Display *)getXdpy(),True);
-			    PutTrackData(CrtPlot);
-		            *c = 'F'; (*c) <<=8; *c += 'Y'; *x=1 ; *y=1 ; return;
-			    break;
-			  }
-			  while(getbutton(UPARROWKEY));
-                           Plot->Row++;
-			   if(Plot->Row < 1)Plot->Row=1;
-			   TrackPlotMap(Plot->Row,Plot->Col);
-			   p=Plot;
-			   while(p){
-			     if(p->data[p->ActiveData] == NULL){
-			        OldPlot=CrtPlot;
-				CrtPlot=p;
-				CrtPlot->LogScale=OldPlot->LogScale;
-				xtplotnew_();
-				CopyComment( OldPlot, CrtPlot);
-				CrtPlot=OldPlot;
-				DrawPlotFrame(p);
-				OldPlot=NULL; 
-				}
-		             else 
-		                DrawPlot(p); 
-		             p=p->Next;
-		             }
-			   DrawActivePlotFrame(CrtPlot);
-			   }
-		          qreset();sleep(0); XSync((Display *)getXdpy(),True);
-			  break;}
+         PutTrackData(CrtPlot);
+         sprintf(TrackXMinValue.Text,"X Min: %6.1f",CrtPlot->Xmin[CrtPlot->ActiveData]);
+         WriteInLabel(TrackXMinValue);
+         sprintf(TrackXMaxValue.Text,"X Max: %6.1f",CrtPlot->Xmax[CrtPlot->ActiveData]);
+         WriteInLabel(TrackXMaxValue);
 
-     case KEYBD:  {if( (v=Values(GLWindow))!=NULL ){
-
-                      sprintf(TrackChannelValue.Text,"Channel: %d\0",v->Channel);
-		      if(Track.ecal != NULL){
-   				en=*(Track.ecal+5);
-   				for(i=4; i>=0; i--)en=en*(v->Energy)+*(Track.ecal+i);
-				en+=pow(v->Energy,0.5000000)*(*(Track.ecal+6));
-   				}
- 		      else en=v->Energy;
-		      sprintf(TrackEnergyValue.Text,"Energy: %8.2f\0",en);
-		      sprintf(TrackCountsValue.Text,"Counts: %12.2f\0",v->Counts);
-		      sprintf(TrackCursorYValue.Text,"Y: %12.2f\0",v->Y);
-		      WriteInLabel(TrackChannelValue);
-		      WriteInLabel(TrackEnergyValue);
-		      WriteInLabel(TrackCountsValue); 
-		      WriteInLabel(TrackCursorYValue); 
-		      if(TrackDisplayed.Text != v->Plot->Comment){
-		        TrackDisplayed.Text = v->Plot->Comment;
-			WriteInLabel(TrackDisplayed);
-			}
-		      if(v->Plot->Xmin[v->Plot->ActiveData] != Xmin){
-		          Xmin=v->Plot->Xmin[v->Plot->ActiveData];
-		          sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",Xmin);
-			  WriteInLabel(TrackXMinValue);
-			  }
-		      if(v->Plot->Xmax[v->Plot->ActiveData] != Xmax){
-		          Xmax=v->Plot->Xmax[v->Plot->ActiveData];
-		          sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",Xmax);
-			  WriteInLabel(TrackXMaxValue);
-			  }
-		      if(v->Plot->Ymin != Ymin){
-		          Ymin=v->Plot->Ymin;
-		          sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",Ymin);
-			  WriteInLabel(TrackYMinValue);
-			  }
-		      if(v->Plot->Ymax != Ymax){
-		          Ymax=v->Plot->Ymax;
-		          sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",Ymax);
-			  WriteInLabel(TrackYMaxValue);
-			  }
-
-
-		      if(v->Plot != CrtPlot){
-			DrawPlotFrame(CrtPlot);
-			}
-		      DrawActivePlotFrame(v->Plot);
- 		      CrtPlot=v->Plot;
-		      PutTrackData(CrtPlot);
-		      *x=v->Energy;
-		      *y=v->Y;
-		      *c=val;
-		      return;
-		      }
-		   break;}
-     case REDRAW: { 
-/*
-#if defined(__APPLE__) && ( defined( __MAC_10_7 ) || defined( __MAC_10_8 ) )
-*/
-redraw:	  
-	  DOUBLEBUFF_ON
-          ReshapeWindow();
-	  DrawTrackFrame(GLWindow->ID);
-	  swapbuffers();
-
-	      while( qtest() )
-	      {
-	     	 dev = qread( &val );
-	     	 if( dev == REDRAW ) goto redraw;
-	      }
-
-          ReshapeWindow();
-
-	  DrawTrackFrame(GLWindow->ID);
-	  swapbuffers();
-	  DrawTrackFrame(GLWindow->ID);
-	  
-     	  XFlush((Display *)getXdpy());
-
-	
-	  WriteInLabel(TrackDisplayed);
-	  TrackPlotMap(Plot->Row,Plot->Col);
-          if(OldPlot == NULL)																      
-		  { 																				      
-                sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",CrtPlot->Xmin[CrtPlot->ActiveData]);     
-                WriteInLabel(TrackXMinValue);													      
-                sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",CrtPlot->Xmax[CrtPlot->ActiveData]);     
-                WriteInLabel(TrackXMaxValue);													      
-                sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",CrtPlot->Ymin);					      
-                WriteInLabel(TrackYMinValue);													      
-                sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",CrtPlot->Ymax);					      
-                WriteInLabel(TrackYMaxValue);													      
-                sprintf(TrackChannelValue.Text,"Channel \0");									      
-		        sprintf(TrackEnergyValue.Text,"Energy \0"); 										 
-		        sprintf(TrackCountsValue.Text,"Counts \0"); 										 
-		        sprintf(TrackCursorYValue.Text,"Y \0"); 											 
-		        WriteInLabel(TrackChannelValue);													 
-		        WriteInLabel(TrackEnergyValue); 													 
-		        WriteInLabel(TrackCountsValue); 													 
-		        WriteInLabel(TrackCursorYValue);													 
-		        if(TrackDisplayed.Text != CrtPlot->Comment) 										 
-		        {																					 
-		          TrackDisplayed.Text = CrtPlot->Comment;											 
-		          WriteInLabel(TrackDisplayed); 													 
-		        }																					 
-           } 																				      
-	   
-	   p=Plot;
-	   while(p)
-	   {
-	   	DrawPlotFrame(p);
-	   	DrawPlot(p); 
-	   	p=p->Next;
-	   }
-		   
-	   DrawActivePlotFrame(CrtPlot);			  
-
-	   DOUBLEBUFF_OFF
-	   _global_ForceRedraw = 0;
-
-
-/*
-#else
-		   int xWp, yWp;
-		   /*usleep( 1000 );
-
-redraw:    
-                   reshapeviewport();
-		   getsize(&xWp,&yWp);
-    	   if( _global_BS && (!_global_ForceRedraw) )
-		   {
-		    	if( (_global_LastX == xWp) && (_global_LastY == yWp) ) _global_ForceRedraw = 0;
-		     	else 
-			 	{
-					_global_LastX = xWp;
-					_global_LastY = yWp;
-		     		_global_ForceRedraw = 1;
-		        }
-		   }
-		   else _global_ForceRedraw = 1;
-		   DOUBLEBUFF_ON
-		   if( _global_ForceRedraw )
-		   {
-		      minsize ( xWp, yWp ); maxsize ( xWp, yWp ); winconstraints ();
-		      DrawTrackFrame(GLWindow->ID);
-     		  XFlush((Display *)getXdpy());
-
-#if !defined(__APPLE__)
-              while( qtest() )
-		      {
-		          dev = qread( &val );
-		          if( dev == REDRAW )
-			      {
-			       DOUBLEBUFF_OFF
-				   _global_ForceRedraw = 1;
-				   qreset();
-			       goto redraw;
-			      }
-		      }
-#endif
-		   
-		      WriteInLabel(TrackDisplayed);
-		      TrackPlotMap(Plot->Row,Plot->Col);
-              if(OldPlot == NULL)																      
-		      { 																				      
-                sprintf(TrackXMinValue.Text,"X Min: %6.1f\0",CrtPlot->Xmin[CrtPlot->ActiveData]);     
-                WriteInLabel(TrackXMinValue);													      
-                sprintf(TrackXMaxValue.Text,"X Max: %6.1f\0",CrtPlot->Xmax[CrtPlot->ActiveData]);     
-                WriteInLabel(TrackXMaxValue);													      
-                sprintf(TrackYMinValue.Text,"Y Min: %12.2f\0",CrtPlot->Ymin);					      
-                WriteInLabel(TrackYMinValue);													      
-                sprintf(TrackYMaxValue.Text,"Y Max: %12.2f\0",CrtPlot->Ymax);					      
-                WriteInLabel(TrackYMaxValue);													      
-                sprintf(TrackChannelValue.Text,"Channel \0");									      
-		        sprintf(TrackEnergyValue.Text,"Energy \0"); 										 
-		        sprintf(TrackCountsValue.Text,"Counts \0"); 										 
-		        sprintf(TrackCursorYValue.Text,"Y \0"); 											 
-		        WriteInLabel(TrackChannelValue);													 
-		        WriteInLabel(TrackEnergyValue); 													 
-		        WriteInLabel(TrackCountsValue); 													 
-		        WriteInLabel(TrackCursorYValue);													 
-		        if(TrackDisplayed.Text != CrtPlot->Comment) 										 
-		        {																					 
-		          TrackDisplayed.Text = CrtPlot->Comment;											 
-		          WriteInLabel(TrackDisplayed); 													 
-		        }																					 
-              } 																				      
-/*
-#if defined(__APPLE__)
-              while( qtest() )
-		      {
-		          dev = qread( &val );
-		          if( dev == REDRAW )
-			      {
-			    	  DOUBLEBUFF_OFF
-			    	  goto redraw;
-			      }
-		      }
-#endif
-
-		      p=Plot;
-		      while(p)
-		      {
-		        DrawPlotFrame(p);
-		        DrawPlot(p); 
-		        p=p->Next;
-		      }
-			  
-		      DrawActivePlotFrame(CrtPlot);
-#if !defined(__APPLE__)
-              qreset();
-#endif
-		      _global_ForceRedraw = 0;
-			  
-		   }
-
-#if defined(__APPLE__) && !( defined( __MAC_10_7 ) || defined( __MAC_10_8 ) )
-           while( qtest() )
-		   {
-		       dev = qread( &val );
-		       if( dev == REDRAW )
-			   {
-			       DOUBLEBUFF_OFF
-				   _global_ForceRedraw = 1;
-				   qreset();
-			       goto redraw;
-			   }
-		   }
-#endif
-
-
-		   DOUBLEBUFF_OFF
-		   minsize ( GLW_MINXSIZE, GLW_MINYSIZE ); maxsize ( 3200, 2400 ); winconstraints ();
-#endif
-*/
-		   break;}
-
-     case WINQUIT: {/*printf("\n Quiting ...\n");
-		    gexit();exit(0);*/break;} 
-     default : {/*qreset();sleep(0); XSync((Display *)getXdpy(),True);*/ break;}
+         if (CrtPlot->Peak == NULL && Track.npeaks != NULL && *(Track.npeaks) > 0 && Track.peaks != NULL) {
+           int pi;
+           for (pi = 0; pi < *(Track.npeaks); pi++) {
+             AddPeakLabel(CrtPlot, *(Track.peaks + pi));
+           }
+         }
+         CrtPlot->ClearBeforeDraw = True;
+         RedrawWindow(0);
+       }
+       break;
      }
-     /*qreset();sleep(0); XSync((Display *)getXdpy(),True);*/
 
+     case LEFTARROWKEY: {
+       if (val == 0) break;
+       struct TrackPlot *targetPlot = NULL;
+       if ((v = Values(GLWindow)) != NULL) targetPlot = v->Plot;
+       else if (CrtPlot != NULL && CrtPlot->data[CrtPlot->ActiveData] != NULL) targetPlot = CrtPlot;
+       if (targetPlot != NULL) {
+         if ((getbutton(LEFTCTRLKEY) != 1) && (getbutton(RIGHTCTRLKEY) != 1)) {
+           if (CrtPlot != targetPlot) {
+             DrawPlotFrame(CrtPlot);
+             CrtPlot = targetPlot;
+             DrawActivePlotFrame(CrtPlot);
+           }
+           PutTrackData(CrtPlot);
+           *c = '<';
+           *x = 1;
+           *y = 1;
+           return;
+         }
+         Plot->Col--;
+         if (Plot->Col < 1) Plot->Col = 1;
+         TrackPlotMap(Plot->Row, Plot->Col);
+         CrtPlot = Plot;
+         RedrawWindow(0);
+       }
+       break;
+     }
+
+     case RIGHTMOUSEWHEEL: {
+       if (val == 0) break;
+       int queued = 0;
+       while (qtest() == dev) {
+         Int16 qv = 0;
+         qread(&qv);
+         if (qv != 0) queued++;
+       }
+       struct TrackPlot *targetPlot = NULL;
+       if ((v = Values(GLWindow)) != NULL) targetPlot = v->Plot;
+       else if (CrtPlot != NULL && CrtPlot->data[CrtPlot->ActiveData] != NULL) targetPlot = CrtPlot;
+       if (targetPlot != NULL) {
+         if (CrtPlot != targetPlot) {
+           DrawPlotFrame(CrtPlot);
+           CrtPlot = targetPlot;
+           DrawActivePlotFrame(CrtPlot);
+         }
+         float mult = GetWheelAcceleration(dev, queued);
+         float width = CrtPlot->Xmax[CrtPlot->ActiveData] - CrtPlot->Xmin[CrtPlot->ActiveData];
+         float base_delta = (width + 1.0f) * 0.05f;
+         if (base_delta < 1.0f) base_delta = 1.0f;
+         float delta = Nintf(base_delta * mult);
+         if (delta < 1.0f) delta = 1.0f;
+
+         Int32 min_chan = (Track.ika != NULL) ? *(Track.ika) : 0;
+         Int32 max_chan = (Track.ikl != NULL) ? (*(Track.ikl) - 1) : (Int32)(CrtPlot->Np[CrtPlot->ActiveData] - 1);
+
+         float new_xmax = CrtPlot->Xmax[CrtPlot->ActiveData] + delta;
+         if (new_xmax > (float)max_chan) new_xmax = (float)max_chan;
+         float new_xmin = new_xmax - width;
+         if (new_xmin < (float)min_chan) {
+           new_xmin = (float)min_chan;
+           new_xmax = new_xmin + width;
+           if (new_xmax > (float)max_chan) new_xmax = (float)max_chan;
+         }
+         CrtPlot->Xmin[CrtPlot->ActiveData] = new_xmin;
+         CrtPlot->Xmax[CrtPlot->ActiveData] = new_xmax;
+         CrtPlot->Imin[CrtPlot->ActiveData] = new_xmin;
+         CrtPlot->Imax[CrtPlot->ActiveData] = new_xmax;
+
+         PutTrackData(CrtPlot);
+         sprintf(TrackXMinValue.Text,"X Min: %6.1f",CrtPlot->Xmin[CrtPlot->ActiveData]);
+         WriteInLabel(TrackXMinValue);
+         sprintf(TrackXMaxValue.Text,"X Max: %6.1f",CrtPlot->Xmax[CrtPlot->ActiveData]);
+         WriteInLabel(TrackXMaxValue);
+
+         if (CrtPlot->Peak == NULL && Track.npeaks != NULL && *(Track.npeaks) > 0 && Track.peaks != NULL) {
+           int pi;
+           for (pi = 0; pi < *(Track.npeaks); pi++) {
+             AddPeakLabel(CrtPlot, *(Track.peaks + pi));
+           }
+         }
+         CrtPlot->ClearBeforeDraw = True;
+         RedrawWindow(0);
+       }
+       break;
+     }
+
+     case RIGHTARROWKEY: {
+       if (val == 0) break;
+       struct TrackPlot *targetPlot = NULL;
+       if ((v = Values(GLWindow)) != NULL) targetPlot = v->Plot;
+       else if (CrtPlot != NULL && CrtPlot->data[CrtPlot->ActiveData] != NULL) targetPlot = CrtPlot;
+       if (targetPlot != NULL) {
+         if ((getbutton(LEFTCTRLKEY) != 1) && (getbutton(RIGHTCTRLKEY) != 1)) {
+           if (CrtPlot != targetPlot) {
+             DrawPlotFrame(CrtPlot);
+             CrtPlot = targetPlot;
+             DrawActivePlotFrame(CrtPlot);
+           }
+           PutTrackData(CrtPlot);
+           *c = '>';
+           *x = 1;
+           *y = 1;
+           return;
+         }
+         Plot->Col++;
+         if (Plot->Col < 1) Plot->Col = 1;
+         TrackPlotMap(Plot->Row, Plot->Col);
+         p = Plot;
+         while (p) {
+           if (p->data[p->ActiveData] == NULL) {
+             OldPlot = CrtPlot;
+             CrtPlot = p;
+             CrtPlot->LogScale = OldPlot->LogScale;
+             xtplotnew_();
+             CopyComment(OldPlot, CrtPlot);
+             CrtPlot = OldPlot;
+             OldPlot = NULL;
+           }
+           p = p->Next;
+         }
+         RedrawWindow(0);
+       }
+       break;
+     }
+
+     case DOWNARROWKEY: {
+       if (val == 0) break;
+       if( (v=Values(GLWindow))!=NULL ){
+	 if( (getbutton(LEFTCTRLKEY)!=1) && (getbutton(RIGHTCTRLKEY)!=1) )break;
+         Plot->Row--;
+	 if(Plot->Row < 1)Plot->Row=1;
+	 TrackPlotMap(Plot->Row,Plot->Col);
+	 CrtPlot=Plot;
+         RedrawWindow(0);
+       }
+       break;
+     }
+
+     case UPARROWKEY: {
+       if (val == 0) break;
+       if( (v=Values(GLWindow))!=NULL ){
+	 if( (getbutton(LEFTCTRLKEY)!=1) && (getbutton(RIGHTCTRLKEY)!=1) ){
+	   if( CrtPlot != v->Plot ){
+	     DrawPlotFrame(CrtPlot);
+	     CrtPlot = v->Plot;
+	     DrawActivePlotFrame(CrtPlot);
+	   }
+	   PutTrackData(CrtPlot);
+           *c = 'F'; (*c) <<=8; *c += 'Y'; *x=1 ; *y=1 ; return;
+	 }
+         Plot->Row++;
+	 if(Plot->Row < 1)Plot->Row=1;
+	 TrackPlotMap(Plot->Row,Plot->Col);
+	 p=Plot;
+	 while(p){
+	   if(p->data[p->ActiveData] == NULL){
+	     OldPlot=CrtPlot;
+	     CrtPlot=p;
+	     CrtPlot->LogScale=OldPlot->LogScale;
+	     xtplotnew_();
+	     CopyComment( OldPlot, CrtPlot);
+	     CrtPlot=OldPlot;
+	     OldPlot=NULL; 
+	   }
+           p=p->Next;
+         }
+         RedrawWindow(0);
+       }
+       break;
+     }
+
+     case KEYBD: {
+       if ((v = Values(GLWindow)) != NULL) {
+         UpdateCursorDisplay(v);
+         *x = v->Energy;
+         *y = v->Y;
+         *c = val;
+         return;
+       }
+       break;
+     }
+
+     case REDRAW: { 
+       RedrawWindow(1);
+       break;
+     }
+
+     case WINQUIT: {
+       gexit();
+       exit(0);
+       break;
+     } 
+     default: break;
+     }
     } 
 }
  
@@ -1925,8 +1586,6 @@ void PutTrackData(struct TrackPlot *p){
 
 void TermFocus(void){
 
- XWindowAttributes ioAttrib;
-
  if(ioTerm.disp == NULL){
    ioTerm.disp=XOpenDisplay(NULL);
    if(ioTerm.disp == NULL){
@@ -1939,29 +1598,27 @@ void TermFocus(void){
    return;
    }
  XSync(ioTerm.disp,True);
-/* XGetWindowAttributes(ioTerm.disp,ioTerm.win,&ioAttrib);
- if(ioAttrib.map_state != IsViewable){
-   XMapWindow(ioTerm.disp,ioTerm.win);
-   XRaiseWindow(ioTerm.disp,ioTerm.win);
-   while(ioAttrib.map_state != IsViewable)XGetWindowAttributes(ioTerm.disp,ioTerm.win,&ioAttrib);
-   }
- XSetInputFocus(ioTerm.disp,ioTerm.win,ioTerm.revert,CurrentTime); 
- XSync(ioTerm.disp,True); */
  }
 
 void GraphFocus(void){
 
  XWindowAttributes ioAttrib;
+ Display *d = ioTerm.disp ? ioTerm.disp : (Display *)getXdpy();
+ Window w = getXwid();
 
-  XSync(ioTerm.disp,True);
-  XGetWindowAttributes(ioTerm.disp,getXwid(),&ioAttrib);
+  if (d == NULL || w == 0) return;
+  XSync(d, True);
+  XGetWindowAttributes(d, w, &ioAttrib);
   if(ioAttrib.map_state != IsViewable){
-   XMapWindow(ioTerm.disp,getXwid());
-   XRaiseWindow(ioTerm.disp,getXwid());
-   while(ioAttrib.map_state != IsViewable)XGetWindowAttributes(ioTerm.disp,getXwid(),&ioAttrib);
+   XMapWindow(d, w);
+   XRaiseWindow(d, w);
+   while(ioAttrib.map_state != IsViewable) {
+     usleep(10000);
+     XGetWindowAttributes(d, w, &ioAttrib);
    }
-  XSetInputFocus(ioTerm.disp,getXwid(),ioTerm.revert,CurrentTime);
-  XSync(ioTerm.disp,True);
+  }
+  XSetInputFocus(d, w, ioTerm.revert, CurrentTime);
+  XSync(d, True);
  }
  
  
@@ -1998,7 +1655,6 @@ void CleanPlot(struct TrackPlot *p){
 
 void DrawMarker(struct TrackPlot *Pl, float *Channel, Int32 MarkerColor){
 
- Int32 xWp,yWp;
  float x,y,pixelsizeY;
 
  if(Pl == NULL)return;
@@ -2022,13 +1678,19 @@ void DrawMarker(struct TrackPlot *Pl, float *Channel, Int32 MarkerColor){
  move2(x,y);
  y=Pl->y2-4.0*pixelsizeY;
  draw2(x,y);
- sleep(0);
+ if (!_in_redraw_window) {
+   frontbuffer(1);
+   color(MarkerColor);
+   move2(x,Pl->y1+4.0*pixelsizeY);
+   draw2(x,Pl->y2-4.0*pixelsizeY);
+   backbuffer(1);
+   gflush();
+ }
  }
 
 
 void DrawDoubleMarker(struct TrackPlot *Pl, float *Channel1, float *Channel2, Int32 MarkerColor){
 
- Int32 xWp,yWp;
  float x,y,pixelsizeY;
 
  if(Pl == NULL)return;
@@ -2063,13 +1725,33 @@ void DrawDoubleMarker(struct TrackPlot *Pl, float *Channel1, float *Channel2, In
  draw2(x,y);
  y=Pl->y2-4.0*pixelsizeY;
  draw2(x,y);
- sleep(0); 
+ if (!_in_redraw_window) {
+   float x_orig;
+   x_orig=(float)(*Channel1-Pl->Xmin[Pl->ActiveData])/
+     (float)(Pl->Xmax[Pl->ActiveData]-Pl->Xmin[Pl->ActiveData]+1);
+   x_orig+=1.000-(float)(1.000-*Channel1+Pl->Xmax[Pl->ActiveData])/
+     (float)(Pl->Xmax[Pl->ActiveData]-Pl->Xmin[Pl->ActiveData]+1);
+   x_orig/=2.0000;
+   x_orig=Pl->x1+x_orig*(Pl->x2-Pl->x1);
+
+   frontbuffer(1);
+   color(MarkerColor);
+   move2(x_orig, Pl->y2-4.0*pixelsizeY);
+   draw2(x_orig, Pl->y1+4.0*pixelsizeY);
+   draw2(x, Pl->y1+4.0*pixelsizeY);
+   draw2(x, Pl->y2-4.0*pixelsizeY);
+   backbuffer(1);
+   gflush();
+ }
  }
 
 void CopyComment( struct TrackPlot *from_p, struct TrackPlot *to_p )
 {
-       if( (!from_p) || (!to_p) ) return;
-       if( to_p->Comment && from_p->Comment )free( to_p->Comment );
+       if( !from_p || !to_p || from_p == to_p ) return;
+       if( to_p->Comment ) {
+           free( to_p->Comment );
+           to_p->Comment = NULL;
+       }
        if( from_p->Comment )
            to_p->Comment = strdup( from_p->Comment );
 }
@@ -2077,11 +1759,11 @@ void CopyComment( struct TrackPlot *from_p, struct TrackPlot *to_p )
 
 void DrawPeakLabel(struct TrackPlot *Pl, float *Channel){
 
- Int32 xWp,yWp,FontHeight,yy,stick,i,j;
+ Int32 FontHeight,yy,stick,i,j;
  char PeakLabel[20];
  float x,y,r,pixelsizeX,pixelsizeY;
  float en;
- float *data;
+ float *data = NULL;
 
  if(Pl == NULL)return;
  if(Pl->Draw[Pl->ActiveData] == 0)return;
@@ -2094,6 +1776,7 @@ void DrawPeakLabel(struct TrackPlot *Pl, float *Channel){
    case 1: {data=Pl->logdata[Pl->ActiveData];  break;}
    case 2: {data=Pl->sqrtdata[Pl->ActiveData]; break;}
    }
+ if (data == NULL) return;
 
  
  x=(float)(*Channel-Pl->Xmin[Pl->ActiveData])/
@@ -2102,6 +1785,9 @@ void DrawPeakLabel(struct TrackPlot *Pl, float *Channel){
    (float)(Pl->Xmax[Pl->ActiveData]-Pl->Xmin[Pl->ActiveData]+1);
  x/=2.0000;
  i=Pl->Imin[Pl->ActiveData]+(x*(float)(Pl->Imax[Pl->ActiveData]-Pl->Imin[Pl->ActiveData]+1));
+ if (i < 0) i = 0;
+ if (i >= Pl->Np[Pl->ActiveData]) i = Pl->Np[Pl->ActiveData] - 1;
+ if (i < 0) return;
  x=Pl->x1+x*(Pl->x2-Pl->x1);
   
  font(GLW_FONTID12);
@@ -2119,7 +1805,7 @@ void DrawPeakLabel(struct TrackPlot *Pl, float *Channel){
  else en=*Channel;
  
  
- sprintf(PeakLabel,"%-.1f\0",en);
+ sprintf(PeakLabel,"%-.1f",en);
  yy=(Pl->y2-Pl->y1)/pixelsizeY;
  
  if( (yy-FontHeight)<=6 )return;
@@ -2138,30 +1824,47 @@ void DrawPeakLabel(struct TrackPlot *Pl, float *Channel){
  r=pixelsizeY*(float)(stick/2+2);
  if(Pl->y1 > y-r)y=Pl->y1+r;
  
+ float stick_x = x;
+ float stick_y1 = y - pixelsizeY*(float)(stick/2);
+ float stick_y2 = stick_y1 + pixelsizeY*stick;
+
+ float text_y = y + pixelsizeY*(float)(FontHeight/2+2);
+ float text_r = pixelsizeX*(float)(strwidth(PeakLabel)/2+1);
+ if(2*text_r > (Pl->x2-Pl->x1) )return;
+ float text_x = x;
+ if(Pl->x1 > text_x-text_r) text_x = Pl->x1+text_r;
+ if(Pl->x2 < text_x+text_r) text_x = Pl->x2-text_r; 
+ text_x -= text_r;
+
  color(YELLOW);
- r=pixelsizeY*(float)(stick/2);
- y-=r; move2(x,y); 
- y+=pixelsizeY*stick; draw2(x,y);
- 
- y+=pixelsizeY*(float)(FontHeight/2+2);
- r=pixelsizeX*(float)(strwidth(PeakLabel)/2+1);
- if(2*r > (Pl->x2-Pl->x1) )return;
- if(Pl->x1 > x-r)x=Pl->x1+r;
- if(Pl->x2 < x+r)x=Pl->x2-r; 
- 
- x-=r; cmov2(x,y);
+ move2(stick_x, stick_y1); 
+ draw2(stick_x, stick_y2);
+ cmov2(text_x, text_y);
  font(GLW_FONTID12);
  charstr(PeakLabel);
  font(GLW_FONTID14);
+
+ if (!_in_redraw_window) {
+   frontbuffer(1);
+   color(YELLOW);
+   move2(stick_x, stick_y1); 
+   draw2(stick_x, stick_y2);
+   cmov2(text_x, text_y);
+   font(GLW_FONTID12);
+   charstr(PeakLabel);
+   font(GLW_FONTID14);
+   backbuffer(1);
+   gflush();
+ }
  }
   
 
 void DrawNumberedPeakLabel(struct TrackPlot *Pl, float *Channel, Int32 N, Int32 LabelColor){
 
- Int32 xWp,yWp,FontHeight,yy,stick,i,j;
+ Int32 FontHeight,yy,stick,i,j;
  char PeakLabel[20];
  float x,y,r,pixelsizeX,pixelsizeY,en;
- float *data;
+ float *data = NULL;
 
  if(Pl == NULL)return;
  if(Pl->Draw[Pl->ActiveData] == 0)return;
@@ -2174,6 +1877,7 @@ void DrawNumberedPeakLabel(struct TrackPlot *Pl, float *Channel, Int32 N, Int32 
    case 1: {data=Pl->logdata[Pl->ActiveData];  break;}
    case 2: {data=Pl->sqrtdata[Pl->ActiveData]; break;}
    }
+ if (data == NULL) return;
 
  
  x=(float)(*Channel-Pl->Xmin[Pl->ActiveData])/
@@ -2182,6 +1886,9 @@ void DrawNumberedPeakLabel(struct TrackPlot *Pl, float *Channel, Int32 N, Int32 
    (float)(Pl->Xmax[Pl->ActiveData]-Pl->Xmin[Pl->ActiveData]+1);
  x/=2.0000;
  i=Pl->Imin[Pl->ActiveData]+(x*(float)(Pl->Imax[Pl->ActiveData]-Pl->Imin[Pl->ActiveData]+1));
+ if (i < 0) i = 0;
+ if (i >= Pl->Np[Pl->ActiveData]) i = Pl->Np[Pl->ActiveData] - 1;
+ if (i < 0) return;
  x=Pl->x1+x*(Pl->x2-Pl->x1);
   
  font(GLW_FONTID12);
@@ -2197,7 +1904,7 @@ void DrawNumberedPeakLabel(struct TrackPlot *Pl, float *Channel, Int32 N, Int32 
    en+=pow(r,0.5000000)*(*(Track.ecal+6));
    }
  else en=*Channel;
- sprintf(PeakLabel,"[%d]%-.1f\0",N,en);
+ sprintf(PeakLabel,"[%d]%-.1f",N,en);
  yy=(Pl->y2-Pl->y1)/pixelsizeY;
  
  if( (yy-FontHeight)<=6 )return;
@@ -2214,21 +1921,38 @@ void DrawNumberedPeakLabel(struct TrackPlot *Pl, float *Channel, Int32 N, Int32 
  r=pixelsizeY*(float)(stick/2+2);
  if(Pl->y1 > y-r)y=Pl->y1+r;
  
+ float stick_x = x;
+ float stick_y1 = y - pixelsizeY*(float)(stick/2);
+ float stick_y2 = stick_y1 + pixelsizeY*stick;
+
+ float text_y = y + pixelsizeY*(float)(FontHeight/2+2);
+ float text_r = pixelsizeX*(float)(strwidth(PeakLabel)/2+1);
+ if(2*text_r > (Pl->x2-Pl->x1) )return;
+ float text_x = x;
+ if(Pl->x1 > text_x-text_r) text_x = Pl->x1+text_r;
+ if(Pl->x2 < text_x+text_r) text_x = Pl->x2-text_r; 
+ text_x -= text_r;
+
  color(LabelColor);
- r=pixelsizeY*(float)(stick/2);
- y-=r; move2(x,y); 
- y+=pixelsizeY*stick; draw2(x,y);
- 
- y+=pixelsizeY*(float)(FontHeight/2+2);
- r=pixelsizeX*(float)(strwidth(PeakLabel)/2+1);
- if(2*r > (Pl->x2-Pl->x1) )return;
- if(Pl->x1 > x-r)x=Pl->x1+r;
- if(Pl->x2 < x+r)x=Pl->x2-r; 
- 
- x-=r; cmov2(x,y);
+ move2(stick_x, stick_y1); 
+ draw2(stick_x, stick_y2);
+ cmov2(text_x, text_y);
  font(GLW_FONTID12);
  charstr(PeakLabel);
  font(GLW_FONTID14);
+
+ if (!_in_redraw_window) {
+   frontbuffer(1);
+   color(LabelColor);
+   move2(stick_x, stick_y1); 
+   draw2(stick_x, stick_y2);
+   cmov2(text_x, text_y);
+   font(GLW_FONTID12);
+   charstr(PeakLabel);
+   font(GLW_FONTID14);
+   backbuffer(1);
+   gflush();
+ }
  }
   
 
@@ -2237,51 +1961,43 @@ void DrawPlot(struct TrackPlot *Pl){
  Int32 i;
 
  if(Pl == NULL)return;
- if( _DB_Off ){
-   backbuffer(1); _DB_Off = 0;
-   if(Pl->ClearBeforeDraw){
-     color(GLW_DRAWBG);
-     rectf(Pl->x1, Pl->y1,
-  	   Pl->x2, Pl->y2);
-     }
-   
-   if( Pl == CrtPlot )DrawActivePlotFrame(Pl);
-   else DrawPlotFrame(Pl);
-   
-   for(i=0; i<7; i++)DrawSubPlot(Pl,i);
-   swapbuffers();
-   if(Pl->ClearBeforeDraw){
-     color(GLW_DRAWBG);
-     rectf(Pl->x1, Pl->y1,
-  	   Pl->x2, Pl->y2);
-     }
-   
-   if( Pl == CrtPlot )DrawActivePlotFrame(Pl);
-   else DrawPlotFrame(Pl);
-   
-   for(i=0; i<7; i++)DrawSubPlot(Pl,i);
-   frontbuffer(1); _DB_Off = 1;
-  }
- else {
-   if(Pl->ClearBeforeDraw){
-     color(GLW_DRAWBG);
-     rectf(Pl->x1, Pl->y1,
-  	   Pl->x2, Pl->y2);
-     }
-   
-   if( Pl == CrtPlot )DrawActivePlotFrame(Pl);
-   else DrawPlotFrame(Pl);
-   
-   for(i=0; i<7; i++)DrawSubPlot(Pl,i);
-  }    
+
+ if(Pl->ClearBeforeDraw || _in_redraw_window){
+   color(GLW_DRAWBG);
+   rectf(Pl->x1, Pl->y1,
+	 Pl->x2, Pl->y2);
  }
+ 
+ for(i=0; i<7; i++)DrawSubPlot(Pl,i);
+
+ if( Pl->Peak ) {
+    PeakLabel *pk;
+    pk = Pl->Peak;
+    while( pk ){
+       DrawPeakLabel ( Pl, &pk->Channel );
+       pk = pk->Next;
+    }
+ }
+
+ if( Pl->NumPeak ) {
+    NumPeakLabel *npk;
+    npk = Pl->NumPeak;
+    while( npk ){
+       DrawNumberedPeakLabel ( Pl, &npk->Channel, npk->N, npk->LabelColor );
+       npk = npk->Next;
+    }
+ }
+
+ if( Pl == CrtPlot )DrawActivePlotFrame(Pl);
+ else DrawPlotFrame(Pl);
+}
  
 
 void DrawSubPlot(struct TrackPlot *Pl, Int32 Index){
 
   float stepX,stepY,r1,r2,x1,x2,step;
   Coord x,y;
-  int i,i1,i2, nn, ii, ii1, ii2, kk1, kk2;
+  int i,i1,i2, nn, ii, ii2;
   float *data;
 
   if(Pl->data[Index] == NULL)return;
@@ -2336,19 +2052,13 @@ void DrawSubPlot(struct TrackPlot *Pl, Int32 Index){
   stepX *= nn;
   x1 = x2 = y;
   for(i=i1; i<=i2 ; i+=nn){
-/*       x+=stepX;
-       y=Pl->y1+stepY*(data[i]-Pl->Ymin) ;
-*/       
        r1 = data[i];
        r2 = data[i];
-       kk1 = i;
-       kk2 = i;
        ii2 = (i+nn < i2)?(i+nn):i2+1;
-       ii1 = (i-1 > i1)?(i-1):i1;
        
        for( ii = i; ii < ii2; ii++ ) {
-         if(data[ii] > r1){ r1 = data[ii]; kk1 = ii; }
-         if(data[ii] < r2){ r2 = data[ii]; kk2 = ii; }
+         if(data[ii] > r1) r1 = data[ii];
+         if(data[ii] < r2) r2 = data[ii];
        }
 /*       
        if( kk1 < kk2 ) { r1 = data[kk1]; r2 = data[kk2]; }
@@ -2393,29 +2103,6 @@ void DrawSubPlot(struct TrackPlot *Pl, Int32 Index){
        x-= stepX;
        }
   }
-  
-  if( Pl->Peak ) {
-     PeakLabel *pk;
-     pk = Pl->Peak;
-     while( pk ){
-        DrawPeakLabel ( Pl, &pk->Channel );
-	pk = pk->Next;
-     }
-  }
-
-  if( Pl->NumPeak ) {
-     NumPeakLabel *npk;
-     npk = Pl->NumPeak;
-     while( npk ){
-        DrawNumberedPeakLabel ( Pl, &npk->Channel, npk->N, npk->LabelColor );
-	npk = npk->Next;
-     }
-  }
-  
-  if( Pl == CrtPlot )DrawActivePlotFrame(Pl);
-  else DrawPlotFrame(Pl);
-  /*qreset();sleep(0);
-  XSync((Display *)getXdpy(),False);*/
  }
 
 void SetPlotData(Int32 Index, Int32 *Np,
@@ -2469,29 +2156,39 @@ void SetPlotData(Int32 Index, Int32 *Np,
 
 void DrawPlotFrame(struct TrackPlot *Pl){
 
-  color(GLW_LABELCOLOR_2);
+  if (Pl == NULL) return;
   backbuffer(1);
+  color(GLW_LABELCOLOR_2);
   rect(Pl->x1,Pl->y1,Pl->x2,Pl->y2);
-  frontbuffer(1);
-  rect(Pl->x1,Pl->y1,Pl->x2,Pl->y2);
-  if( !_DB_Off )backbuffer(1);
+  if (!_in_redraw_window) {
+    frontbuffer(1);
+    color(GLW_LABELCOLOR_2);
+    rect(Pl->x1,Pl->y1,Pl->x2,Pl->y2);
+    backbuffer(1);
+    gflush();
+  }
  }
 
 void DrawActivePlotFrame(struct TrackPlot *Pl){
 
-  color(WHITE);
+  if (Pl == NULL) return;
   backbuffer(1);
+  color(WHITE);
   rect(Pl->x1,Pl->y1,Pl->x2,Pl->y2);
-  frontbuffer(1);
-  rect(Pl->x1,Pl->y1,Pl->x2,Pl->y2);
-  if( !_DB_Off )backbuffer(1);
+  if (!_in_redraw_window) {
+    frontbuffer(1);
+    color(WHITE);
+    rect(Pl->x1,Pl->y1,Pl->x2,Pl->y2);
+    backbuffer(1);
+    gflush();
+  }
  }
 
 
 struct TrackPlot* TrackPlotMap(Int32 Row, Int32 Col){
 
  Int32 Nplots, i,j;
- float x1,x2,y1,y2,pixelsizeX,pixelsizeY,tX0,tX1,tY0,tY1,stepX,stepY;
+ float pixelsizeX,pixelsizeY,tX0,tX1,tY0,tY1,stepX,stepY;
  struct TrackPlot *p,*Plot0;
   
  if( (Row <= 0) || (Col <= 0) )return NULL;
@@ -2512,8 +2209,8 @@ struct TrackPlot* TrackPlotMap(Int32 Row, Int32 Col){
  if(Nplots == NofPlots){
     for(i=0; i<Row; i++){
       for(j=0; j<Col; j++){
-          (*p).x1=tX0+stepX*j; p->x2 = tX0+stepX*(j+1); /*(*p).x2=(*p).x1+stepX;*/
-	  (*p).y2=tY1-stepY*i; p->y1 = tY1-stepY*(i+1); /*(*p).y1=(*p).y2-stepY;*/
+          (*p).x1=tX0+stepX*j; p->x2 = tX0+stepX*(j+1);
+	  (*p).y2=tY1-stepY*i; p->y1 = tY1-stepY*(i+1);
 	  p=(*p).Next;
 	  }
       }
@@ -2524,32 +2221,11 @@ struct TrackPlot* TrackPlotMap(Int32 Row, Int32 Col){
 
  
  if( (Nplots < NofPlots)&&(Plot != NULL) ){
-    i=0;
-    for(p=Plot; (i<Nplots)&&(p->Next != NULL); i++)p=p->Next;
-    Plot0=p;
-    for(p=Plot; (p->Next != Plot0); i++)p=p->Next;
+    p=Plot;
+    for(i=1; (i<Nplots)&&(p->Next != NULL); i++) p=p->Next;
+    Plot0=p->Next;
     p->Next=NULL;
-    KillPlots(Plot0);
-/*   while(Plot0 != NULL){
-      p=Plot0; 
-      if(p->Next){
-        while( (*(*p).Next).Next != NULL) p=(*p).Next;
-          for(i=0; i<7; i++){
-             free(p->Next->data[i]); free(p->Next->logdata[i]);
-	     free(p->Next->sqrtdata[i]);
-	     free(p->Next->err[i]); free(p->Next->Comment);
-	     }
-        p->Next=(struct TrackPlot *)realloc((void *)p->Next,0);
-        }
-      if(p=Plot0){
-          for(i=0; i<7; i++){
-             free(Plot0->data[i]); free(Plot0->logdata[i]);
-	     free(Plot0->sqrtdata[i]);
-	     free(Plot0->err[i]); free(Plot0->Comment);
-	     }
-          Plot0=(struct TrackPlot *)realloc((void *)Plot0,0);
-	  }
-      } */
+    if (Plot0) KillPlots(Plot0);
     }
     
  if(Plot == NULL){   
@@ -2574,9 +2250,9 @@ struct TrackPlot* TrackPlotMap(Int32 Row, Int32 Col){
        return Plot;
        }
     j=i%Col;
-    (*p).x1=tX0+stepX*j; p->x2 = tX0+stepX*(j+1);   /*(*p).x2=(*p).x1+stepX;*/
+    (*p).x1=tX0+stepX*j; p->x2 = tX0+stepX*(j+1);
     j=i/Col;
-    (*p).y2=tY1-stepY*j; p->y1 = tY1-stepY*(j+1);   /*(*p).y1=(*p).y2-stepY;*/
+    (*p).y2=tY1-stepY*j; p->y1 = tY1-stepY*(j+1);
     (*p).ClearBeforeDraw=True;
     p->Color[0]=WHITE;
     p->Color[1]=RED;
@@ -2587,15 +2263,10 @@ struct TrackPlot* TrackPlotMap(Int32 Row, Int32 Col){
     p->Color[6]=MAGENTA;
     if(p->Comment == NULL){
        p->Comment=(char *)realloc(p->Comment,7);
-       sprintf(p->Comment,"<none>\0");
+       sprintf(p->Comment,"<none>");
        p->FileFormat = -1;
        }
     p=p->Next;
-    /*for(j=0; j<7; j++)p->Draw[j]=False;*/
-/*    if(i<Nplots-1){p->Next=(struct TrackPlot *)calloc(1,sizeof(struct TrackPlot));
-      p=p->Next;
-      p->Next=NULL;
-      } */
     }
   Plot->Row=Row;
   Plot->Col=Col;
@@ -2607,91 +2278,49 @@ struct TrackPlot* TrackPlotMap(Int32 Row, Int32 Col){
 
 void KillPlots(struct TrackPlot* Plot0){
 
-  struct TrackPlot* p;
-  int i;
-
-   while(Plot0 != NULL){
-      p=Plot0; 
-      if(p->Next){
-          while( (p->Next)->Next != NULL) p=p->Next;
-          for(i=0; i<7; i++){
-	    if(p->Next->data[i]){
-             free(p->Next->data[i]); free(p->Next->logdata[i]);
-	     free(p->Next->sqrtdata[i]);
-	     free(p->Next->err[i]);
-	     }
-	    }
-          if(p->Next->Comment) free(p->Next->Comment);
-	  if(p->Next->LastFile) free(p->Next->LastFile);
-          p->Next=(struct TrackPlot *)realloc((void *)p->Next,0);p->Next=NULL;
-        }
-      if(p == Plot0){
-          for(i=0; i<7; i++){
-	    if(Plot0->data[i]){
-             Plot0->data[i]=(float *)realloc(Plot0->data[i],0); free(Plot0->logdata[i]);
-	     free(Plot0->sqrtdata[i]);
-	     free(Plot0->err[i]);
-	     }
-	    }
-          if(Plot0->Comment) free(Plot0->Comment);
-          if(Plot0->LastFile) free(Plot0->LastFile);
-          Plot0=(struct TrackPlot *)realloc((void *)Plot0,0);Plot0=NULL;
-	  }
-      }
+  struct TrackPlot* p = Plot0;
+  while (p != NULL) {
+    struct TrackPlot *next = p->Next;
+    int i;
+    KillAllPeakLabels(p);
+    for (i = 0; i < 7; i++) {
+      if (p->data[i]) { free(p->data[i]); p->data[i] = NULL; }
+      if (p->logdata[i]) { free(p->logdata[i]); p->logdata[i] = NULL; }
+      if (p->sqrtdata[i]) { free(p->sqrtdata[i]); p->sqrtdata[i] = NULL; }
+      if (p->err[i]) { free(p->err[i]); p->err[i] = NULL; }
+    }
+    if (p->Comment) { free(p->Comment); p->Comment = NULL; }
+    if (p->LastFile) { free(p->LastFile); p->LastFile = NULL; }
+    free(p);
+    p = next;
+  }
  }
 
 void KillAllPeakLabels( struct TrackPlot* p ){
 
-   struct PeakLabel* pk;
-   struct NumPeakLabel *npk;
-   
    if( p ){
-   while ( p->Peak ){   
-      pk = p->Peak;
-      if( pk->Next ) {
-         while( pk->Next->Next ) pk = pk->Next;
-	 free( pk->Next );
-	 pk->Next = NULL;
-      }
-      else {
-         free ( pk );
-	 p->Peak = NULL;
-      }
-    }
+     while ( p->Peak ){   
+       struct PeakLabel *next = p->Peak->Next;
+       free( p->Peak );
+       p->Peak = next;
+     }
 
-   while ( p->NumPeak ){   
-      npk = p->NumPeak;
-      if( npk->Next ) {
-         while( npk->Next->Next ) npk = npk->Next;
-	 free( npk->Next );
-	 npk->Next = NULL;
-      }
-      else {
-         free ( npk );
-	 p->NumPeak = NULL;
-      }
-    }
-  }    
+     while ( p->NumPeak ){   
+       struct NumPeakLabel *next = p->NumPeak->Next;
+       free( p->NumPeak );
+       p->NumPeak = next;
+     }
+   }    
  }  
 
 void KillPeakLabels( struct TrackPlot* p ){
 
-   struct PeakLabel* pk;
-   struct NumPeakLabel *npk;
-   
    if( p ){
-   while ( p->Peak ){   
-      pk = p->Peak;
-      if( pk->Next ) {
-         while( pk->Next->Next ) pk = pk->Next;
-	 free( pk->Next );
-	 pk->Next = NULL;
-      }
-      else {
-         free ( pk );
-	 p->Peak = NULL;
-      }
-    }
+     while ( p->Peak ){   
+       struct PeakLabel *next = p->Peak->Next;
+       free( p->Peak );
+       p->Peak = next;
+     }
    }
 }
 
@@ -2746,13 +2375,11 @@ void AddNumPeakLabel ( struct TrackPlot* p , float Channel, int N, Int32 LabelCo
 */
 void ClosestColor ( Int16 *r, Int16 *g, Int16 *b){
 
- Int16 rr,gg,bb;
  Int16 rd,gd,bd;
  Int16 RedB=0,GreenB=0,BlueB=255;
  XColor c[256];
- unsigned long pixels[2];
  int chq,Schq;
- int Depth,ii,jj,kk;
+ int ii,jj,kk;
 
  if( usePCMAP() ) return;
 
@@ -2764,7 +2391,6 @@ void ClosestColor ( Int16 *r, Int16 *g, Int16 *b){
  if(XAllocColor(DD,DefaultColormap(DD,DefaultScreen(DD)),&c[0]))return;
 
  kk = 1; kk <<=DefaultDepth(DD,DefaultScreen(DD));
-/* printf(" Depth : %d\n",DefaultDepth(DD,DefaultScreen(DD))); */
  kk /=256;
  
  
@@ -2797,17 +2423,42 @@ void ClosestColor ( Int16 *r, Int16 *g, Int16 *b){
 #undef DoRGB
 } 
 
+static unsigned long GetFramePixel(Display *dpy, Window win, Int16 rr, Int16 gg, Int16 bb) {
+  XWindowAttributes wa;
+  if (dpy && win && XGetWindowAttributes(dpy, win, &wa)) {
+    XColor xc;
+    xc.red   = (unsigned short)(rr << 8);
+    xc.green = (unsigned short)(gg << 8);
+    xc.blue  = (unsigned short)(bb << 8);
+    xc.flags = DoRed | DoGreen | DoBlue;
+    if (XAllocColor(dpy, wa.colormap, &xc)) {
+      return xc.pixel;
+    }
+  }
+  return (dpy ? BlackPixel(dpy, DefaultScreen(dpy)) : 0);
+}
+
 void MapGLWcolors(void){
 
- Int16 k1,k2,k3;
- Colorindex i;
- char ColorString[20];
- char *ColorName = &ColorString[0];
  Int16 rr,gg,bb;
+ Display *dpy = (Display *)getXdpy();
+ Window win = (Window)getXwid();
  
  rr=112; gg=128; bb=144;
  ClosestColor( &rr, &gg, &bb);  
  mapcolor(GLW_FRAMECOLOR ,rr, gg, bb);
+
+ if (dpy && win) {
+   _global_FramePixel = getXpixel(GLW_FRAMECOLOR);
+   if (_global_FramePixel == 0) {
+     _global_FramePixel = GetFramePixel(dpy, win, rr, gg, bb);
+   }
+   XSetWindowAttributes xwa;
+   xwa.bit_gravity = NorthWestGravity;
+   xwa.background_pixel = _global_FramePixel;
+   XChangeWindowAttributes(dpy, win, CWBitGravity | CWBackPixel, &xwa);
+   XSetWindowBackground(dpy, win, _global_FramePixel);
+ }
 
  rr=47; gg=79; bb=79;
  ClosestColor( &rr, &gg, &bb);  
@@ -2829,23 +2480,22 @@ void MapGLWcolors(void){
 
 void LoadGLWfont(void){
 
-  Int32 startW, startH, FontSize;
+  Int32 startH, FontSize;
   char FontName[80];
   
   startH = XDisplayHeight( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) ); 
-  startW = XDisplayWidth ( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) );
   
    GLW_FRAMEWIDTH = 0.020 *(float) startH + 62.00;
    GLW_FRAMEWIDTH += GLW_FRAMEWIDTH%2;
    FontSize = (float)startH * 0.0577 + 45.0;
    FontSize -= FontSize%20 -20;
    if( FontSize > 180 ) FontSize = 180;
-    if( FontSize == 160 ) FontSize = 140;
+   if( FontSize == 160 ) FontSize = 140;
   
-   sprintf( FontName, "-*-charter-medium-r-*-*-0-%.2d-0-0-p-0-iso8859-1\0", FontSize-20); 
+   sprintf( FontName, "-*-charter-medium-r-*-*-0-%.2d-0-0-p-0-iso8859-1", FontSize-20); 
    loadXfont(GLW_FONTID12, FontName );
 
-   sprintf( FontName, "-*-charter-medium-r-*-*-0-%.2d-0-0-p-0-iso8859-1\0", FontSize); 
+   sprintf( FontName, "-*-charter-medium-r-*-*-0-%.2d-0-0-p-0-iso8859-1", FontSize); 
    loadXfont(GLW_FONTID14, FontName );
 
 /*
@@ -2886,20 +2536,50 @@ void MapDisplayWindow(struct DisplayWindow *dw){
 
 void SetMouseShape(unsigned int shape){
 
- static Cursor MouseShape;
- static XColor bg,fg;
- static unsigned int CrtShape;
+  static Cursor cursor_left = None;
+  static Cursor cursor_cross = None;
+  static Cursor cursor_arrow = None;
+  static unsigned int CrtShape = 0;
+  Display *dpy = (Display *)getXdpy();
+  Window win = (Window)getXwid();
+  Cursor target = None;
 
-  if(shape == CrtShape)return;
-  
-  bg.red = 0 ; bg.green = 0     ; bg.blue  = 0;
-  fg.red = 0xcfff; fg.green = 0xdfff; fg.blue  = 0xffff     ;
+  if (dpy == NULL || win == 0) return;
+  if (shape == CrtShape) return;
 
-  MouseShape=XCreateFontCursor( (Display *)getXdpy(),shape); 
-  XRecolorCursor((Display *)getXdpy(),MouseShape,&fg,&bg);
-  XDefineCursor((Display *)getXdpy(),getXwid(),MouseShape);
-  CrtShape=shape;
- }
+  if (shape == XC_left_ptr) {
+    if (cursor_left == None) {
+      XColor bg = {0, 0, 0, 0, 0, 0};
+      XColor fg = {0, 0xcfff, 0xdfff, 0xffff, 0, 0};
+      cursor_left = XCreateFontCursor(dpy, XC_left_ptr);
+      XRecolorCursor(dpy, cursor_left, &fg, &bg);
+    }
+    target = cursor_left;
+  } else if (shape == XC_crosshair) {
+    if (cursor_cross == None) {
+      XColor bg = {0, 0, 0, 0, 0, 0};
+      XColor fg = {0, 0xcfff, 0xdfff, 0xffff, 0, 0};
+      cursor_cross = XCreateFontCursor(dpy, XC_crosshair);
+      XRecolorCursor(dpy, cursor_cross, &fg, &bg);
+    }
+    target = cursor_cross;
+  } else if (shape == XC_double_arrow) {
+    if (cursor_arrow == None) {
+      XColor bg = {0, 0, 0, 0, 0, 0};
+      XColor fg = {0, 0xcfff, 0xdfff, 0xffff, 0, 0};
+      cursor_arrow = XCreateFontCursor(dpy, XC_double_arrow);
+      XRecolorCursor(dpy, cursor_arrow, &fg, &bg);
+    }
+    target = cursor_arrow;
+  } else {
+    target = XCreateFontCursor(dpy, shape);
+  }
+
+  if (target != None) {
+    XDefineCursor(dpy, win, target);
+    CrtShape = shape;
+  }
+}
   
 
 int MouseInDisplayWindow(struct DisplayWindow *dw){
@@ -2991,9 +2671,10 @@ int MouseInButton( struct ButtonInFrame l){
 
 struct DataValues *Values(struct DisplayWindow *dw){
   
-  struct  TrackPlot *p;
+  struct TrackPlot *p;
   float x,y;
   Int32 xWp,yWp, xW0,yW0;
+  int ch, max_ch;
   
   static struct DataValues v;
   
@@ -3014,11 +2695,16 @@ struct DataValues *Values(struct DisplayWindow *dw){
   y-=p->y1; y/=(p->y2-p->y1);
   y*=p->Ymax-p->Ymin; y+=p->Ymin;
 
-  v.Channel=x;
-  v.Energy=x;
-  v.Counts=p->data[p->ActiveData][v.Channel];
-  v.Y=y;
-  v.Plot=p;
+  ch = (int)x;
+  max_ch = p->Np[p->ActiveData] - 1;
+  if (ch < 0) ch = 0;
+  if (max_ch >= 0 && ch > max_ch) ch = max_ch;
+
+  v.Channel = ch;
+  v.Energy = x;
+  v.Counts = (max_ch >= 0) ? p->data[p->ActiveData][ch] : 0.0f;
+  v.Y = y;
+  v.Plot = p;
   return &v;
  }
 
@@ -3075,37 +2761,34 @@ void WriteInLabel(LabelInFrame L){
 
  float xf1,xf2,yf1,yf2,pixelsizeX,pixelsizeY,height,width;
 
+ if (L.Text == NULL) return;
+
  pixelsizeX = _global_px;
  pixelsizeY = _global_py;
 
- color(L.bgcolor);
-
  xf1 = L.x1+3.0*pixelsizeX;  xf2 = L.x2-3.0*pixelsizeX;
  yf1 = L.y1+3.0*pixelsizeY;  yf2 = L.y2-3.0*pixelsizeY;
- backbuffer(1);
- rectf(xf1,yf1,xf2,yf2);
- if( !_global_ForceRedraw ){
-      frontbuffer(1);
-      rectf(xf1,yf1,xf2,yf2);
- }
 
  height=(yf2-yf1-(getheight()-getdescender()-2)*pixelsizeY)/2.0;
  width=(xf2-xf1-strwidth(L.Text)*pixelsizeX)/2.0;
 
- color(L.fgcolor);
-
- xf1 += width; 
- yf1 += height; 
- 
- cmov2(xf1,yf1);
  backbuffer(1);
+ color(L.bgcolor);
+ rectf(xf1,yf1,xf2,yf2);
+ color(L.fgcolor);
+ cmov2(xf1+width, yf1+height);
  charstr(L.Text);
- if( !_global_ForceRedraw ){
-     cmov2(xf1,yf1);
-     frontbuffer(1);
-     charstr(L.Text);
+
+ if (!_in_redraw_window) {
+   frontbuffer(1);
+   color(L.bgcolor);
+   rectf(xf1,yf1,xf2,yf2);
+   color(L.fgcolor);
+   cmov2(xf1+width, yf1+height);
+   charstr(L.Text);
+   backbuffer(1);
+   gflush();
  }
- if( !_DB_Off )backbuffer(1);
  }
  
 
@@ -3114,6 +2797,8 @@ void DrawButton(ButtonInFrame L){
  float xf1,xf2,yf1,yf2,pixelsizeX,pixelsizeY,height,width;
  Int32 n;
  Coord LabelBorder[4][2];
+
+ if (L.Text == NULL) return;
 
  color(L.bgcolor);
  pixelsizeX = _global_px;
@@ -3191,7 +2876,7 @@ void DrawButton(ButtonInFrame L){
     xf1 -= width; 
     yf1 -= height; 
     L.Push=0;
-    while( getbutton(LEFTMOUSE) || getbutton(MENUBUTTON) ) ;
+    while( getbutton(LEFTMOUSE) || getbutton(MENUBUTTON) ) usleep(10000);
    }
  color(L.bgcolor);
 
@@ -3280,16 +2965,11 @@ void DrawTrackFrame(Int32 win){
  float x,y1,y2,pixelsizeX,pixelsizeY;
  
  winset(win);
- reshapeviewport();
- /*color(GLW_DRAWBG); clear();*/
  getsize(&x1Wp,&y1Wp);
- _global_px = x1Wp;
- _global_px /= (double)GLW_MINXSIZE;
- _global_px = ((double)1.0000000000)/_global_px;
-
- _global_py = y1Wp;
- _global_py /= (double)GLW_MINYSIZE;
- _global_py = ((double)1.0000000000)/_global_py;
+ if (x1Wp > 0 && y1Wp > 0) {
+   _global_px = (double)GLW_MINXSIZE / (double)x1Wp;
+   _global_py = (double)GLW_MINYSIZE / (double)y1Wp;
+ }
 
  pixelsizeX = _global_px;
  pixelsizeY = _global_py;
@@ -3382,10 +3062,10 @@ void DrawTrackFrame(Int32 win){
  if(TrackCursorYValue.Text == NULL)TrackCursorYValue.Text=(char *)calloc(20,sizeof(char));
  DrawLabel(TrackCursorYValue);
 
-  sprintf(TrackChannelValue.Text,"Channel \0");
-  sprintf(TrackEnergyValue.Text,"Energy \0");
-  sprintf(TrackCountsValue.Text,"Counts \0");
-  sprintf(TrackCursorYValue.Text,"Y \0");
+  sprintf(TrackChannelValue.Text,"Channel ");
+  sprintf(TrackEnergyValue.Text,"Energy ");
+  sprintf(TrackCountsValue.Text,"Counts ");
+  sprintf(TrackCursorYValue.Text,"Y ");
   WriteInLabel(TrackChannelValue);
   WriteInLabel(TrackEnergyValue);
   WriteInLabel(TrackCountsValue); 
@@ -3401,8 +3081,7 @@ void DrawTrackFrame(Int32 win){
  TrackDisplayed.y2=y1Wp+y2;
  TrackDisplayed.bgcolor=GLW_LABELCOLOR_1;
  TrackDisplayed.fgcolor=BLACK;
- if(TrackDisplayed.Text == NULL)TrackDisplayed.Text=(char *)calloc(7,sizeof(char));
- TrackDisplayed.Text="<none>\0";
+ if(TrackDisplayed.Text == NULL) TrackDisplayed.Text="<none>";
  DrawLabel(TrackDisplayed); WriteInLabel(TrackDisplayed);
 
  TrackNewSpec.x1=x1Wp+x/18.0;
@@ -3413,8 +3092,7 @@ void DrawTrackFrame(Int32 win){
  TrackNewSpec.pushcolor=GLW_FRAMECOLOR;
  TrackNewSpec.Push=0;
  TrackNewSpec.fgcolor=CYAN;
- if(TrackNewSpec.Text == NULL)TrackNewSpec.Text=(char *)calloc(2,sizeof(char));
- TrackNewSpec.Text="R\0";
+ TrackNewSpec.Text="R";
  DrawButton(TrackNewSpec);
 
  TrackWriteSpec.x1=x1Wp+x/9.0;
@@ -3425,8 +3103,7 @@ void DrawTrackFrame(Int32 win){
  TrackWriteSpec.pushcolor=GLW_FRAMECOLOR;
  TrackWriteSpec.Push=0;
  TrackWriteSpec.fgcolor=CYAN;
- if(TrackWriteSpec.Text == NULL)TrackWriteSpec.Text=(char *)calloc(2,sizeof(char));
- TrackWriteSpec.Text="W\0";
+ TrackWriteSpec.Text="W";
  DrawButton(TrackWriteSpec);
 
 
@@ -3438,8 +3115,7 @@ void DrawTrackFrame(Int32 win){
  TrackDecSpec.pushcolor=GLW_FRAMECOLOR;
  TrackDecSpec.Push=0;
  TrackDecSpec.fgcolor=CYAN;
- if(TrackDecSpec.Text == NULL)TrackDecSpec.Text=(char *)calloc(4,sizeof(char));
- TrackDecSpec.Text="# -\0";
+ TrackDecSpec.Text="# -";
  DrawButton(TrackDecSpec);
 
  TrackIncSpec.x1=x1Wp+x/4.50;
@@ -3450,8 +3126,7 @@ void DrawTrackFrame(Int32 win){
  TrackIncSpec.pushcolor=GLW_FRAMECOLOR;
  TrackIncSpec.Push=0;
  TrackIncSpec.fgcolor=CYAN;
- if(TrackIncSpec.Text == NULL)TrackIncSpec.Text=(char *)calloc(4,sizeof(char));
- TrackIncSpec.Text="# +\0";
+ TrackIncSpec.Text="# +";
  DrawButton(TrackIncSpec);
 
 
@@ -3478,7 +3153,7 @@ void DrawTrackFrame(Int32 win){
  TrackOutFile.fgcolor=BLACK;
  if(TrackOutFile.Text == NULL){
     TrackOutFile.Text=(char *)calloc(16,sizeof(char));
-    sprintf(TrackOutFile.Text,"-> <none>\0");
+    sprintf(TrackOutFile.Text,"-> <none>");
     }
  DrawLabel(TrackOutFile); WriteInLabel(TrackOutFile);
 
@@ -3491,8 +3166,7 @@ void DrawTrackFrame(Int32 win){
  TrackOpenCM.pushcolor=GLW_FRAMECOLOR;
  TrackOpenCM.Push=0;
  TrackOpenCM.fgcolor=CYAN;
- if(TrackOpenCM.Text == NULL)TrackOpenCM.Text=(char *)calloc(8,sizeof(char));
- TrackOpenCM.Text="Open CM\0";
+ TrackOpenCM.Text="Open CM";
  DrawButton(TrackOpenCM);
 
  TrackGateCM.x1=x1Wp+x/6.0;
@@ -3503,8 +3177,7 @@ void DrawTrackFrame(Int32 win){
  TrackGateCM.pushcolor=GLW_FRAMECOLOR;
  TrackGateCM.Push=0;
  TrackGateCM.fgcolor=CYAN;
- if(TrackGateCM.Text == NULL)TrackGateCM.Text=(char *)calloc(8,sizeof(char));
- TrackGateCM.Text="Gate CM\0";
+ TrackGateCM.Text="Gate CM";
  DrawButton(TrackGateCM);
 
 /* Left side buttons */
@@ -3520,8 +3193,7 @@ void DrawTrackFrame(Int32 win){
  TrackCal2P.pushcolor=GLW_FRAMECOLOR;
  TrackCal2P.Push=0;
  TrackCal2P.fgcolor=CYAN;
- if(TrackCal2P.Text == NULL)TrackCal2P.Text=(char *)calloc(6,sizeof(char));
- TrackCal2P.Text="Cal2P\0";
+ TrackCal2P.Text="Cal2P";
  DrawButton(TrackCal2P);
 
  y1=y2+ 2*pixelsizeY;
@@ -3534,8 +3206,7 @@ void DrawTrackFrame(Int32 win){
  TrackAutoTrace.pushcolor=GLW_FRAMECOLOR;
  TrackAutoTrace.Push=0;
  TrackAutoTrace.fgcolor=CYAN;
- if(TrackAutoTrace.Text == NULL)TrackAutoTrace.Text=(char *)calloc(3,sizeof(char));
- TrackAutoTrace.Text="DT\0";
+ TrackAutoTrace.Text="DT";
  DrawButton(TrackAutoTrace);
 
  y1=y2+ 2*pixelsizeY;
@@ -3548,8 +3219,7 @@ void DrawTrackFrame(Int32 win){
  TrackEnCal.pushcolor=GLW_FRAMECOLOR;
  TrackEnCal.Push=0;
  TrackEnCal.fgcolor=CYAN;
- if(TrackEnCal.Text == NULL)TrackEnCal.Text=(char *)calloc(6,sizeof(char));
- TrackEnCal.Text="EnCal\0";
+ TrackEnCal.Text="EnCal";
  DrawButton(TrackEnCal);
 
 
@@ -3566,8 +3236,7 @@ void DrawTrackFrame(Int32 win){
  TrackLeft.pushcolor=GLW_FRAMECOLOR;
  TrackLeft.Push=0;
  TrackLeft.fgcolor=CYAN;
- if(TrackLeft.Text == NULL)TrackLeft.Text=(char *)calloc(2,sizeof(char));
- TrackLeft.Text="<\0";
+ TrackLeft.Text="<";
  DrawButton(TrackLeft);
 
  TrackRight.x1=x2Wp-4.0*x;
@@ -3578,8 +3247,7 @@ void DrawTrackFrame(Int32 win){
  TrackRight.pushcolor=GLW_FRAMECOLOR;
  TrackRight.Push=0;
  TrackRight.fgcolor=CYAN;
- if(TrackRight.Text == NULL)TrackRight.Text=(char *)calloc(2,sizeof(char));
- TrackRight.Text=">\0";
+ TrackRight.Text=">";
  DrawButton(TrackRight);
 
  y1=y2+ 2*pixelsizeY;
@@ -3592,8 +3260,7 @@ void DrawTrackFrame(Int32 win){
  TrackSameY.pushcolor=GLW_FRAMECOLOR;
  TrackSameY.Push=0;
  TrackSameY.fgcolor=CYAN;
- if(TrackSameY.Text == NULL)TrackSameY.Text=(char *)calloc(3,sizeof(char));
- TrackSameY.Text="SY\0";
+ TrackSameY.Text="SY";
  DrawButton(TrackSameY);
  
  y1=y2+ 2*pixelsizeY;
@@ -3606,8 +3273,7 @@ void DrawTrackFrame(Int32 win){
  TrackSameX.pushcolor=GLW_FRAMECOLOR;
  TrackSameX.Push=0;
  TrackSameX.fgcolor=CYAN;
- if(TrackSameX.Text == NULL)TrackSameX.Text=(char *)calloc(3,sizeof(char));
- TrackSameX.Text="SX\0";
+ TrackSameX.Text="SX";
  DrawButton(TrackSameX);
  
  y1=y2+ 2*pixelsizeY;
@@ -3620,8 +3286,7 @@ void DrawTrackFrame(Int32 win){
  TrackAutoY.pushcolor=GLW_FRAMECOLOR;
  TrackAutoY.Push=0;
  TrackAutoY.fgcolor=CYAN;
- if(TrackAutoY.Text == NULL)TrackAutoY.Text=(char *)calloc(3,sizeof(char));
- TrackAutoY.Text="FY\0";
+ TrackAutoY.Text="FY";
  DrawButton(TrackAutoY);
 
  y1=y2+ 2*pixelsizeY;
@@ -3634,8 +3299,7 @@ void DrawTrackFrame(Int32 win){
  TrackAutoX.pushcolor=GLW_FRAMECOLOR;
  TrackAutoX.Push=0;
  TrackAutoX.fgcolor=CYAN;
- if(TrackAutoX.Text == NULL)TrackAutoX.Text=(char *)calloc(3,sizeof(char));
- TrackAutoX.Text="FX\0";
+ TrackAutoX.Text="FX";
  DrawButton(TrackAutoX);
 
  y1=y2+ 2*pixelsizeY;
@@ -3648,8 +3312,7 @@ void DrawTrackFrame(Int32 win){
  TrackAutoXY.pushcolor=GLW_FRAMECOLOR;
  TrackAutoXY.Push=0;
  TrackAutoXY.fgcolor=CYAN;
- if(TrackAutoXY.Text == NULL)TrackAutoXY.Text=(char *)calloc(3,sizeof(char));
- TrackAutoXY.Text="FF\0";
+ TrackAutoXY.Text="FF";
  DrawButton(TrackAutoXY);
 
  y1=y2+ 2*pixelsizeY;
@@ -3662,8 +3325,7 @@ void DrawTrackFrame(Int32 win){
  TrackLinLog.pushcolor=GLW_FRAMECOLOR;
  TrackLinLog.Push=0;
  TrackLinLog.fgcolor=CYAN;
- if(TrackLinLog.Text == NULL)TrackLinLog.Text=(char *)calloc(2,sizeof(char));
- TrackLinLog.Text="L\0";
+ TrackLinLog.Text="L";
  DrawButton(TrackLinLog);
 
  y1=y2+ 2*pixelsizeY;
@@ -3676,8 +3338,7 @@ void DrawTrackFrame(Int32 win){
  TrackRefresh.pushcolor=GLW_FRAMECOLOR;
  TrackRefresh.Push=0;
  TrackRefresh.fgcolor=CYAN;
- if(TrackRefresh.Text == NULL)TrackRefresh.Text=(char *)calloc(2,sizeof(char));
- TrackRefresh.Text="=\0";
+ TrackRefresh.Text="=";
  DrawButton(TrackRefresh);
 
 
@@ -3691,8 +3352,7 @@ void DrawTrackFrame(Int32 win){
  TrackDoPkS.pushcolor=GLW_FRAMECOLOR;
  TrackDoPkS.Push=0;
  TrackDoPkS.fgcolor=CYAN;
- if(TrackDoPkS.Text == NULL)TrackDoPkS.Text=(char *)calloc(4,sizeof(char));
- TrackDoPkS.Text="PkS\0";
+ TrackDoPkS.Text="PkS";
  DrawButton(TrackDoPkS);
 
 
@@ -3706,8 +3366,7 @@ void DrawTrackFrame(Int32 win){
  TrackDoFit.pushcolor=GLW_FRAMECOLOR;
  TrackDoFit.Push=0;
  TrackDoFit.fgcolor=CYAN;
- if(TrackDoFit.Text == NULL)TrackDoFit.Text=(char *)calloc(4,sizeof(char));
- TrackDoFit.Text="Fit\0";
+ TrackDoFit.Text="Fit";
  DrawButton(TrackDoFit);
 
  y1=y2+ 2*pixelsizeY;
@@ -3720,8 +3379,7 @@ void DrawTrackFrame(Int32 win){
  TrackDoInt.pushcolor=GLW_FRAMECOLOR;
  TrackDoInt.Push=0;
  TrackDoInt.fgcolor=CYAN;
- if(TrackDoInt.Text == NULL)TrackDoInt.Text=(char *)calloc(4,sizeof(char));
- TrackDoInt.Text="Int\0";
+ TrackDoInt.Text="Int";
  DrawButton(TrackDoInt);
 
 
@@ -3756,9 +3414,19 @@ Int32 GLWTrackInit(void){
   LoadGLWfont();
   doublebuffer();
   gconfig();
-  
+  backbuffer(1);
+  _global_LastW = GLW_MINXSIZE;
+  _global_LastH = GLW_MINYSIZE;
+  _global_px = 1.0;
+  _global_py = 1.0;
+
+  _in_redraw_window = 1;
+  color(GLW_FRAMECOLOR);
+  clear();
   DrawTrackFrame(dev);
-  DOUBLEBUFF_OFF
+  swapbuffers();
+  gflush();
+  _in_redraw_window = 0;
 
   TrackMenu=defpup("  WINDOWS  %t|Add Line|Add Column|Delete Line|Delete Column|Refresh Display");
   
@@ -3769,6 +3437,8 @@ Int32 GLWTrackInit(void){
   qdevice(MENUBUTTON);
   qdevice(UPMOUSEWHEEL);
   qdevice(DOWNMOUSEWHEEL);
+  qdevice(LEFTMOUSEWHEEL);
+  qdevice(RIGHTMOUSEWHEEL);
   qdevice(LEFTARROWKEY);
   qdevice(RIGHTARROWKEY);
   qdevice(UPARROWKEY);
@@ -3781,24 +3451,22 @@ Int32 GLWTrackInit(void){
   unqdevice(INPUTCHANGE);
   qreset();
 
-  _global_BS = DoesBackingStore( DefaultScreenOfDisplay((Display *)getXdpy()) ) == Always;
   return dev;
  }
 
 float Nintf( float x){
-
-   int i;
-   float r;
-   
-   i=10.0000*x;
-   r=(i%10 < 5)?i/10:i/10+1;
-   return r;
-   }
-   
+   return roundf(x);
+}
 
 void ReshapeWindow ( void ){
-
+   Int32 x_wp, y_wp;
    reshapeviewport();
-   getsize(&XWp, &YWp);
-   viewport( (Screencoord) 0,(Screencoord) (XWp-1),(Screencoord) 0,(Screencoord) (YWp-1));
+   getsize(&x_wp, &y_wp);
+   if (x_wp > 0 && y_wp > 0) {
+     _global_px = (double)GLW_MINXSIZE / (double)x_wp;
+     _global_py = (double)GLW_MINYSIZE / (double)y_wp;
+     if (Plot) {
+       TrackPlotMap(Plot->Row, Plot->Col);
+     }
+   }
 }

@@ -4,10 +4,16 @@
  *    EMail: fred@thp.Uni-Duisburg.DE
  */
 
-static char vcid[] = "$Id: queue.c,v 4.6 1998-07-26 13:02:55+02 fred Exp $";
+#if defined(__GNUC__) || defined(__clang__)
+#define YGL_UNUSED __attribute__((unused))
+#else
+#define YGL_UNUSED
+#endif
+
+static char vcid[] YGL_UNUSED = "$Id: queue.c,v 4.6 1998-07-26 13:02:55+02 fred Exp $";
 
 #include "header.h"
-#include <setjmp.h>
+#include <sys/select.h>
 
 static Ulong YglButtonMask = 0;
 
@@ -105,14 +111,11 @@ void tie(Device button, Device val1, Device val2) {
   YglTie[tieb][1] = val2;
 }
 
-static int got_sigalrm     = 0;
-static int in_nextevent    = False;
-static jmp_buf alrm_context;
+static int got_sigalrm = 0;
 
 static void sigalrm_handler(int sig_no) {
 #ifdef DEBUG
   struct timeval tv;
-  struct timezone tz;
   static double tm, otm;
   gettimeofday(&tv, NULL);
   tm = tv.tv_sec + 1e-6 * tv.tv_usec;
@@ -120,11 +123,6 @@ static void sigalrm_handler(int sig_no) {
   otm = tm;
 #endif
   got_sigalrm++;
-  /* Bump out of XNextEvent() */
-  if (in_nextevent) {
-    in_nextevent = False;
-    longjmp(alrm_context, 1);
-  }
 }
 
 void noise(Device dev, Int16 delta) {
@@ -346,14 +344,6 @@ static Int32 q_next(int parent, Int16 *val) {
   
   I(caller);
   
-  /* Let TIMER0, i.e. SIGALRM, bump out of XNextEvent() */
-  if (parent == QREAD && IsQueued[TIMER0]) if (setjmp(alrm_context)) {
-    /* if we are here, we came from longjmp() */
-#ifdef DEBUG
-    fprintf(stderr, "SIGALRM received in XNextEvent.\n");
-#endif
-  }
-  
   while (dev == -1) {
     if (got_sigalrm) {
       dev  = TIMER0;
@@ -377,9 +367,19 @@ static Int32 q_next(int parent, Int16 *val) {
       
       if (parent == QREAD) {
 	IFOGL(glFlush(), XFlush(D));
-	in_nextevent = True;
+	while (XPending(D) == 0) {
+	  if (got_sigalrm) break;
+	  fd_set fds;
+	  FD_ZERO(&fds);
+	  FD_SET(ConnectionNumber(D), &fds);
+	  struct timeval tv;
+	  tv.tv_sec = 0;
+	  tv.tv_usec = (IsQueued[TIMER0] ? 20000 : 50000);
+	  select(ConnectionNumber(D) + 1, &fds, NULL, NULL, &tv);
+	  if (got_sigalrm) break;
+	}
+	if (got_sigalrm) continue;
 	XNextEvent(D, &e);
-	in_nextevent = False;
       } else {
 	XPeekEvent(D, &e);
       }
@@ -400,6 +400,10 @@ static Int32 q_next(int parent, Int16 *val) {
 #endif
 	
 	if (wid == 0) Yprintf(caller, "REDRAW received for unknown window\n");
+	else if (e.type == ConfigureNotify) {
+	  Ygl.Windows[wid].xm = e.xconfigure.width;
+	  Ygl.Windows[wid].ym = e.xconfigure.height;
+	}
 	
 	if (parent == QTEST) {
 	  dev = REDRAW;
@@ -440,8 +444,10 @@ static Int32 q_next(int parent, Int16 *val) {
 	if (parent == QTEST) {
 	  if (mousex != e.xmotion.x_root)
 	    dev = MOUSEX;	/* if both values have changed, report x first... */
-	  else
+	  else if (mousey != e.xmotion.y_root)
 	    dev = MOUSEY;
+	  else
+	    dev = -1;
 	} else {
 	  if (mousey != e.xmotion.y_root) {
 	    mousey = e.xmotion.y_root;
@@ -465,7 +471,7 @@ static Int32 q_next(int parent, Int16 *val) {
 	    1 == XLookupString(&e.xkey, &key, 1, NULL, NULL)) {
 	  /* return code */
 	  dev  = KEYBD;
-	  *val = (Int16)key;
+	  *val = (Int16)(unsigned char)key;
 	}
 	if (IsQueued[ANYKEY] &&
 	    (dev2 = Ygl.keymap[e.xkey.keycode]) & KEYMAP_BIT ) {
@@ -514,13 +520,13 @@ static Int32 q_next(int parent, Int16 *val) {
 	  }
 	  break;
 	case Button6:
-	  if (YglButtonMask & Button4Mask) {
+	  if (YglButtonMask & Button6Mask) {
 	    dev = LEFTMOUSEWHEEL;
 	    if (parent == QREAD) tieb = 3;
 	  }
 	  break;
 	case Button7:
-	  if (YglButtonMask & Button5Mask) {
+	  if (YglButtonMask & Button7Mask) {
 	    dev = RIGHTMOUSEWHEEL;
 	    if (parent == QREAD) tieb = 4;
 	  }
@@ -549,8 +555,10 @@ static Int32 q_next(int parent, Int16 *val) {
 	fprintf(stderr, "%s: e.xclient.message_type = %d\n",
 		caller, e.xclient.message_type);
 #endif
-	dev  = WINQUIT;
-	*val = Ygl.x2gl_wid(e.xany.window, X2GL_MAIN);
+	if ((Atom)e.xclient.data.l[0] == Ygl.wm_dw) {
+	  dev  = WINQUIT;
+	  *val = Ygl.x2gl_wid(e.xany.window, X2GL_MAIN);
+	}
 	break;
 	
       case CirculateNotify:
@@ -604,11 +612,16 @@ void qenter(Int16 dev, Int16 val) {
   const char * MyName = "qenter";
   
   I(MyName);
+  memset(&e, 0, sizeof(e));
   switch (dev) {
   case REDRAW:
     e.type = Expose;
     /* if RGBWIN, send to .win, not .main */
     e.xexpose.window = (val > 0 && val < Ygl.NextWindow) ? Ygl.Windows[val].IF_RGBWIN(win,main) : 0;
+    if (is_wid(val)) {
+      e.xexpose.width  = Ygl.Windows[val].xm;
+      e.xexpose.height = Ygl.Windows[val].ym;
+    }
     e.xexpose.count = 0;
     break;
 #if 0

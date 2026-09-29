@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #if !defined(__APPLE__)
@@ -120,7 +121,7 @@ typedef struct BananaPoint {
 	struct BananaPoint *Previous;
 	struct BananaPoint *Next;
 	} BananaPoint;
-#define BPoint struct BananaPoint *
+typedef struct BananaPoint *BPoint;
 
 typedef struct BananaStruct {
         Int32 Active;
@@ -140,7 +141,7 @@ typedef struct BananaStruct {
 	BPoint s;
 	struct BananaStruct *Next;
 	} BananaStruct;
-#define BStruct struct BananaStruct *
+typedef struct BananaStruct *BStruct;
 	
 static int _global_BS;
 static Int32 DoQuit, callGINIT = 1;
@@ -170,9 +171,8 @@ Int32 Win;
 
 /*************************************************************************/
 
-static char _DB_Off = 0;
-#define DOUBLEBUFF_ON  {backbuffer(1); _DB_Off = 0;}
-#define DOUBLEBUFF_OFF {swapbuffers();frontbuffer(1); _DB_Off = 1;}
+#define DOUBLEBUFF_ON  {backbuffer(1);}
+#define DOUBLEBUFF_OFF {swapbuffers(); frontbuffer(1);}
 
 
 /************************************************************************/
@@ -253,7 +253,7 @@ extern int ISLGetString ( unsigned char *c, int *n);
 /*************************************************************************/
 
 
-#define DrawXORFrame(x1,y1,x2,y2) if((x1!=x2)||(y1!=x2)){logicop( LO_XOR );color( GLW_MARKERCOLOR );recti( x1, y1, x2, y2);logicop( LO_SRC );}
+#define DrawXORFrame(x1,y1,x2,y2) if((x1!=x2)||(y1!=y2)){logicop( LO_XOR );color( GLW_MARKERCOLOR );recti( x1, y1, x2, y2);logicop( LO_SRC );}
 
   
 
@@ -279,32 +279,28 @@ struct BananaStruct *BP_CreateBanana ( void ){
 void BP_DestroyBanana( void ){
 
   BStruct b;
-  BPoint p;
+  BPoint p, next_p;
   
   if( Selected == NULL )return;
 
-  b = Banana;
-  while( (b->Next != Selected) && b->Next ) b = b->Next;
-  if( Selected == Banana )Banana = Selected->Next;
-  else b->Next = Selected->Next;  
+  if( Banana == Selected ){
+    Banana = Selected->Next;
+  } else if ( Banana != NULL ){
+    b = Banana;
+    while( b->Next && (b->Next != Selected) ) b = b->Next;
+    if( b->Next == Selected ){
+      b->Next = Selected->Next;
+    }
+  }
 
   p = Selected->p;
-  if( p == NULL ){
-    Selected = (BStruct)realloc(Selected,0);
-    Selected = NULL;
-    return;
-    }
-  while( p->Next ) p = p->Next;
-  while( p->Previous ){
-       p = p->Previous;
-       p->Next =  (BPoint)realloc(p->Next,0);
-       p->Next = NULL;
-       }
-  
-  p = (BPoint)realloc(p,0);
+  while( p ){
+    next_p = p->Next;
+    free(p);
+    p = next_p;
+  }
 
-
-  Selected = (BStruct)realloc(Selected,0);
+  free(Selected);
   Selected = NULL;
 }
 
@@ -346,10 +342,10 @@ void BP_WriteBanana ( void ) {
     if( adc > -1 )BanFile = fopen((char *)String,"a");
     else {
       if( stat( (char *)String, &FileStatus ) == 0 ){
-         char *OldFileName;
-	 OldFileName = ( char * ) calloc( 128, sizeof(char) );
+         char OldFileName[128];
 
-CHECK:	 strncpy( OldFileName, (char *)String, 128 );
+CHECK:	 strncpy( OldFileName, (char *)String, sizeof(OldFileName)-1 );
+         OldFileName[sizeof(OldFileName)-1] = '\0';
 	 
 	 printf(" WARNING - File %s already exists, you can choose to save the banana\n",String);
 	 printf("           in a different file or to overwrite the existing one\n");
@@ -369,6 +365,7 @@ CHECK:	 strncpy( OldFileName, (char *)String, 128 );
 	        ( c[l-2] == 'a' )&&
 	        ( c[l-1] == 'n' ) ) l -= 4; }
 
+	 if( l > 120 ) l = 120;
 	 String[l] = '.'; String[l+1] = 'b'; String[l+2] = 'a'; String[l+3] = 'n';
 	 String[l+4] = '\0';
 	 adc  = GetADCNumber( (char *)String );
@@ -421,6 +418,7 @@ BStruct BP_ReadBanana ( void ) {
 	( c[l-2] == 'a' )&&
 	( c[l-1] == 'n' ) ) l -= 4; }
 
+  if( l > 120 ) l = 120;
   String[l] = '.'; String[l+1] = 'b'; String[l+2] = 'a'; String[l+3] = 'n';
   String[l+4] = '\0';
   adc  = GetADCNumber( (char *)String );
@@ -433,14 +431,9 @@ BStruct BP_ReadBanana ( void ) {
     return NULL;
     }
   
-  if( !p )p = ( BPoint )calloc(1,sizeof(struct BananaPoint));
-  rp = p;
-  rp->Previous = NULL;
-  rp->Next = NULL;
-  
   iadc = -1;
   while(  iadc != adc  ){
-   if( ( fscanf(BanFile,"%s",String) == EOF) ){
+   if( ( fscanf(BanFile,"%127s",String) == EOF) ){
     printf(" ERROR - ADC %d not found \n",adc);
     fclose(BanFile);
     return NULL;
@@ -448,6 +441,11 @@ BStruct BP_ReadBanana ( void ) {
    if( strspn((char *)String,"ADC") )fscanf(BanFile,"%d",&iadc); 
    }
    
+  p = ( BPoint )calloc(1,sizeof(struct BananaPoint));
+  if( !p ){ fclose(BanFile); return NULL; }
+  rp = p;
+  rp->Previous = NULL;
+  rp->Next = NULL;
   
   do {
     l = fscanf(BanFile,"%g %g", &x, &y);
@@ -455,21 +453,23 @@ BStruct BP_ReadBanana ( void ) {
       rp->x = x;
       rp->y = y;
       rp->Next = ( BPoint )calloc(1,sizeof(struct BananaPoint));
-      rp->Next->Next = NULL;
-      rp->Next->Previous = rp;
-      rp = rp->Next;
+      if( rp->Next ){
+        rp->Next->Next = NULL;
+        rp->Next->Previous = rp;
+        rp = rp->Next;
       }
+    }
     else {
       if( rp->Previous )rp->Previous->Next = NULL;
       else p = NULL;
-      rp = ( BPoint )realloc(rp, 0);
-      }
-    } while( l == 2);
+      free(rp);
+    }
+  } while( l == 2);
   
   fclose(BanFile);  
   if( p ) {
      b = BP_CreateBanana();
-     b->p = p;
+     if( b ) b->p = p;
      return b;
      }
   else return NULL;
@@ -596,10 +596,10 @@ C2:
 	}  
 
 OK:
-  if( (Line.x1 > MatPlot.x1 ) && (Line.x1 < MatPlot.x2 ) &&
-      (Line.x2 > MatPlot.x1 ) && (Line.x2 < MatPlot.x2 ) &&
-      (Line.y1 > MatPlot.y1 ) && (Line.y1 < MatPlot.y2 ) &&
-      (Line.y2 > MatPlot.y1 ) && (Line.y2 < MatPlot.y2 ) ) return ( LineStruct *) (&Line);
+  if( (Line.x1 >= MatPlot.x1 ) && (Line.x1 <= MatPlot.x2 ) &&
+      (Line.x2 >= MatPlot.x1 ) && (Line.x2 <= MatPlot.x2 ) &&
+      (Line.y1 >= MatPlot.y1 ) && (Line.y1 <= MatPlot.y2 ) &&
+      (Line.y2 >= MatPlot.y1 ) && (Line.y2 <= MatPlot.y2 ) ) return ( LineStruct *) (&Line);
   else return NULL; }
 
   else return NULL;
@@ -665,6 +665,7 @@ void BP_DrawPoint ( BPoint p ){
 
   struct CoordStruct *c;
 
+  if( p == NULL ) return;
   c = BP_PixelPosition( p->x, p->y);
   if( c ){
     logicop(LO_XOR);
@@ -680,6 +681,7 @@ void BP_DrawSBPoint ( BPoint p ){
 
   struct CoordStruct *c;
 
+  if( p == NULL ) return;
   c = BP_PixelPosition( p->x, p->y);
   if( c ){
     logicop(LO_XOR);
@@ -695,6 +697,7 @@ void BP_SelectPoint ( BPoint p ){
 
   struct CoordStruct *c;
 
+  if( p == NULL ) return;
   c = BP_PixelPosition( p->x, p->y);
   if( c ){
     logicop(LO_XOR);
@@ -711,6 +714,7 @@ void BP_UnselectPoint ( BPoint p ){
 
   struct CoordStruct *c;
 
+  if( p == NULL ) return;
   c = BP_PixelPosition( p->x, p->y);
   if( c ){
     logicop(LO_XOR);
@@ -745,7 +749,7 @@ void BP_DrawBanana( BStruct b ){
   LineStruct *l;
   BPoint p;
   
-  if( !BP_IsVisible( b ) )return;
+  if( b == NULL || !BP_IsVisible( b ) )return;
   
   p = b->p;
   while( p ){
@@ -767,7 +771,7 @@ void BP_DrawSBanana( BStruct b ){
   LineStruct *l;
   BPoint p;
   
-  if( !BP_IsVisible( b ) )return;
+  if( b == NULL || !BP_IsVisible( b ) )return;
   
   p = b->p;
   while( p ){
@@ -786,15 +790,19 @@ void BP_DrawSBanana( BStruct b ){
 
 void BP_SelectBanana( BStruct b ){
 
+  if( b == NULL ) return;
   BP_DrawBanana( b );
   BP_DrawSBanana( b );
+  FlushDrawings;
 }
 
 void BP_UnselectBanana( BStruct b ){
 
+  if( b == NULL ) return;
   if( b->s )BP_UnselectPoint( b->s );
   BP_DrawSBanana( b );
   BP_DrawBanana( b );
+  FlushDrawings;
 }
 
 void BP_AddPoint( void ){
@@ -851,9 +859,11 @@ void BP_AddPoint( void ){
   color(GLW_SBANANACOLOR);
   if( Selected->s->Next == NULL ){
     l = BP_LineBetween( Selected->s, p);
-    move2i( l->x1, l->y1 );
-    draw2i( l->x2, l->y2 );
+    if( l ){
+      move2i( l->x1, l->y1 );
+      draw2i( l->x2, l->y2 );
     }
+  }
   else {
     l = BP_LineBetween( Selected->s->Next, Selected->s );
     if( l ){
@@ -861,10 +871,16 @@ void BP_AddPoint( void ){
       draw2i( l->x2, l->y2 );
       }
     l = BP_LineBetween( Selected->s, p );
-    draw2i( l->x2, l->y2 );
-    l = BP_LineBetween( p, Selected->s->Next);
-    if( l )draw2i( l->x2, l->y2 );
+    if( l ){
+      move2i( l->x1, l->y1 );
+      draw2i( l->x2, l->y2 );
     }
+    l = BP_LineBetween( p, Selected->s->Next);
+    if( l ){
+      move2i( l->x1, l->y1 );
+      draw2i( l->x2, l->y2 );
+    }
+  }
   BP_UnselectPoint( Selected->s );
   BP_DrawSBPoint( p );
   BP_SelectPoint( p );
@@ -873,6 +889,7 @@ void BP_AddPoint( void ){
   if(p->Next)p->Next->Previous = p;
   Selected->s = p;
   logicop(LO_SRC);
+  FlushDrawings;
 }
 
 void BP_MovePoint ( void ){
@@ -924,6 +941,7 @@ void BP_MovePoint ( void ){
   BP_DrawSBPoint( Selected->s );
   BP_SelectPoint( Selected->s );
   logicop(LO_SRC);
+  FlushDrawings;
 }
 
 void BP_DeletePoint ( void ){
@@ -939,7 +957,6 @@ void BP_DeletePoint ( void ){
   color(GLW_SBANANACOLOR);
 
   if( Selected->s->Previous != NULL ){
-    Selected->s->Previous->Next = Selected->s->Next;
     l = BP_LineBetween( Selected->s->Previous, Selected->s );
     if( l ){
       move2i( l->x1, l->y1 );
@@ -947,7 +964,6 @@ void BP_DeletePoint ( void ){
       }}
 
   if( Selected->s->Next != NULL ){
-    Selected->s->Next->Previous = Selected->s->Previous;
     l = BP_LineBetween( Selected->s, Selected->s->Next );
     if( l ){
       move2i( l->x1, l->y1 );
@@ -958,9 +974,13 @@ void BP_DeletePoint ( void ){
   BP_DrawSBPoint( Selected->s );
   logicop(LO_XOR);
   color(GLW_SBANANACOLOR);
-  
-  Selected->s->x = XYZ.x;
-  Selected->s->y = XYZ.y;
+
+  if( Selected->s->Previous != NULL ){
+    Selected->s->Previous->Next = Selected->s->Next;
+  }
+  if( Selected->s->Next != NULL ){
+    Selected->s->Next->Previous = Selected->s->Previous;
+  }
 
   if( (Selected->s->Previous != NULL) && ( Selected->s->Next != NULL ) ){
     l = BP_LineBetween( Selected->s->Previous, Selected->s->Next );
@@ -977,16 +997,15 @@ void BP_DeletePoint ( void ){
     if( p->Next ) if( p->Next->Visible ){ Selected->s = p->Next; BP_SelectPoint(Selected->s);}
     }
 
-  p = (BPoint) realloc( p, 0);
-  if( Selected->p == NULL )BP_DestroyBanana();
+  free( p );
+  if( Selected && Selected->p == NULL )BP_DestroyBanana();
   logicop(LO_SRC);
+  FlushDrawings;
 }
   
     
 void BP_NewBanana( void ){
 
-  BPoint p;
-  LineStruct *l;
   BStruct b;
 
   if( Selected )BP_UnselectBanana( Selected );
@@ -1110,8 +1129,7 @@ int BP_Limits ( BStruct b )
 {
 	BPoint p;
 	
-	
-	if( b )
+	if( b && b->p )
 	{
 		p = b->p;
         b->Xl = b->Xr = p->x;
@@ -1125,11 +1143,13 @@ int BP_Limits ( BStruct b )
           p = p->Next;
         }
 		
-		if( b->Xl < 0 ) return False;
-		if( b->Xr >= DataXmax ) return False;
+		if( b->Xl < 0 ) b->Xl = 0;
+		if( b->Xr >= DataXmax ) b->Xr = DataXmax - 1;
 
-		if( b->Yb < 0 ) return False;
-		if( b->Yt >= DataYmax ) return False;
+		if( b->Yb < 0 ) b->Yb = 0;
+		if( b->Yt >= DataYmax ) b->Yt = DataYmax - 1;
+
+		if( b->Xl > b->Xr || b->Yb > b->Yt ) return False;
 		
 		return True;
 		
@@ -1140,7 +1160,6 @@ int BP_Limits ( BStruct b )
 
 int BP_Sums ( BStruct b )
 {
-	BPoint p;
 	Int32 ii, jj;
 	
 	if( b )
@@ -1218,7 +1237,7 @@ Int32 BP_IsPointInside( BStruct b, Int32 x, Int32 y )
 }
 
 
-void CommonIntercept( )
+void CommonIntercept( void )
 {
 	BStruct b;
 	double nn, r1, r2, tmp1, tmp2;
@@ -1233,20 +1252,27 @@ void CommonIntercept( )
 		{
 			if( BP_Sums( b ) )
 			{
-               Slope   = (b->Integral*b->SXY - b->SX*b->SY)/(b->Integral*b->SX2 - b->SX*b->SX);
-               LinCorr = (b->Integral*b->SXY - b->SX*b->SY)/
-                		 sqrt((b->Integral*b->SX2 - b->SX*b->SX)*(b->Integral*b->SY2 - b->SY*b->SY));
-               printf("   Slope : %.5lf 		 Linear corr. coeff. : %lf\n",Slope, LinCorr);
-               nn  += b->Integral;
+			   double denom_slope = b->Integral*b->SX2 - b->SX*b->SX;
+			   double denom_corr = denom_slope * (b->Integral*b->SY2 - b->SY*b->SY);
+			   Slope = (fabs(denom_slope) > 1e-12) ? (b->Integral*b->SXY - b->SX*b->SY) / denom_slope : 0.0;
+			   LinCorr = (denom_corr > 0.0) ? (b->Integral*b->SXY - b->SX*b->SY) / sqrt(denom_corr) : 0.0;
+			   printf("   Slope : %.5lf 		 Linear corr. coeff. : %lf\n",Slope, LinCorr);
+			   nn  += b->Integral;
 			   tmp1 = b->SX;
 			   tmp2 = b->SX2;
-			   r1 += tmp1*tmp1/tmp2;
-			   r2 += b->SY - b->SXY*tmp1/tmp2;
+			   if (fabs(tmp2) > 1e-12) {
+			     r1 += tmp1*tmp1/tmp2;
+			     r2 += b->SY - b->SXY*tmp1/tmp2;
+			   }
 			}
 			b = b->Next;
 		}
-		r2 /= nn - r1;
-		printf(" Common intercept : %.3lf\n", r2);
+		if (fabs(nn - r1) > 1e-12) {
+		  r2 /= (nn - r1);
+		  printf(" Common intercept : %.3lf\n", r2);
+		} else {
+		  printf(" Common intercept undefined (division by zero)\n");
+		}
 	}
 }
 
@@ -1333,13 +1359,17 @@ void DrawMarker ( char Kind ){
 		p->PixelPos = x;
 		move2i(p->PixelPos, MatPlot.y1+1); draw2i(p->PixelPos, XpPlot.y2-1);
 		p->On = MARKER_ON;
-		pp = Marker; while( pp ){ if( (pp->KindL == RMARKERL)&& pp->On )
-		                          if( pp->ChannelPos < p->ChannelPos ){ 
-					    x = p->ChannelPos; p->ChannelPos = pp->ChannelPos; pp->ChannelPos = x;
-					    x = p->PixelPos; p->PixelPos = pp->PixelPos; pp->PixelPos = x;}
-					  else if( pp->ChannelPos == p->ChannelPos ){
-					    p->On = MARKER_OFF; pp->On = p->On = MARKER_OFF;}
-					   pp = pp->Next;}
+		pp = Marker; while( pp ){
+		  if( (pp->KindL == RMARKERL)&& pp->On ) {
+		    if( pp->ChannelPos < p->ChannelPos ){ 
+		      x = p->ChannelPos; p->ChannelPos = pp->ChannelPos; pp->ChannelPos = x;
+		      x = p->PixelPos; p->PixelPos = pp->PixelPos; pp->PixelPos = x;
+		    } else if( pp->ChannelPos == p->ChannelPos ){
+		      p->On = MARKER_OFF; pp->On = p->On = MARKER_OFF;
+		    }
+		  }
+		  pp = pp->Next;
+		}
 		break;}
 	   case RMARKERL:{
 	        if( p->On ){ move2i(p->PixelPos, MatPlot.y1+1); draw2i(p->PixelPos, XpPlot.y2-1);}
@@ -1349,13 +1379,17 @@ void DrawMarker ( char Kind ){
 		p->PixelPos = x;
 		move2i(p->PixelPos, MatPlot.y1+1); draw2i(p->PixelPos, XpPlot.y2-1);
 		p->On = MARKER_ON;
-		pp = Marker; while( pp ){ if( (pp->KindL == LMARKERL)&& pp->On )
-		                          if( pp->ChannelPos > p->ChannelPos ){ 
-					    x = p->ChannelPos; p->ChannelPos = pp->ChannelPos; pp->ChannelPos = x;
-					    x = p->PixelPos; p->PixelPos = pp->PixelPos; pp->PixelPos = x;}
-					  else if( pp->ChannelPos == p->ChannelPos ){
-					    p->On = MARKER_OFF; pp->On = p->On = MARKER_OFF;}
-					   pp = pp->Next;}
+		pp = Marker; while( pp ){
+		  if( (pp->KindL == LMARKERL)&& pp->On ) {
+		    if( pp->ChannelPos > p->ChannelPos ){ 
+		      x = p->ChannelPos; p->ChannelPos = pp->ChannelPos; pp->ChannelPos = x;
+		      x = p->PixelPos; p->PixelPos = pp->PixelPos; pp->PixelPos = x;
+		    } else if( pp->ChannelPos == p->ChannelPos ){
+		      p->On = MARKER_OFF; pp->On = p->On = MARKER_OFF;
+		    }
+		  }
+		  pp = pp->Next;
+		}
 		break;}
 	   case UMARKERL:{
 	        if( p->On ){ move2i(MatPlot.x1+1, p->PixelPos); draw2i(YpPlot.x2-1,p->PixelPos);}
@@ -1365,13 +1399,17 @@ void DrawMarker ( char Kind ){
 		p->PixelPos = y;
 		move2i(MatPlot.x1+1, p->PixelPos); draw2i(YpPlot.x2-1,p->PixelPos);
 		p->On = MARKER_ON;
-		pp = Marker; while( pp ){ if( (pp->KindL == OMARKERL)&& pp->On )
-		                          if( pp->ChannelPos < p->ChannelPos ){ 
-					    x = p->ChannelPos; p->ChannelPos = pp->ChannelPos; pp->ChannelPos = x;
-					    x = p->PixelPos; p->PixelPos = pp->PixelPos; pp->PixelPos = x;}
-					  else if( pp->ChannelPos == p->ChannelPos ){
-					    p->On = MARKER_OFF; pp->On = p->On = MARKER_OFF;}
-					   pp = pp->Next;}
+		pp = Marker; while( pp ){
+		  if( (pp->KindL == OMARKERL)&& pp->On ) {
+		    if( pp->ChannelPos < p->ChannelPos ){ 
+		      x = p->ChannelPos; p->ChannelPos = pp->ChannelPos; pp->ChannelPos = x;
+		      x = p->PixelPos; p->PixelPos = pp->PixelPos; pp->PixelPos = x;
+		    } else if( pp->ChannelPos == p->ChannelPos ){
+		      p->On = MARKER_OFF; pp->On = p->On = MARKER_OFF;
+		    }
+		  }
+		  pp = pp->Next;
+		}
 		break;}
 	   case OMARKERL:{
 	        if( p->On ){ move2i(MatPlot.x1+1, p->PixelPos); draw2i(YpPlot.x2-1,p->PixelPos);}
@@ -1381,13 +1419,17 @@ void DrawMarker ( char Kind ){
 		p->PixelPos = y;
 		move2i(MatPlot.x1+1, p->PixelPos); draw2i(YpPlot.x2-1,p->PixelPos);
 		p->On = MARKER_ON;
-		pp = Marker; while( pp ){ if( (pp->KindL == UMARKERL)&& pp->On )
-		                          if( pp->ChannelPos > p->ChannelPos ){ 
-					    x = p->ChannelPos; p->ChannelPos = pp->ChannelPos; pp->ChannelPos = x;
-					    x = p->PixelPos; p->PixelPos = pp->PixelPos; pp->PixelPos = x;}
-					  else if( pp->ChannelPos == p->ChannelPos ){
-					    p->On = MARKER_OFF; pp->On = p->On = MARKER_OFF;}
-					   pp = pp->Next;}
+		pp = Marker; while( pp ){
+		  if( (pp->KindL == UMARKERL)&& pp->On ) {
+		    if( pp->ChannelPos > p->ChannelPos ){ 
+		      x = p->ChannelPos; p->ChannelPos = pp->ChannelPos; pp->ChannelPos = x;
+		      x = p->PixelPos; p->PixelPos = pp->PixelPos; pp->PixelPos = x;
+		    } else if( pp->ChannelPos == p->ChannelPos ){
+		      p->On = MARKER_OFF; pp->On = p->On = MARKER_OFF;
+		    }
+		  }
+		  pp = pp->Next;
+		}
 		break;}
 	   }
         logicop(LO_SRC);
@@ -1413,28 +1455,32 @@ void RedrawAllMarkers ( void ){
 		x = ( x > MatPlot.x1 )?x:(MatPlot.x1+1);
 		p->PixelPos = x;
 		move2i(p->PixelPos, MatPlot.y1+1); draw2i(p->PixelPos, XpPlot.y2-1);
-		break;}
+	      }
+	      break;
 	   case RMARKERL:
 	      if( p->On ){
 		x = (float)( p->ChannelPos - Plot.Xmin )/XChPix ; x += MatPlot.x1;
 		x = ( x < MatPlot.x2 )?x:(MatPlot.x2-1);
 		p->PixelPos = x;
 		move2i(p->PixelPos, MatPlot.y1+1); draw2i(p->PixelPos, XpPlot.y2-1);
-		break;}
+	      }
+	      break;
 	   case UMARKERL:
 	      if( p->On ){ 
 		y = (float)( p->ChannelPos - Plot.Ymin )/YChPix; y += MatPlot.y1;
 		y = ( y > MatPlot.y1 )?y:(MatPlot.y1+1);
 		p->PixelPos = y;
 		move2i(MatPlot.x1+1, p->PixelPos); draw2i(YpPlot.x2-1,p->PixelPos);
-		break;}
+	      }
+	      break;
 	   case OMARKERL:
 	      if( p->On ){
 		y = (float)( p->ChannelPos - Plot.Ymin )/YChPix ; y += MatPlot.y1;
 		y = ( y < MatPlot.y2 )?y:(MatPlot.y2-1);
 		p->PixelPos = y;
 		move2i(MatPlot.x1+1, p->PixelPos); draw2i(YpPlot.x2-1,p->PixelPos);
-		break;}
+	      }
+	      break;
 	   }
         logicop(LO_SRC);
         p = p->Next;
@@ -1464,12 +1510,12 @@ void FillIt ( void ){
 
 void MakeData ( Int32 *data ){
 
-  Int32 x,y;
+  Int32 y;
   static Int32 OldXmax, OldYmax;
   
   if( (DataXmax != OldXmax) || (DataYmax != OldYmax) ){
     Plot.Xmin = Plot.Ymin = 0;
-    Plot.Xmax =DataXmax - 1; Plot.Ymax = DataYmax-1;
+    Plot.Xmax = DataXmax - 1; Plot.Ymax = DataYmax - 1;
     OldXmax = DataXmax;
     OldYmax = DataYmax;
     }
@@ -1485,24 +1531,51 @@ void MakeData ( Int32 *data ){
  }
 
 
+static inline Uint8 MapValueToColor(double CellValue, double zmin, double zmax, Int32 scaleType, float colorStep) {
+  if (CellValue <= zmin) return ContColor[0];
+  if (CellValue >= zmax) return ContColor[16];
+  CellValue -= zmin;
+  switch (scaleType) {
+    case ZLOG:
+      if (CellValue < 1.0) CellValue += 1.0;
+      CellValue = log10(CellValue + 0.01);
+      break;
+    case ZSQRT:
+      CellValue = sqrt(CellValue);
+      break;
+    case ZCBRT:
+      CellValue = cbrt(CellValue);
+      break;
+    case ZATAN:
+      CellValue = atan(CellValue);
+      break;
+    case ZMIX:
+      if (CellValue < 1.0) CellValue += 1.0;
+      CellValue = mixf(CellValue + 0.01);
+      break;
+    case ZLIN:
+    default:
+      break;
+  }
+  int idx = (int)(CellValue / colorStep) + 1;
+  if (idx < 0) idx = 0;
+  if (idx > 16) idx = 16;
+  return ContColor[idx];
+}
+
 
 void DrawPlot ( void ){
 
- Scoord x,xb,y,yb,Xpixels,Ypixels;
- Coord Xx, Yy;
- Int32 x1,x2, y1,y2,ix,iy,m,i,ixb;
-#if defined( _OPENMP)
- Int32 lMinVal, lMaxVal, glw_use_omp;
-#endif
- float ColorStep, CellValue, ProStep, ProMax;
- double ZRange;
- Int16 val;
+  Scoord Xpixels, Ypixels;
+  Coord Xx, Yy;
+  Int32 x, y, i;
+  Int32 min_val, max_val;
+  float ColorStep, CellValue, ProStep, ProMax;
+  double ZRange;
 
   SetMouseShape(XC_watch);  
-/*
-  printf(" Entering DrawPlot()  Screencoord size: %d\n", sizeof(Scoord)); fflush(stdout);
-*/  
-  logicop(Plot.Reverse); /*(LO_SRC);*/
+
+  logicop(Plot.Reverse);
   color(GLW_DRAWBG);
   rectfi(XpPlot.x1,XpPlot.y1,XpPlot.x2,XpPlot.y2);
   rectfi(YpPlot.x1,YpPlot.y1,YpPlot.x2,YpPlot.y2);
@@ -1514,420 +1587,316 @@ void DrawPlot ( void ){
   DrawPlotFrame(MatPlot);
   DrawPlotFrame(XpPlot); DrawPlotFrame(YpPlot); FlushDrawings;
 
+  Xpixels = MatPlot.x2 - MatPlot.x1 - 1;
+  Ypixels = MatPlot.y2 - MatPlot.y1 - 1;
+  if (Xpixels <= 0 || Ypixels <= 0) return;
 
+  XChPix = ((double)(Plot.Xmax - Plot.Xmin + 1)) / ((double)Xpixels);
+  YChPix = ((double)(Plot.Ymax - Plot.Ymin + 1)) / ((double)Ypixels);
+  Plot.Image = (Uint8 *)realloc((void *)Plot.Image, (size_t)Xpixels * (size_t)Ypixels * sizeof(Uint8));
 
-  Xpixels = MatPlot.x2 - MatPlot.x1-1;
-  Ypixels = MatPlot.y2 - MatPlot.y1-1;
-  XChPix = ((double)(Plot.Xmax - Plot.Xmin+1))/((double)Xpixels);
-  YChPix = ((double)(Plot.Ymax - Plot.Ymin+1))/((double)Ypixels);
-  Plot.Image = ( Uint8 * )realloc( (void *)Plot.Image, Xpixels*Ypixels*sizeof(Uint8));
-  Plot.MappedData = ( Int32 * )realloc( (void *)Plot.MappedData, Xpixels*Ypixels*sizeof(Int32));
+  /* Projections and min/max calculation */
+  min_val = Plot.data[Plot.Ymin][Plot.Xmin];
+  max_val = min_val;
 
-/*        Find min. and max. values, calculate projections    */
+  for (y = Plot.Ymin; y <= Plot.Ymax; y++) Plot.ProY[y] = 0.0f;
+  for (x = Plot.Xmin; x <= Plot.Xmax; x++) Plot.ProX[x] = 0.0f;
 
-  Plot.LocalMinVal = Plot.LocalMaxVal = Plot.data[Plot.Ymin][Plot.Xmin];
-
-#if defined( _OPENMP)
-  if( (XChPix > 1.00 ) && ( YChPix > 1.00 ) ) {
-     for( x = 0; x < Xpixels; x++ )
-        for( y = 0; y < Ypixels; y++ ) Plot.MappedData[x+Xpixels*y] = -1000000;
-     
-     for( y = Plot.Ymin; y <= Plot.Ymax; y++) Plot.ProY[y] = 0.00;
-
-     if( (Plot.Xmax - Plot.Xmin) > 2048 && (Plot.Ymax - Plot.Ymin) > 2048 ) glw_use_omp = 1;
-     else glw_use_omp = 0;
-     
-     if( glw_use_omp ) {
-#pragma omp parallel for shared( Plot )
-       for( x = Plot.Xmin; x <= Plot.Xmax; x++){
-          Plot.ProX[x] = 0.00;
-          lMinVal = Plot.LocalMinVal;
-          lMaxVal = Plot.LocalMaxVal;
-          for( y = Plot.Ymin; y <= Plot.Ymax; y++){
-              lMinVal = ( lMinVal > Plot.data[y][x] )?Plot.data[y][x]:lMinVal;
-              lMaxVal = ( lMaxVal < Plot.data[y][x] )?Plot.data[y][x]:lMaxVal;
-              Plot.ProX[x] += Plot.data[y][x];
-              Plot.ProY[y] += Plot.data[y][x];
-              ix =  (double)(x-Plot.Xmin)/XChPix;
-              if( ix > Xpixels-1 ) ix = Xpixels-1;
-              iy =  (double)(y-Plot.Ymin)/YChPix;
-              if( iy > Ypixels-1 ) iy = Ypixels-1;
-              ix += Xpixels*iy;
-              Plot.MappedData[ix] = ( Plot.MappedData[ix] < Plot.data[y][x] )?Plot.data[y][x]:Plot.MappedData[ix]; 
-          }
-#pragma omp critical
-          {
-              Plot.LocalMinVal = ( Plot.LocalMinVal < lMinVal )? Plot.LocalMinVal : lMinVal;
-              Plot.LocalMaxVal = ( Plot.LocalMaxVal > lMaxVal )? Plot.LocalMaxVal : lMaxVal;
-          }  
-       }
-     }
-     else
-     for( x = Plot.Xmin; x <= Plot.Xmax; x++){
-     	Plot.ProX[x] = 0.00;
-     	for( y = Plot.Ymin; y <= Plot.Ymax; y++){
-     	    Plot.LocalMinVal = ( Plot.LocalMinVal > Plot.data[y][x] )?Plot.data[y][x]:Plot.LocalMinVal;
-     	    Plot.LocalMaxVal = ( Plot.LocalMaxVal < Plot.data[y][x] )?Plot.data[y][x]:Plot.LocalMaxVal;
-     	    Plot.ProX[x] += Plot.data[y][x];
-     	    Plot.ProY[y] += Plot.data[y][x];
-	    ix =  (double)(x-Plot.Xmin)/XChPix;
-	    if( ix > Xpixels-1 ) ix = Xpixels-1;
-	    iy =  (double)(y-Plot.Ymin)/YChPix;
-	    if( iy > Ypixels-1 ) iy = Ypixels-1;
-	    ix += Xpixels*iy;
-	    Plot.MappedData[ix] = ( Plot.MappedData[ix] < Plot.data[y][x] )?Plot.data[y][x]:Plot.MappedData[ix]; 
-     	    }
-     }
+#if defined(_OPENMP)
+  #pragma omp parallel
+  {
+    Int32 t_min = min_val;
+    Int32 t_max = max_val;
+    #pragma omp for
+    for (y = Plot.Ymin; y <= Plot.Ymax; y++) {
+      Int32 *row = Plot.data[y];
+      double row_sum = 0.0;
+      for (x = Plot.Xmin; x <= Plot.Xmax; x++) {
+        Int32 v = row[x];
+        if (v < t_min) t_min = v;
+        if (v > t_max) t_max = v;
+        row_sum += (double)v;
+      }
+      Plot.ProY[y] = (float)row_sum;
     }
-  else {
-     for( y = Plot.Ymin; y <= Plot.Ymax; y++) Plot.ProY[y] = 0.00;
-     for( x = Plot.Xmin; x <= Plot.Xmax; x++){
-     	Plot.ProX[x] = 0.00;
-     	for( y = Plot.Ymin; y <= Plot.Ymax; y++){
-     	    Plot.LocalMinVal = ( Plot.LocalMinVal > Plot.data[y][x] )?Plot.data[y][x]:Plot.LocalMinVal;
-     	    Plot.LocalMaxVal = ( Plot.LocalMaxVal < Plot.data[y][x] )?Plot.data[y][x]:Plot.LocalMaxVal;
-     	    Plot.ProX[x] += Plot.data[y][x];
-     	    Plot.ProY[y] += Plot.data[y][x];
-     	    }
-     }
-  }  
-
-#else
-  if( (XChPix > 1.00 ) && ( YChPix > 1.00 ) ) {
-     for( x = 0; x < Xpixels; x++ )
-        for( y = 0; y < Ypixels; y++ ) Plot.MappedData[x+Xpixels*y] = -1000000;
-     
-     for( y = Plot.Ymin; y <= Plot.Ymax; y++) Plot.ProY[y] = 0.00;
-     for( x = Plot.Xmin; x <= Plot.Xmax; x++){
-     	Plot.ProX[x] = 0.00;
-     	for( y = Plot.Ymin; y <= Plot.Ymax; y++){
-     	    Plot.LocalMinVal = ( Plot.LocalMinVal > Plot.data[y][x] )?Plot.data[y][x]:Plot.LocalMinVal;
-     	    Plot.LocalMaxVal = ( Plot.LocalMaxVal < Plot.data[y][x] )?Plot.data[y][x]:Plot.LocalMaxVal;
-     	    Plot.ProX[x] += Plot.data[y][x];
-     	    Plot.ProY[y] += Plot.data[y][x];
-	    ix =  (double)(x-Plot.Xmin)/XChPix;
-	    if( ix > Xpixels-1 ) ix = Xpixels-1;
-	    iy =  (double)(y-Plot.Ymin)/YChPix;
-	    if( iy > Ypixels-1 ) iy = Ypixels-1;
-	    ix += Xpixels*iy;
-	    Plot.MappedData[ix] = ( Plot.MappedData[ix] < Plot.data[y][x] )?Plot.data[y][x]:Plot.MappedData[ix]; 
-     	    }
-     }
+    #pragma omp critical
+    {
+      if (t_min < min_val) min_val = t_min;
+      if (t_max > max_val) max_val = t_max;
+    }
   }
-  else {
-     for( y = Plot.Ymin; y <= Plot.Ymax; y++) Plot.ProY[y] = 0.00;
-     for( x = Plot.Xmin; x <= Plot.Xmax; x++){
-     	Plot.ProX[x] = 0.00;
-     	for( y = Plot.Ymin; y <= Plot.Ymax; y++){
-     	    Plot.LocalMinVal = ( Plot.LocalMinVal > Plot.data[y][x] )?Plot.data[y][x]:Plot.LocalMinVal;
-     	    Plot.LocalMaxVal = ( Plot.LocalMaxVal < Plot.data[y][x] )?Plot.data[y][x]:Plot.LocalMaxVal;
-     	    Plot.ProX[x] += Plot.data[y][x];
-     	    Plot.ProY[y] += Plot.data[y][x];
-     	    }
-     }
+
+  #pragma omp parallel for private(y)
+  for (x = Plot.Xmin; x <= Plot.Xmax; x++) {
+    double col_sum = 0.0;
+    for (y = Plot.Ymin; y <= Plot.Ymax; y++) {
+      col_sum += (double)Plot.data[y][x];
+    }
+    Plot.ProX[x] = (float)col_sum;
+  }
+#else
+  for (y = Plot.Ymin; y <= Plot.Ymax; y++) {
+    Int32 *row = Plot.data[y];
+    double row_sum = 0.0;
+    for (x = Plot.Xmin; x <= Plot.Xmax; x++) {
+      Int32 v = row[x];
+      if (v < min_val) min_val = v;
+      if (v > max_val) max_val = v;
+      row_sum += (double)v;
+    }
+    Plot.ProY[y] = (float)row_sum;
+  }
+  for (x = Plot.Xmin; x <= Plot.Xmax; x++) {
+    double col_sum = 0.0;
+    for (y = Plot.Ymin; y <= Plot.Ymax; y++) {
+      col_sum += (double)Plot.data[y][x];
+    }
+    Plot.ProX[x] = (float)col_sum;
   }
 #endif
 
+  Plot.LocalMinVal = min_val;
+  Plot.LocalMaxVal = max_val;
+  if (Plot.LocalMaxVal <= Plot.LocalMinVal) Plot.LocalMaxVal = Plot.LocalMinVal + 1;
 
-  if( Plot.LocalMaxVal <= Plot.LocalMinVal )Plot.LocalMaxVal = Plot.LocalMinVal + 1;
-  
   logicop(Plot.Reverse);
 
-/*     Prepare data for display and draw it    */
   ZRange = Plot.LocalMaxVal - Plot.LocalMinVal;
-  ZRange = log10( ZRange );
-  /*Plot.Zmax = Plot.LocalMaxVal;*/
-  Plot.Zmax = Plot.LocalMinVal + pow(10.00, ZMaxFactor*ZRange/100.00);
-  Plot.Zmin = Plot.LocalMinVal + pow(10.00, ZMinFactor*ZRange/100.00)-1.000;
-  if ( Plot.Zmin >= Plot.Zmax ) {
+  ZRange = log10(ZRange > 0.0 ? ZRange : 1.0);
+  Plot.Zmax = Plot.LocalMinVal + pow(10.00, ZMaxFactor * ZRange / 100.00);
+  Plot.Zmin = Plot.LocalMinVal + pow(10.00, ZMinFactor * ZRange / 100.00) - 1.000;
+  if (Plot.Zmin >= Plot.Zmax) {
     Plot.Zmax = Plot.LocalMaxVal;
     ZMaxFactor = 100.00;
-    ZMaxSlider->value = 100.00;
+    if (ZMaxSlider) ZMaxSlider->value = 100.00;
     redraw_widgets();
+  }
+
+  switch (Plot.ZScaleType) {
+    case ZLIN:  ColorStep = ((float)(Plot.Zmax - Plot.Zmin + 1)) / 16.0f; break;
+    case ZLOG:  ColorStep = log10((double)(Plot.Zmax - Plot.Zmin + 1)) / 16.0f; break;
+    case ZSQRT: ColorStep = sqrt((double)(Plot.Zmax - Plot.Zmin + 1)) / 16.0f; break;
+    case ZCBRT: ColorStep = cbrt((double)(Plot.Zmax - Plot.Zmin + 1)) / 16.0f; break;
+    case ZATAN: ColorStep = atan((double)(Plot.Zmax - Plot.Zmin + 1)) / 16.0f; break;
+    case ZMIX:  ColorStep = mixf((double)(Plot.Zmax - Plot.Zmin + 1)) / 16.0f; break;
+    default:    ColorStep = 1.0f; break;
+  }
+  if (ColorStep <= 0.0f) ColorStep = 1.0f;
+
+  /* Screen rasterization directly into Plot.Image */
+#if defined(_OPENMP)
+  #pragma omp parallel for private(x, y) schedule(static)
+#endif
+  for (y = 0; y < Ypixels; y++) {
+    Int32 y1 = Plot.Ymin + (Int32)(y * YChPix);
+    Int32 y2 = Plot.Ymin + (Int32)((y + 1) * YChPix);
+    if (y2 <= y1) y2 = y1 + 1;
+    if (y2 > Plot.Ymax + 1) y2 = Plot.Ymax + 1;
+
+    for (x = 0; x < Xpixels; x++) {
+      Int32 x1 = Plot.Xmin + (Int32)(x * XChPix);
+      Int32 x2 = Plot.Xmin + (Int32)((x + 1) * XChPix);
+      if (x2 <= x1) x2 = x1 + 1;
+      if (x2 > Plot.Xmax + 1) x2 = Plot.Xmax + 1;
+
+      Int32 max_c = Plot.data[y1][x1];
+      Int32 iy, ix;
+      for (iy = y1; iy < y2; iy++) {
+        Int32 *row = Plot.data[iy];
+        for (ix = x1; ix < x2; ix++) {
+          if (row[ix] > max_c) max_c = row[ix];
+        }
+      }
+
+      Plot.Image[x + y * Xpixels] = MapValueToColor((double)max_c, Plot.Zmin, Plot.Zmax, Plot.ZScaleType, ColorStep);
     }
+  }
 
-  switch ( Plot.ZScaleType ) {
-     case ZLIN: {ColorStep = ((float)( Plot.Zmax - Plot.Zmin +1 ))/16.00; break;}
-     case ZLOG: {ColorStep = log10((double)( Plot.Zmax - Plot.Zmin +1))/16.00; break;}
-     case ZSQRT:{ColorStep = sqrt((double)( Plot.Zmax - Plot.Zmin +1))/16.00; break;}
-     case ZCBRT:{ColorStep = cbrt((double)( Plot.Zmax - Plot.Zmin +1))/16.00; break;}
-     case ZATAN:{ColorStep = atan((double)( Plot.Zmax - Plot.Zmin +1))/16.00; break;}
-     case ZMIX: {ColorStep = mixf((double)( Plot.Zmax - Plot.Zmin +1))/16.00; break;}
-     }
+  crectwrite((Screencoord)(MatPlot.x1 + 1), (Screencoord)(MatPlot.y1 + 1),
+             (Screencoord)(MatPlot.x2 - 1), (Screencoord)(MatPlot.y2 - 1),
+             Plot.Image);
 
-/*
-  printf(" Xpixels = %d   Ypixels = %d\n", Xpixels, Ypixels );
-  printf(" XChPix  = %f   YChPix  = %f\n", XChPix,  YChPix  );
-*/
-  
-  if( (XChPix > 1.00 ) && ( YChPix > 1.00 ) )
-  for( x = 0; x < Xpixels; x++ )
-      for( y = 0; y < Ypixels; y++ ){
-	ix = x+Xpixels*y;
-	CellValue = Plot.MappedData[ix];
-        if( CellValue <= Plot.Zmin ) Plot.Image[ix] = ContColor[0];
-	else if( CellValue >= Plot.Zmax ) Plot.Image[ix] = ContColor[16];
-	else {CellValue -=Plot.Zmin;
-	      switch ( Plot.ZScaleType ) {
-	         case ZLOG: { if( CellValue < 1.00 ) CellValue += 1.00;
-		              CellValue = log10((double)(CellValue +0.01) ); break;}
-		 case ZSQRT:{ CellValue = sqrt( (double)CellValue ); break;}
-		 case ZCBRT:{ CellValue = cbrt( (double)CellValue ); break;}
-		 case ZATAN:{ CellValue = atan( (double)CellValue ); break;}
-		 case ZMIX: { if( CellValue < 1.00 ) CellValue += 1.00;
-		              CellValue = mixf( (double)CellValue +0.01); break;}
-		 }
-	      Plot.Image[ix] = CellValue/ColorStep + 1;
-	      Plot.Image[ix] = (Plot.Image[ix] > 16)?ContColor[16]:ContColor[Plot.Image[ix]];}
-       }
-  else
-  for( x = 0, xb = Xpixels-1 ; x <= xb; x++, xb--){
+  FlushDrawings;
+  SetMouseShape(XC_left_ptr);
 
-      x1 = Plot.Xmin + XChPix*x;
-      x2 = Plot.Xmin + XChPix*(x+1)+1; x2 = ( x2 < Plot.Xmax+1 )?x2:Plot.Xmax+1;
-      for( y = 0, yb = Ypixels-1 ; y <= yb; y++, yb--){
-        y1 = Plot.Ymin + YChPix*y;
-	y2 = Plot.Ymin + YChPix*(y+1)+1; y2 = ( y2 < Plot.Ymax+1 )?y2:Plot.Ymax+1;
-	CellValue = Plot.data[y1][x1];
-	for( ix = x1; ix < x2; ix++ )
-	  for( iy = y1; iy < y2; iy++ ) CellValue = ( CellValue > Plot.data[iy][ix] )?CellValue:Plot.data[iy][ix];
-	ix = x+Xpixels*y;
-        if( CellValue <= Plot.Zmin ) Plot.Image[ix] = ContColor[0];
-	else if( CellValue >= Plot.Zmax ) Plot.Image[ix] = ContColor[16];
-	else {CellValue -=Plot.Zmin;
-	      switch ( Plot.ZScaleType ) {
-	         case ZLOG: { if( CellValue < 1.00 ) CellValue += 1.00;
-		              CellValue = log10((double)(CellValue +0.01) ); break;}
-		 case ZSQRT:{ CellValue = sqrt( (double)CellValue ); break;}
-		 case ZCBRT:{ CellValue = cbrt( (double)CellValue ); break;}
-		 case ZATAN:{ CellValue = atan( (double)CellValue ); break;}
-		 case ZMIX: { if( CellValue < 1.00 ) CellValue += 1.00;
-		              CellValue = mixf( (double)CellValue +0.01); break;}
-		 }
-	      Plot.Image[ix] = CellValue/ColorStep + 1;
-	      Plot.Image[ix] = (Plot.Image[ix] > 16)?ContColor[16]:ContColor[Plot.Image[ix]];}
-
-        y1 = Plot.Ymin + YChPix*yb;
-	y2 = Plot.Ymin + YChPix*(yb+1)+1; y2 = ( y2 < Plot.Ymax+1 )?y2:Plot.Ymax+1;
-	CellValue = Plot.data[y1][x1];
-	for( ix = x1; ix < x2; ix++ )
-	  for( iy = y1; iy < y2; iy++ ) CellValue = ( CellValue > Plot.data[iy][ix] )?CellValue:Plot.data[iy][ix];
-	ix = yb*Xpixels+x;
-        if( CellValue <= Plot.Zmin ) Plot.Image[ix] = ContColor[0];
-	else if( CellValue >= Plot.Zmax ) Plot.Image[ix] = ContColor[16];
-	else {CellValue -=Plot.Zmin;
-	      switch ( Plot.ZScaleType ) {
-	         case ZLOG: { if( CellValue < 1.00 ) CellValue += 1.00;
-		              CellValue = log10((double)(CellValue +0.01) ); break;}
-		 case ZSQRT:{ CellValue = sqrt( (double)CellValue ); break;}
-		 case ZCBRT:{ CellValue = cbrt( (double)CellValue ); break;}
-		 case ZATAN:{ CellValue = atan( (double)CellValue ); break;}
-		 case ZMIX: { if( CellValue < 1.00 ) CellValue += 1.00;
-		              CellValue = mixf( (double)CellValue +0.01); break;}
-		 }
-	      Plot.Image[ix] = CellValue/ColorStep + 1;
-	      Plot.Image[ix] = (Plot.Image[ix] > 16)?ContColor[16]:ContColor[Plot.Image[ix]];}
-	}
-/*
-      crectwrite((Screencoord) (MatPlot.x1+x+1),(Screencoord) (MatPlot.y1+1),
-                (Screencoord) (MatPlot.x1+x+1),(Screencoord) (MatPlot.y2-1),
-		Plot.Image);
-*/      
-      x1 = Plot.Xmin + XChPix*xb;
-      x2 = Plot.Xmin + XChPix*(xb+1)+1; x2 = ( x2 < Plot.Xmax+1 )?x2:Plot.Xmax+1;
-
-      for( y = 0, yb = Ypixels-1 ; y <= yb; y++, yb--){
-        y1 = Plot.Ymin + YChPix*y;
-	y2 = Plot.Ymin + YChPix*(y+1)+1; y2 = ( y2 < Plot.Ymax+1 )?y2:Plot.Ymax+1;
-	CellValue = Plot.data[y1][x1];
-	for( ix = x1; ix < x2; ix++ )
-	  for( iy = y1; iy < y2; iy++ ) CellValue = ( CellValue > Plot.data[iy][ix] )?CellValue:Plot.data[iy][ix];
-	ix = xb+Xpixels*y;
-        if( CellValue <= Plot.Zmin ) Plot.Image[ix] = ContColor[0];
-	else if( CellValue >= Plot.Zmax ) Plot.Image[ix] = ContColor[16];
-	else {CellValue -=Plot.Zmin;
-	      switch ( Plot.ZScaleType ) {
-	         case ZLOG: { if( CellValue < 1.00 ) CellValue += 1.00;
-		              CellValue = log10((double)(CellValue +0.01) ); break;}
-		 case ZSQRT:{ CellValue = sqrt( (double)CellValue ); break;}
-		 case ZCBRT:{ CellValue = cbrt( (double)CellValue ); break;}
-		 case ZATAN:{ CellValue = atan( (double)CellValue ); break;}
-		 case ZMIX: { if( CellValue < 1.00 ) CellValue += 1.00;
-		              CellValue = mixf( (double)CellValue +0.01); break;}
-		 }
-	      Plot.Image[ix] = CellValue/ColorStep + 1;
-	      Plot.Image[ix] = (Plot.Image[ix] > 16)?ContColor[16]:ContColor[Plot.Image[ix]];}
-
-        y1 = Plot.Ymin + YChPix*yb;
-	y2 = Plot.Ymin + YChPix*(yb+1)+1; y2 = ( y2 < Plot.Ymax+1 )?y2:Plot.Ymax+1;
-	CellValue = Plot.data[y1][x1];
-	for( ix = x1; ix < x2; ix++ )
-	  for( iy = y1; iy < y2; iy++ ) CellValue = ( CellValue > Plot.data[iy][ix] )?CellValue:Plot.data[iy][ix];
-	ix = xb+Xpixels*yb;
-        if( CellValue <= Plot.Zmin ) Plot.Image[ix] = ContColor[0];
-	else if( CellValue >= Plot.Zmax ) Plot.Image[ix] = ContColor[16];
-	else {CellValue -=Plot.Zmin;
-	      switch ( Plot.ZScaleType ) {
-	         case ZLOG: { if( CellValue < 1.00 ) CellValue += 1.00;
-		              CellValue = log10((double)(CellValue +0.01) ); break;}
-		 case ZSQRT:{ CellValue = sqrt( (double)CellValue ); break;}
-		 case ZCBRT:{ CellValue = cbrt( (double)CellValue ); break;}
-		 case ZATAN:{ CellValue = atan( (double)CellValue ); break;}
-		 case ZMIX: { if( CellValue < 1.00 ) CellValue += 1.00;
-		              CellValue = mixf( (double)CellValue +0.01); break;}
-		 }
-	      Plot.Image[ix] = CellValue/ColorStep + 1;
-	      Plot.Image[ix] = (Plot.Image[ix] > 16)?ContColor[16]:ContColor[Plot.Image[ix]];}
-	}
-/*
-      crectwrite((Screencoord) (MatPlot.x1+xb+1),(Screencoord) (MatPlot.y1+1),
-                (Screencoord) (MatPlot.x1+xb+1),(Screencoord) (MatPlot.y2-1),
-		Plot.Image);
-*/
-/*      if( x%100 == 0) {
-         FlushDrawings;
-	 if( qtest() )
-	   if( qread( &val ) == REDRAW ) {
-	       qenter(REDRAW,(Int16)Win);
-	       return;
-	       }
-         }
-*/
-      }
-
-	 if( qtest() )
-	   if( qread( &val ) == REDRAW ) {
-	       qreset();
-	       qenter(REDRAW,(Int16)Win);
-	       return;
-	       }
-
-      crectwrite((Screencoord) (MatPlot.x1+1),(Screencoord) (MatPlot.y1+1),
-                (Screencoord) (MatPlot.x2-1),(Screencoord) (MatPlot.y2-1),
-		Plot.Image);
-    
-  FlushDrawings; /*logicop(LO_SRC);*/ SetMouseShape(XC_left_ptr); qreset();
-
-
-/*  Now draw the projections */
-
+  /* Now draw the projections */
   color(WHITE);
-  ProMax = Plot.LocalMinVal;
-  for( i = Plot.Xmin; i <= Plot.Xmax; i++ ) ProMax = ( ProMax > Plot.ProX[i] )?ProMax:Plot.ProX[i];
-  ProMax *= 1.05000;
-  ProStep = ((float)(XpPlot.y2 - XpPlot.y1-1))/(ProMax - Plot.LocalMinVal+0.5);
-  Xx = (float)(XpPlot.x1 + 1);
-  Yy = ( Plot.ProX[Plot.Xmin] - Plot.LocalMinVal )*ProStep + (float)(XpPlot.y1+1);
-  move2( Xx, Yy );
-  CellValue = 1.00/XChPix;
-  for( i = Plot.Xmin; i < Plot.Xmax; i++){
-      Xx += CellValue;
-      draw2(Xx,Yy);
-      Yy = ( Plot.ProX[i+1] - Plot.LocalMinVal )*ProStep + (float)(XpPlot.y1+1);
-      draw2(Xx,Yy);
-      }
-   Xx = XpPlot.x2 - 1;
-   draw2(Xx,Yy);
-   
-  ProMax = Plot.LocalMinVal;
-  for( i = Plot.Ymin; i <= Plot.Ymax; i++ ) ProMax = ( ProMax > Plot.ProY[i] )?ProMax:Plot.ProY[i];
-  ProMax *= 1.05000;
-  ProStep = ((float)(YpPlot.x2 - YpPlot.x1-1))/(ProMax - Plot.LocalMinVal+0.5);
-  Yy = (float)(YpPlot.y1 + 1);
-  Xx = ( Plot.ProY[Plot.Ymin] - Plot.LocalMinVal )*ProStep + (float)(YpPlot.x1+1);
-  move2( Xx, Yy );
-  CellValue = 1.00/YChPix;
-  for( i = Plot.Ymin; i < Plot.Ymax; i++){
-      Yy += CellValue;
-      draw2(Xx,Yy);
-      Xx = ( Plot.ProY[i+1] - Plot.LocalMinVal )*ProStep + (float)(YpPlot.x1+1);
-      draw2(Xx,Yy);
-      }
-   Yy = YpPlot.y2 - 1;
-   draw2(Xx,Yy);
-   
-   
+  float y_base = (float)(XpPlot.y1 + 1);
+  float y_top = (float)(XpPlot.y2 - 1);
+  float avail_h = y_top - y_base;
+  if (avail_h < 1.0f) avail_h = 1.0f;
 
-/*  Display the limits and the color scale*/
-  sprintf( XMinLabel.Text,"%d\0",Plot.Xmin); WriteInLabel(XMinLabel);
-  sprintf( XMaxLabel.Text,"%d\0",Plot.Xmax); WriteInLabel(XMaxLabel);
-  sprintf( YMinLabel.Text,"%d\0",Plot.Ymin); WriteInLabel(YMinLabel);
-  sprintf( YMaxLabel.Text,"%d\0",Plot.Ymax); WriteInLabel(YMaxLabel);
+  ProMax = 0.0f;
+  for (i = Plot.Xmin; i <= Plot.Xmax; i++) {
+    if (Plot.ProX[i] > ProMax) ProMax = Plot.ProX[i];
+  }
+  if (ProMax <= 0.0f) ProMax = 1.0f;
+  ProMax *= 1.05000f;
+  ProStep = avail_h / ProMax;
+
+  Xx = (float)(XpPlot.x1 + 1);
+  float val_x = Plot.ProX[Plot.Xmin];
+  if (val_x < 0.0f) val_x = 0.0f;
+  Yy = val_x * ProStep + y_base;
+  if (Yy < y_base) Yy = y_base;
+  if (Yy > y_top) Yy = y_top;
+  move2(Xx, Yy);
+  CellValue = 1.00f / XChPix;
+  for (i = Plot.Xmin; i < Plot.Xmax; i++) {
+    Xx += CellValue;
+    draw2(Xx, Yy);
+    val_x = Plot.ProX[i + 1];
+    if (val_x < 0.0f) val_x = 0.0f;
+    Yy = val_x * ProStep + y_base;
+    if (Yy < y_base) Yy = y_base;
+    if (Yy > y_top) Yy = y_top;
+    draw2(Xx, Yy);
+  }
+  Xx = (float)(XpPlot.x2 - 1);
+  draw2(Xx, Yy);
+
+  float x_base = (float)(YpPlot.x1 + 1);
+  float x_top = (float)(YpPlot.x2 - 1);
+  float avail_w = x_top - x_base;
+  if (avail_w < 1.0f) avail_w = 1.0f;
+
+  ProMax = 0.0f;
+  for (i = Plot.Ymin; i <= Plot.Ymax; i++) {
+    if (Plot.ProY[i] > ProMax) ProMax = Plot.ProY[i];
+  }
+  if (ProMax <= 0.0f) ProMax = 1.0f;
+  ProMax *= 1.05000f;
+  ProStep = avail_w / ProMax;
+
+  Yy = (float)(YpPlot.y1 + 1);
+  float val_y = Plot.ProY[Plot.Ymin];
+  if (val_y < 0.0f) val_y = 0.0f;
+  Xx = val_y * ProStep + x_base;
+  if (Xx < x_base) Xx = x_base;
+  if (Xx > x_top) Xx = x_top;
+  move2(Xx, Yy);
+  CellValue = 1.00f / YChPix;
+  for (i = Plot.Ymin; i < Plot.Ymax; i++) {
+    Yy += CellValue;
+    draw2(Xx, Yy);
+    val_y = Plot.ProY[i + 1];
+    if (val_y < 0.0f) val_y = 0.0f;
+    Xx = val_y * ProStep + x_base;
+    if (Xx < x_base) Xx = x_base;
+    if (Xx > x_top) Xx = x_top;
+    draw2(Xx, Yy);
+  }
+  Yy = (float)(YpPlot.y2 - 1);
+  draw2(Xx, Yy);
+
+  /* Display the limits and the color scale */
+  sprintf(XMinLabel.Text, "%d", Plot.Xmin); WriteInLabel(XMinLabel);
+  sprintf(XMaxLabel.Text, "%d", Plot.Xmax); WriteInLabel(XMaxLabel);
+  sprintf(YMinLabel.Text, "%d", Plot.Ymin); WriteInLabel(YMinLabel);
+  sprintf(YMaxLabel.Text, "%d", Plot.Ymax); WriteInLabel(YMaxLabel);
 
   DrawColorScale();
-  sprintf( ZMinLabel.Text,"%.3g\0",Plot.Zmin); WriteInLabel(ZMinLabel);
-  sprintf( ZMaxLabel.Text,"%.3g\0",Plot.Zmax); WriteInLabel(ZMaxLabel);
+  sprintf(ZMinLabel.Text, "%.3g", Plot.Zmin); WriteInLabel(ZMinLabel);
+  sprintf(ZMaxLabel.Text, "%.3g", Plot.Zmax); WriteInLabel(ZMaxLabel);
   FlushDrawings;
   logicop(LO_SRC);
- }
-  
+}
 
 
 void ReDrawPlot ( void ){
 
- Scoord x,xb,y,yb,Xpixels,Ypixels;
- Coord Xx, Yy;
- Int32 x1,x2, y1,y2,ix,iy,m,i,ixb;
- float ColorStep, CellValue, ProStep, ProMax;
- double ZRange;
- Int16 val;
+  Coord Xx, Yy;
+  Int32 i;
+  float CellValue, ProStep, ProMax;
 
   SetMouseShape(XC_watch);  
 
-      crectwrite((Screencoord) (MatPlot.x1+1),(Screencoord) (MatPlot.y1+1),
-                (Screencoord) (MatPlot.x2-1),(Screencoord) (MatPlot.y2-1),
-		Plot.Image);
+  crectwrite((Screencoord) (MatPlot.x1+1),(Screencoord) (MatPlot.y1+1),
+            (Screencoord) (MatPlot.x2-1),(Screencoord) (MatPlot.y2-1),
+	    Plot.Image);
     
-  FlushDrawings; /*logicop(LO_SRC);*/ SetMouseShape(XC_left_ptr);
+  FlushDrawings;
+  SetMouseShape(XC_left_ptr);
 
-/*  Now draw the projections */
-
+  /* Now draw the projections */
   color(WHITE);
-  ProMax = Plot.LocalMinVal;
-  for( i = Plot.Xmin; i <= Plot.Xmax; i++ ) ProMax = ( ProMax > Plot.ProX[i] )?ProMax:Plot.ProX[i];
-  ProMax *= 1.05000;
-  ProStep = ((float)(XpPlot.y2 - XpPlot.y1-1))/(ProMax - Plot.LocalMinVal+0.5);
-  Xx = (float)(XpPlot.x1 + 1);
-  Yy = ( Plot.ProX[Plot.Xmin] - Plot.LocalMinVal )*ProStep + (float)(XpPlot.y1+1);
-  move2( Xx, Yy );
-  CellValue = 1.00/XChPix;
-  for( i = Plot.Xmin; i < Plot.Xmax; i++){
-      Xx += CellValue;
-      draw2(Xx,Yy);
-      Yy = ( Plot.ProX[i+1] - Plot.LocalMinVal )*ProStep + (float)(XpPlot.y1+1);
-      draw2(Xx,Yy);
-      }
-   Xx = XpPlot.x2 - 1;
-   draw2(Xx,Yy);
-   
-  ProMax = Plot.LocalMinVal;
-  for( i = Plot.Ymin; i <= Plot.Ymax; i++ ) ProMax = ( ProMax > Plot.ProY[i] )?ProMax:Plot.ProY[i];
-  ProMax *= 1.05000;
-  ProStep = ((float)(YpPlot.x2 - YpPlot.x1-1))/(ProMax - Plot.LocalMinVal+0.5);
-  Yy = (float)(YpPlot.y1 + 1);
-  Xx = ( Plot.ProY[Plot.Ymin] - Plot.LocalMinVal )*ProStep + (float)(YpPlot.x1+1);
-  move2( Xx, Yy );
-  CellValue = 1.00/YChPix;
-  for( i = Plot.Ymin; i < Plot.Ymax; i++){
-      Yy += CellValue;
-      draw2(Xx,Yy);
-      Xx = ( Plot.ProY[i+1] - Plot.LocalMinVal )*ProStep + (float)(YpPlot.x1+1);
-      draw2(Xx,Yy);
-      }
-   Yy = YpPlot.y2 - 1;
-   draw2(Xx,Yy);
-   
-   
+  float y_base = (float)(XpPlot.y1 + 1);
+  float y_top = (float)(XpPlot.y2 - 1);
+  float avail_h = y_top - y_base;
+  if (avail_h < 1.0f) avail_h = 1.0f;
 
-/*  Display the limits and the color scale*/
-  sprintf( XMinLabel.Text,"%d\0",Plot.Xmin); WriteInLabel(XMinLabel);
-  sprintf( XMaxLabel.Text,"%d\0",Plot.Xmax); WriteInLabel(XMaxLabel);
-  sprintf( YMinLabel.Text,"%d\0",Plot.Ymin); WriteInLabel(YMinLabel);
-  sprintf( YMaxLabel.Text,"%d\0",Plot.Ymax); WriteInLabel(YMaxLabel);
+  ProMax = 0.0f;
+  for (i = Plot.Xmin; i <= Plot.Xmax; i++) {
+    if (Plot.ProX[i] > ProMax) ProMax = Plot.ProX[i];
+  }
+  if (ProMax <= 0.0f) ProMax = 1.0f;
+  ProMax *= 1.05000f;
+  ProStep = avail_h / ProMax;
+
+  Xx = (float)(XpPlot.x1 + 1);
+  float val_x = Plot.ProX[Plot.Xmin];
+  if (val_x < 0.0f) val_x = 0.0f;
+  Yy = val_x * ProStep + y_base;
+  if (Yy < y_base) Yy = y_base;
+  if (Yy > y_top) Yy = y_top;
+  move2(Xx, Yy);
+  CellValue = 1.00f / XChPix;
+  for (i = Plot.Xmin; i < Plot.Xmax; i++) {
+    Xx += CellValue;
+    draw2(Xx, Yy);
+    val_x = Plot.ProX[i + 1];
+    if (val_x < 0.0f) val_x = 0.0f;
+    Yy = val_x * ProStep + y_base;
+    if (Yy < y_base) Yy = y_base;
+    if (Yy > y_top) Yy = y_top;
+    draw2(Xx, Yy);
+  }
+  Xx = (float)(XpPlot.x2 - 1);
+  draw2(Xx, Yy);
+
+  float x_base = (float)(YpPlot.x1 + 1);
+  float x_top = (float)(YpPlot.x2 - 1);
+  float avail_w = x_top - x_base;
+  if (avail_w < 1.0f) avail_w = 1.0f;
+
+  ProMax = 0.0f;
+  for (i = Plot.Ymin; i <= Plot.Ymax; i++) {
+    if (Plot.ProY[i] > ProMax) ProMax = Plot.ProY[i];
+  }
+  if (ProMax <= 0.0f) ProMax = 1.0f;
+  ProMax *= 1.05000f;
+  ProStep = avail_w / ProMax;
+
+  Yy = (float)(YpPlot.y1 + 1);
+  float val_y = Plot.ProY[Plot.Ymin];
+  if (val_y < 0.0f) val_y = 0.0f;
+  Xx = val_y * ProStep + x_base;
+  if (Xx < x_base) Xx = x_base;
+  if (Xx > x_top) Xx = x_top;
+  move2(Xx, Yy);
+  CellValue = 1.00f / YChPix;
+  for (i = Plot.Ymin; i < Plot.Ymax; i++) {
+    Yy += CellValue;
+    draw2(Xx, Yy);
+    val_y = Plot.ProY[i + 1];
+    if (val_y < 0.0f) val_y = 0.0f;
+    Xx = val_y * ProStep + x_base;
+    if (Xx < x_base) Xx = x_base;
+    if (Xx > x_top) Xx = x_top;
+    draw2(Xx, Yy);
+  }
+  Yy = (float)(YpPlot.y2 - 1);
+  draw2(Xx, Yy);
+
+  /* Display the limits and the color scale */
+  sprintf( XMinLabel.Text,"%d",Plot.Xmin); WriteInLabel(XMinLabel);
+  sprintf( XMaxLabel.Text,"%d",Plot.Xmax); WriteInLabel(XMaxLabel);
+  sprintf( YMinLabel.Text,"%d",Plot.Ymin); WriteInLabel(YMinLabel);
+  sprintf( YMaxLabel.Text,"%d",Plot.Ymax); WriteInLabel(YMaxLabel);
 
   DrawColorScale();
-  sprintf( ZMinLabel.Text,"%.3g\0",Plot.Zmin); WriteInLabel(ZMinLabel);
-  sprintf( ZMaxLabel.Text,"%.3g\0",Plot.Zmax); WriteInLabel(ZMaxLabel);
+  sprintf( ZMinLabel.Text,"%.3g",Plot.Zmin); WriteInLabel(ZMinLabel);
+  sprintf( ZMaxLabel.Text,"%.3g",Plot.Zmax); WriteInLabel(ZMaxLabel);
   FlushDrawings;
   logicop(LO_SRC);
  }
@@ -2028,13 +1997,11 @@ void DrawPlotFrame ( struct PlotFrame P ) {
 
 void ClosestColor ( Int16 *r, Int16 *g, Int16 *b){
 
- Int16 rr,gg,bb;
  Int16 rd,gd,bd;
  Int16 RedB=0,GreenB=0,BlueB=255;
  XColor c[256];
- unsigned long pixels[2];
  int chq,Schq;
- int Depth,ii,jj,kk;
+ int ii,jj,kk;
 
 
  if( usePCMAP() ) return;
@@ -2047,7 +2014,6 @@ void ClosestColor ( Int16 *r, Int16 *g, Int16 *b){
  if(XAllocColor(DD,DefaultColormap(DD,DefaultScreen(DD)),&c[0]))return;
 
  kk = 1; kk <<=DefaultDepth(DD,DefaultScreen(DD));
-/* printf(" Depth : %d\n",DefaultDepth(DD,DefaultScreen(DD))); */
  kk /=256;
  
  
@@ -2082,10 +2048,7 @@ void ClosestColor ( Int16 *r, Int16 *g, Int16 *b){
 
 void MapGLWcolors(void){
 
- Int16 k1,k2,k3;
  Colorindex i;
- char ColorString[20];
- char *ColorName = &ColorString[0];
  Int16 rr,gg,bb;
  
  rr=255; gg=255; bb=85;
@@ -2132,43 +2095,59 @@ void MapGLWcolors(void){
 
 void LoadGLWfont(void){
 
-  Int32 startW, startH, FontSize;
+  Int32 startH, FontSize;
   char FontName[80];
   
   startH = XDisplayHeight( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) ); 
-  startW = XDisplayWidth ( (Display *)getXdpy(), DefaultScreen((Display *)getXdpy()) ); 
 
-   FontSize = (float)startH * 0.0577 + 45.0;
-   FontSize -= FontSize%20 -20;
+   FontSize = (float)startH * 0.0577f + 45.0f;
+   FontSize -= FontSize%20 - 20;
    if( FontSize > 180 ) FontSize = 180;
-    if( FontSize == 160 ) FontSize = 140;
+   if( FontSize == 160 ) FontSize = 140;
    
-   sprintf( FontName, "-*-charter-medium-r-*-*-0-%.2d-0-0-p-0-iso8859-1\0", FontSize-20); 
+   sprintf( FontName, "-*-charter-medium-r-*-*-0-%.2d-0-0-p-0-iso8859-1", FontSize-20); 
    loadXfont(GLW_FONTID12, FontName );
 
-   sprintf( FontName, "-*-charter-medium-r-*-*-0-%.2d-0-0-p-0-iso8859-1\0", FontSize); 
+   sprintf( FontName, "-*-charter-medium-r-*-*-0-%.2d-0-0-p-0-iso8859-1", FontSize); 
    loadXfont(GLW_FONTID14, FontName );
-
 
   font(GLW_FONTID14);
  }
 
 void SetMouseShape(unsigned int shape){
 
- static Cursor MouseShape;
- static XColor bg,fg;
- static unsigned int CrtShape;
+  static unsigned int CrtShape = 0;
+  static Cursor cached_cursors[64];
+  static unsigned int cached_shapes[64];
+  static int num_cached = 0;
+  Cursor MouseShape = 0;
+  int i;
+  XColor bg, fg;
 
-  if(shape == CrtShape)return;
-  
-  bg.red = 0 ; bg.green = 0     ; bg.blue  = 0;
-  fg.red = 0xcfff; fg.green = 0xdfff; fg.blue  = 0xffff     ;
+  if(shape == CrtShape) return;
 
-  MouseShape=XCreateFontCursor( (Display *)getXdpy(),shape); 
-  XRecolorCursor((Display *)getXdpy(),MouseShape,&fg,&bg);
-  XDefineCursor((Display *)getXdpy(),getXwid(),MouseShape);
-  CrtShape=shape;
- }
+  for(i = 0; i < num_cached; i++){
+    if(cached_shapes[i] == shape){
+      MouseShape = cached_cursors[i];
+      break;
+    }
+  }
+
+  if(!MouseShape && num_cached < 64){
+    bg.red = 0; bg.green = 0; bg.blue = 0;
+    fg.red = 0xcfff; fg.green = 0xdfff; fg.blue = 0xffff;
+    MouseShape = XCreateFontCursor((Display *)getXdpy(), shape);
+    XRecolorCursor((Display *)getXdpy(), MouseShape, &fg, &bg);
+    cached_shapes[num_cached] = shape;
+    cached_cursors[num_cached] = MouseShape;
+    num_cached++;
+  }
+
+  if(MouseShape){
+    XDefineCursor((Display *)getXdpy(), getXwid(), MouseShape);
+    CrtShape = shape;
+  }
+}
 
 
 /*  Label Stuff */
@@ -2250,9 +2229,9 @@ void WriteInLabel(LabelInFrame L){
 
 void ShowPosition ( void ){
 
-  sprintf(CursorXValue.Text," X : %d\0",XYZ.x);
-  sprintf(CursorYValue.Text," Y : %d\0",XYZ.y);
-  sprintf(CursorZValue.Text," Z : %.3g\0",XYZ.z);
+  sprintf(CursorXValue.Text," X : %d",XYZ.x);
+  sprintf(CursorYValue.Text," Y : %d",XYZ.y);
+  sprintf(CursorZValue.Text," Z : %.3g",XYZ.z);
   WriteInLabel(CursorXValue);
   WriteInLabel(CursorYValue);
   WriteInLabel(CursorZValue);
@@ -2261,13 +2240,9 @@ void ShowPosition ( void ){
 
 void ClearDrawArea ( void ) {
 
- Coord FrameBorder[4][2];
  Int32 x1Wp, x2Wp, y1Wp, y2Wp;
- float x1LB,x2LB,y1LB,y2LB;
- float x1RT,x2RT,y1RT,y2RT;
- float FontHeight;
- float MinSizeXY, SizeX, SizeY;
-  
+ float x1LB,y1LB;
+ float x1RT,y1RT;
 
  x1Wp=0; y1Wp=0;
  x2Wp=XWp-1; y2Wp=YWp-1;
@@ -2277,7 +2252,7 @@ void ClearDrawArea ( void ) {
  logicop(Plot.Reverse); 
  color(BLACK); rectf((Coord)(x1Wp+x1LB),(Coord)(y1Wp+y1LB),(Coord)(x2Wp-x1RT),(Coord)(y2Wp-y1RT));
  logicop(LO_SRC);
- 
+  
 }
 
 void DrawFrame ( void ) {
@@ -2296,9 +2271,7 @@ void DrawFrame ( void ) {
  x1RT=GLW_FRAMEWIDTH_RT; y1RT=GLW_FRAMEWIDTH_RT;
  x2LB=(x1LB-2); y2LB=(y1LB-2);
  x2RT=(x1RT-2); y2RT=(y1RT-2);
-/* 
- color(BLACK); rectf((Coord)x1Wp,(Coord)y1Wp,(Coord)x2Wp,(Coord)y2Wp);
-*/
+
  ClearDrawArea();
   
  color(GLW_FRAMECOLOR);
@@ -2333,7 +2306,7 @@ void DrawFrame ( void ) {
  sleep(0); XSync((Display *)getXdpy(),False);
 
  FontHeight=2*getheight();
-#define MAXTXTW strwidth("000000000000\0")
+#define MAXTXTW strwidth("000000000000")
  MinSizeXY = 3*FontHeight+6; MinSizeXY = (MinSizeXY > MAXTXTW)?MinSizeXY:MAXTXTW;
 #undef  MAXTXTW
  SizeX = MinSizeXY* (float)(XWp-GLW_FRAMEWIDTH_LB-GLW_FRAMEWIDTH_RT)/
@@ -2404,13 +2377,13 @@ void ZScaleChangeCbk ( gl_slider *sl, double value) {
 
   if ( sl == ZMinSlider ) { ZMinFactor = value; /* ZScaleChange = 1; */}
   if ( sl == ZMaxSlider ) { ZMaxFactor = value; /* ZScaleChange = 1; */}
-  qreset();
   qenter(REDRAW,(Int16)Win);
 }
 
 Int32 GLWContourInit(void){
 
   Int32 dev, startH, startW;
+  XSetWindowAttributes xswa;
 
 /*
   minsize(GLW_XSIZE,GLW_YSIZE);
@@ -2441,6 +2414,11 @@ Int32 GLWContourInit(void){
   MapGLWcolors();
   LoadGLWfont();
   winset(dev);
+
+  xswa.bit_gravity = NorthWestGravity;
+  xswa.background_pixel = getXpixel(GLW_FRAMECOLOR);
+  XChangeWindowAttributes((Display *)getXdpy(), getXwid(), CWBitGravity | CWBackPixel, &xswa);
+
   reshapeviewport();
   getsize(&XWp, &YWp);
   Menu=defpup("  Color Scale  %t|Linear|Square root|Cubic root|Log10|Mixed|Atan|Reverse Colors");
@@ -2449,6 +2427,7 @@ Int32 GLWContourInit(void){
 
   doublebuffer();
   gconfig();
+  backbuffer(1);
   
   Marker = CreateMarker(LMARKERl,LMARKERL,GLW_MARKERCOLOR);
   if( Marker ){ Marker->Next = CreateMarker(RMARKERl,RMARKERL,GLW_MARKERCOLOR);
@@ -2461,6 +2440,10 @@ Int32 GLWContourInit(void){
   qdevice(LEFTMOUSE);
   qdevice(MIDDLEMOUSE);
   qdevice(MENUBUTTON);
+  qdevice(UPMOUSEWHEEL);
+  qdevice(DOWNMOUSEWHEEL);
+  qdevice(LEFTMOUSEWHEEL);
+  qdevice(RIGHTMOUSEWHEEL);
   qdevice(LEFTARROWKEY);
   qdevice(RIGHTARROWKEY);
   qdevice(UPARROWKEY);
@@ -2487,6 +2470,43 @@ void ReshapeWindow ( void ){
    getsize(&XWp, &YWp);
    viewport( (Screencoord) 0,(Screencoord) (XWp-1),(Screencoord) 0,(Screencoord) (YWp-1));
    ortho2( (Coord) 0,(Coord) (XWp-1),(Coord) 0,(Coord) (YWp-1) );
+   MapPlots();
+}
+
+static float GetWheelAcceleration(Int32 dev, int queued) {
+  static struct timeval last_wheel_time = {0, 0};
+  static Int32 last_wheel_dev = 0;
+  static float current_accel = 1.0f;
+  struct timeval now;
+  gettimeofday(&now, NULL);
+
+  long dt_ms = (now.tv_sec - last_wheel_time.tv_sec) * 1000 +
+               (now.tv_usec - last_wheel_time.tv_usec) / 1000;
+  if (dt_ms < 0) dt_ms = 0;
+
+  if (dev != last_wheel_dev || dt_ms > 200) {
+    current_accel = 1.0f;
+  } else {
+    if (dt_ms < 40) {
+      current_accel += 0.45f;
+    } else if (dt_ms < 85) {
+      current_accel += 0.20f;
+    } else if (dt_ms < 140) {
+      current_accel += 0.08f;
+    } else {
+      current_accel *= 0.85f;
+    }
+    if (current_accel > 2.2f) current_accel = 2.2f;
+    if (current_accel < 1.0f) current_accel = 1.0f;
+  }
+
+  last_wheel_time = now;
+  last_wheel_dev = dev;
+
+  if (queued > 2) queued = 2;
+  float total_mult = current_accel * (1.0f + 0.35f * (float)queued);
+  if (total_mult > 2.8f) total_mult = 2.8f;
+  return total_mult;
 }
 
 
@@ -2547,7 +2567,16 @@ void MovePlotRegion ( Int32 Where ){
 
 
 #define REDRAW_BANANAS 	 Selected = NULL; b = Banana; while( b ){ BP_DrawBanana( b ); b = b->Next; }
-#define REDRAW_BANANAS_SelKeep 	 b = Banana; while( b ){ BP_DrawBanana( b ); b = b->Next;} if(Selected){BP_SelectBanana(Selected);BP_SelectPoint(Selected->s);}
+#define REDRAW_BANANAS_SelKeep \
+  b = Banana; \
+  while( b ){ \
+    if( b != Selected ) BP_DrawBanana( b ); \
+    b = b->Next; \
+  } \
+  if( Selected ){ \
+    BP_DrawSBanana( Selected ); \
+    if( Selected->s ) BP_SelectPoint( Selected->s ); \
+  }
 
 
 void HandleKey( char key ){
@@ -2569,7 +2598,7 @@ void HandleKey( char key ){
 						     DoExpand = True;}
 			                m->On = MARKER_OFF;
 					m = m->Next;}
-					if(DoExpand){ DOUBLEBUFF_ON DrawPlot(); REDRAW_BANANAS; DOUBLEBUFF_OFF}
+					if(DoExpand){ DOUBLEBUFF_ON DrawPlot(); REDRAW_BANANAS_SelKeep; RedrawAllMarkers(); DOUBLEBUFF_OFF; FlushDrawings; }
 			    break;}
       case 'F': case 'f':{ DOUBLEBUFF_ON
                            RedrawAllMarkers();
@@ -2577,10 +2606,10 @@ void HandleKey( char key ){
                            Plot.Xmin = Plot.Ymin = 0;
 			   Plot.Xmax = DataXmax-1; Plot.Ymax = DataYmax-1;
 			   DrawPlot();
-	                   Selected = NULL;
-	                   b = Banana;
-	                   while( b ){ BP_DrawBanana( b ); b = b->Next; }
+	                   REDRAW_BANANAS_SelKeep;
+	                   RedrawAllMarkers();
 			   DOUBLEBUFF_OFF
+			   FlushDrawings;
 			   break;}
 			   
       case 'Q': case 'q':{  DoQuit = True; break;}
@@ -2589,13 +2618,13 @@ void HandleKey( char key ){
                    getorigin(&x,&y);
                    x=getvaluator(MOUSEX)-x;
                    y=getvaluator(MOUSEY)-y;
-	           if( GetXYZ(x,y) ){ ShowPosition(); BP_AddPoint(); qreset ();}
+	           if( GetXYZ(x,y) ){ ShowPosition(); BP_AddPoint(); FlushDrawings; }
 		   break;}
       case 'D': case 'd':{ 
                    getorigin(&x,&y);
                    x=getvaluator(MOUSEX)-x;
                    y=getvaluator(MOUSEY)-y;
-	           if( GetXYZ(x,y) ){ ShowPosition(); BP_DeletePoint(); }
+	           if( GetXYZ(x,y) ){ ShowPosition(); BP_DeletePoint(); FlushDrawings; }
 		   break;}
       case 'H': case 'h': case '?':{ PrintHelp(); break;}
       case 'K': case 'k':{ 
@@ -2607,46 +2636,49 @@ void HandleKey( char key ){
 		     if( Selected ){
 		       BP_UnselectBanana( Selected );
 		       BP_DrawBanana( Selected );
-		       BP_DestroyBanana();}
+		       BP_DestroyBanana();
+		       FlushDrawings;
 		     }
+		   }
 		   break;}
       case 'M': case 'm':{ 
                    getorigin(&x,&y);
                    x=getvaluator(MOUSEX)-x;
                    y=getvaluator(MOUSEY)-y;
-	           if( GetXYZ(x,y) ){ ShowPosition(); BP_MovePoint(); }
+	           if( GetXYZ(x,y) ){ ShowPosition(); BP_MovePoint(); FlushDrawings; }
 		   break;}
       case 'N': case 'n':{ 
                    getorigin(&x,&y);
                    x=getvaluator(MOUSEX)-x;
                    y=getvaluator(MOUSEY)-y;
-	           if( GetXYZ(x,y) ){ ShowPosition(); BP_NewBanana(); }
+	           if( GetXYZ(x,y) ){ ShowPosition(); BP_NewBanana(); FlushDrawings; }
 		   break;}
-/*      case 'H': case 'h':{ 
-                   getorigin(&x,&y);
-                   x=getvaluator(MOUSEX)-x;
-                   y=getvaluator(MOUSEY)-y;
-	           if( GetXYZ(x,y) ){
-		     ShowPosition();
-		     if( Selected ){
-		       BP_UnselectBanana( Selected );
-		       BP_DrawBanana( Selected );
-		       Selected->Active = False;
-		       Selected = NULL;}
-		     }
-		   break;}*/
       case 'T': case 't':{ BP_TypeBanana (); break;}
       case 'R': case 'r':{ 
                  if( Banana ){
                      b = Banana;
 		     while ( b->Next ) b = b->Next;
 		     b->Next = BP_ReadBanana();
-		     if( b->Next )BP_DrawBanana( b->Next );
+		     if( b->Next ){
+		       Selected = b->Next;
+		       BP_DrawBanana( Selected );
+		       BP_SelectBanana( Selected );
+		       Selected->s = Selected->p;
+		       if( Selected->s ) BP_SelectPoint( Selected->s );
+		       FlushDrawings;
 		     }
+		  }
 		  else {
 		     Banana = BP_ReadBanana();
-		     if( Banana ) BP_DrawBanana( Banana );
+		     if( Banana ){
+		       Selected = Banana;
+		       BP_DrawBanana( Selected );
+		       BP_SelectBanana( Selected );
+		       Selected->s = Selected->p;
+		       if( Selected->s ) BP_SelectPoint( Selected->s );
+		       FlushDrawings;
 		     }
+		  }
                  break;}
       case 'W': case 'w':{ BP_WriteBanana (); break;}
       case 'Y': case 'y':{ CommonIntercept (); break;}
@@ -2660,6 +2692,9 @@ void HandleKey( char key ){
                               fprintf(stderr,"   Surface : %.1lf    Integral : %.3lf\n", Selected->Surface, Selected->Integral );
                               fprintf(stderr,"------------------------------------------------------------------\n");
                            } 
+                           else {
+                              printf("  No banana currently selected\n");
+                           }
                            break;
                          }
 
@@ -2671,7 +2706,6 @@ void  contourplot_(Int32 *data, Int32 *resx, Int32 *resy){
   Int32 dev;
   Int16 val;
   Int32 x,y;
-  char testdev;
   BStruct b;
   struct MarkerStruct *m;
   Int32 x1Rex, y1Rex, xRex, yRex;
@@ -2683,8 +2717,8 @@ void  contourplot_(Int32 *data, Int32 *resx, Int32 *resy){
   DoQuit = False;
   Win = GLWContourInit();
   DOUBLEBUFF_ON
+  ReshapeWindow();
   DrawFrame(); 
-  MapPlots();
   XMinLabel.Reverse = &(Plot.Reverse);
   XMaxLabel.Reverse = &(Plot.Reverse);
   YMinLabel.Reverse = &(Plot.Reverse);
@@ -2697,37 +2731,17 @@ void  contourplot_(Int32 *data, Int32 *resx, Int32 *resy){
   REDRAW_BANANAS;
   fflush(stdin);
   ZScaleChange = 0;
-
-  swapbuffers();
-
-  DrawFrame(); 
-  MapPlots();
-  XMinLabel.Reverse = &(Plot.Reverse);
-  XMaxLabel.Reverse = &(Plot.Reverse);
-  YMinLabel.Reverse = &(Plot.Reverse);
-  YMaxLabel.Reverse = &(Plot.Reverse);
-  ZMinLabel.Reverse = &(Plot.Reverse);
-  ZMaxLabel.Reverse = &(Plot.Reverse);
-  DrawPlotFrame(MatPlot); DrawPlotFrame(XpPlot); DrawPlotFrame(YpPlot);
-  /*MakeData(data);*/
-  ReDrawPlot();
-  REDRAW_BANANAS;
-  fflush(stdin);
   DOUBLEBUFF_OFF
+  FlushDrawings;
   
-  while ( dev = qread(&val) ) {
+  while ( (dev = qread(&val)) ) {
 
-    testdev=0;
-    while ( qtest()&&(testdev<3) ){
-     testdev++;
-     switch(dev) {
-       case KEYBD: { testdev=5; break;}
-       case REDRAW: { testdev=5; break;}
-       case LEFTMOUSE: { testdev=5; break;}
-       case MOUSEX: { dev=qread(&val); break;}
-       case MOUSEY: { dev=qread(&val); break;}
-       }
-     }
+    if ( dev == MOUSEX || dev == MOUSEY ) {
+      while ( qtest() == MOUSEX || qtest() == MOUSEY ) {
+        Int16 dummy = 0;
+        dev = qread(&dummy);
+      }
+    }
     switch( dev ) {
       case KEYBD: {
         HandleKey( val );
@@ -2739,53 +2753,26 @@ void  contourplot_(Int32 *data, Int32 *resx, Int32 *resy){
         break;}
 
       case REDRAW: {
-
+        while ( qtest() == REDRAW ) {
+          Int16 qv = 0;
+          qread(&qv);
+        }
 	DOUBLEBUFF_ON
-redraw:	ReshapeWindow();
-	if( qtest() )
-	{
-	    dev = qread( &val );
-	    if( dev == REDRAW )  {  usleep(10000); goto redraw; }
-	}
-
-	DrawFrame();
-	
-	swapbuffers();
-
-	if( qtest() )
-	{
-	    dev = qread( &val );
-	    if( dev == REDRAW )  {  usleep(10000); goto redraw; }
-	}
-	
-	DrawFrame();
-  	MapPlots();
-	DrawPlotFrame(MatPlot); DrawPlotFrame(XpPlot); DrawPlotFrame(YpPlot);
-
-
-	swapbuffers(); 
-	
-	if( qtest() )
-	{
-	    dev = qread( &val );
-	    if( dev == REDRAW ) {  usleep(10000); goto redraw; }
-	}
-
-
+	ReshapeWindow();
 	DrawFrame();
 	DrawPlotFrame(MatPlot); DrawPlotFrame(XpPlot); DrawPlotFrame(YpPlot);
-	swapbuffers();
 	DrawPlot();
 	REDRAW_BANANAS_SelKeep;
 	RedrawAllMarkers();
 	DOUBLEBUFF_OFF
-
 	FlushDrawings;
 	break;}
 
      case ESCKEY: { 
+	if( val == 0 ) break;
 	if( Selected )BP_UnselectBanana( Selected );
 	Selected = NULL;
+	FlushDrawings;
 	break; }
 
      case LEFTMOUSE: { 
@@ -2820,8 +2807,9 @@ redraw:	ReshapeWindow();
 	       Plot.Ymin = ( y1Rex < yRex )?y1Rex:yRex;
 	       Plot.Ymax = ( y1Rex > yRex )?y1Rex:yRex;
 	       DOUBLEBUFF_ON
-	       DrawPlot(); REDRAW_BANANAS; FlushDrawings;
+	       DrawPlot(); REDRAW_BANANAS_SelKeep; RedrawAllMarkers();
 	       DOUBLEBUFF_OFF
+	       FlushDrawings;
 	       }
 	    }
 	  break; }
@@ -2829,7 +2817,7 @@ redraw:	ReshapeWindow();
        else {
         update_widgets(val); FlushDrawings;
   	if( ZScaleChange ){
-DOUBLEBUFF_ON
+	    DOUBLEBUFF_ON
   	    MapPlots();
   	    DrawPlotFrame(MatPlot); DrawPlotFrame(XpPlot); DrawPlotFrame(YpPlot);
   	    DrawPlot();
@@ -2838,7 +2826,7 @@ DOUBLEBUFF_ON
   	    FlushDrawings;
   	    ZScaleChange = 0;
 	    update_widgets(val); FlushDrawings;
-DOUBLEBUFF_OFF
+	    DOUBLEBUFF_OFF
   	    }
         getorigin(&x,&y);
         x=getvaluator(MOUSEX)-x;
@@ -2851,19 +2839,16 @@ DOUBLEBUFF_OFF
 	    if(Selected){
 	      BP_SelectBanana( Selected );
 	      Selected->s = BP_ClosestPoint( Selected );
-	      BP_SelectPoint( Selected->s );
+	      if( Selected->s ) BP_SelectPoint( Selected->s );
+	      FlushDrawings;
 	      }
 	    }
 	if( Selected ){
 	   if( Selected->s )BP_UnselectPoint( Selected->s );
 	   Selected->s = BP_ClosestPoint( Selected );
-	   BP_SelectPoint( Selected->s );
+	   if( Selected->s ) BP_SelectPoint( Selected->s );
+	   FlushDrawings;
 	   }
-/*                if( Selected )
-                {
-                  if( BP_IsPointInside( Selected, XYZ.x, XYZ.y ) ) printf("  point (%d %d) inside selected banana\n", XYZ.x, XYZ.y);
-                }
-*/
 	break;}
 	}
 	break;
@@ -2880,12 +2865,12 @@ DOUBLEBUFF_OFF
                 getorigin(&x,&y);
                 x=getvaluator(MOUSEX)-x;
                 y=getvaluator(MOUSEY)-y;
-		ShowPosition(); usleep(100000);
+		ShowPosition(); usleep(20000);
 		}
 	   DOUBLEBUFF_ON
-           MovePlotRegion ( MOVE_CENTER   ); REDRAW_BANANAS;
+           MovePlotRegion ( MOVE_CENTER   ); REDRAW_BANANAS_SelKeep; RedrawAllMarkers();
 	   DOUBLEBUFF_OFF
-	   usleep(100000);
+	   FlushDrawings;
 	   }
 	else {
 	if( getbutton(LEFTSHIFTKEY) || getbutton(RIGHTSHIFTKEY) ){
@@ -2915,121 +2900,201 @@ DOUBLEBUFF_OFF
 	if( GetXYZ(x,y) )ShowPosition();
 	break;}
 
+     case UPMOUSEWHEEL:
+     case DOWNMOUSEWHEEL: {
+       int queued = 0;
+       while (qtest() == dev) {
+         Int16 qv = 0;
+         qread(&qv);
+         if (qv != 0) queued++;
+       }
+       float mult = GetWheelAcceleration(dev, queued);
+
+       getorigin(&x, &y);
+       x = getvaluator(MOUSEX) - x;
+       y = getvaluator(MOUSEY) - y;
+
+       if ((getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY)) && GetXYZ(x, y)) {
+         /* 2D Zoom centered at mouse cursor */
+         float zoom_factor = (dev == UPMOUSEWHEEL) ? (0.08f * mult) : (-0.08f * mult);
+         Int32 cur_x = XYZ.x;
+         Int32 cur_y = XYZ.y;
+         Int32 span_x = Plot.Xmax - Plot.Xmin + 1;
+         Int32 span_y = Plot.Ymax - Plot.Ymin + 1;
+         Int32 d_span_x = (Int32)roundf((float)span_x * zoom_factor);
+         Int32 d_span_y = (Int32)roundf((float)span_y * zoom_factor);
+
+         if (span_x - d_span_x >= 8 && span_y - d_span_y >= 8) {
+           float rx = (float)(cur_x - Plot.Xmin) / (float)span_x;
+           float ry = (float)(cur_y - Plot.Ymin) / (float)span_y;
+           Plot.Xmin += (Int32)roundf((float)d_span_x * rx);
+           Plot.Xmax -= (Int32)roundf((float)d_span_x * (1.0f - rx));
+           Plot.Ymin += (Int32)roundf((float)d_span_y * ry);
+           Plot.Ymax -= (Int32)roundf((float)d_span_y * (1.0f - ry));
+
+           if (Plot.Xmin < 0) Plot.Xmin = 0;
+           if (Plot.Xmax >= DataXmax) Plot.Xmax = DataXmax - 1;
+           if (Plot.Ymin < 0) Plot.Ymin = 0;
+           if (Plot.Ymax >= DataYmax) Plot.Ymax = DataYmax - 1;
+           if (Plot.Xmin >= Plot.Xmax) Plot.Xmin = Plot.Xmax - 1;
+           if (Plot.Ymin >= Plot.Ymax) Plot.Ymin = Plot.Ymax - 1;
+
+           m = Marker; while( m ){ m->On = MARKER_OFF; m = m->Next; }
+           DOUBLEBUFF_ON
+           DrawPlot();
+           REDRAW_BANANAS_SelKeep;
+           RedrawAllMarkers();
+           DOUBLEBUFF_OFF
+           FlushDrawings;
+         }
+       } else {
+         /* Vertical pan */
+         Int32 span_y = Plot.Ymax - Plot.Ymin + 1;
+         Int32 shift = (Int32)roundf((float)span_y * 0.05f * mult);
+         if (shift < 1) shift = 1;
+         if (dev == DOWNMOUSEWHEEL) shift = -shift;
+
+         if (Plot.Ymax + shift > DataYmax - 1) {
+           shift = (DataYmax - 1) - Plot.Ymax;
+         }
+         if (Plot.Ymin + shift < 0) {
+           shift = -Plot.Ymin;
+         }
+
+         if (shift != 0) {
+           Plot.Ymin += shift;
+           Plot.Ymax += shift;
+           m = Marker; while( m ){ m->On = MARKER_OFF; m = m->Next; }
+           DOUBLEBUFF_ON
+           DrawPlot();
+           REDRAW_BANANAS_SelKeep;
+           RedrawAllMarkers();
+           DOUBLEBUFF_OFF
+           FlushDrawings;
+         }
+       }
+       break;
+     }
+
+     case LEFTMOUSEWHEEL:
+     case RIGHTMOUSEWHEEL: {
+       int queued = 0;
+       while (qtest() == dev) {
+         Int16 qv = 0;
+         qread(&qv);
+         if (qv != 0) queued++;
+       }
+       float mult = GetWheelAcceleration(dev, queued);
+
+       /* Horizontal pan */
+       Int32 span_x = Plot.Xmax - Plot.Xmin + 1;
+       Int32 shift = (Int32)roundf((float)span_x * 0.05f * mult);
+       if (shift < 1) shift = 1;
+       if (dev == LEFTMOUSEWHEEL) shift = -shift;
+
+       if (Plot.Xmax + shift > DataXmax - 1) {
+         shift = (DataXmax - 1) - Plot.Xmax;
+       }
+       if (Plot.Xmin + shift < 0) {
+         shift = -Plot.Xmin;
+       }
+
+       if (shift != 0) {
+         Plot.Xmin += shift;
+         Plot.Xmax += shift;
+         m = Marker; while( m ){ m->On = MARKER_OFF; m = m->Next; }
+         DOUBLEBUFF_ON
+         DrawPlot();
+         REDRAW_BANANAS_SelKeep;
+         RedrawAllMarkers();
+         DOUBLEBUFF_OFF
+         FlushDrawings;
+       }
+       break;
+     }
+
      case MENUBUTTON:  { 
-                        DOUBLEBUFF_ON
-			switch(dopup(Menu)) {
-                              case 1: {Plot.ZScaleType = ZLIN; 
-			               setpup(Menu,1,PUP_GREY);
-				       setpup(Menu,2,PUP_NONE);
-				       setpup(Menu,3,PUP_NONE);
-			               setpup(Menu,4,PUP_NONE);
-			               setpup(Menu,5,PUP_NONE);
-			               setpup(Menu,6,PUP_NONE);
-				       if( _global_BS ) {
-				       RedrawAllMarkers();DrawPlot();
-				       REDRAW_BANANAS_SelKeep;
-				       RedrawAllMarkers();}break;}
-			      case 2: {Plot.ZScaleType = ZSQRT; 
-			               setpup(Menu,1,PUP_NONE);
-				       setpup(Menu,2,PUP_GREY);
-				       setpup(Menu,3,PUP_NONE);
-			               setpup(Menu,4,PUP_NONE);
-			               setpup(Menu,5,PUP_NONE);
-			               setpup(Menu,6,PUP_NONE);
-				       if( _global_BS ) {
-				       RedrawAllMarkers();DrawPlot();
-				       REDRAW_BANANAS_SelKeep;
-				       RedrawAllMarkers();}break;}
-			      case 3: {Plot.ZScaleType = ZCBRT;
-			               setpup(Menu,1,PUP_NONE);
-				       setpup(Menu,2,PUP_NONE);
-				       setpup(Menu,3,PUP_GREY);
-			               setpup(Menu,4,PUP_NONE);
-			               setpup(Menu,5,PUP_NONE);
-			               setpup(Menu,6,PUP_NONE);
-				       if( _global_BS ) {
-				       RedrawAllMarkers();DrawPlot();
-				       REDRAW_BANANAS_SelKeep;
-				       RedrawAllMarkers();}break;}
-			      case 4: {Plot.ZScaleType = ZLOG;
-			               setpup(Menu,1,PUP_NONE);
-				       setpup(Menu,2,PUP_NONE);
-				       setpup(Menu,3,PUP_NONE);
-				       setpup(Menu,4,PUP_GREY);
-			               setpup(Menu,5,PUP_NONE);
-			               setpup(Menu,6,PUP_NONE);
-				       if( _global_BS ) {
-				       RedrawAllMarkers();DrawPlot();
-				       REDRAW_BANANAS_SelKeep;
-				       RedrawAllMarkers();}break;}
-			      case 5: {Plot.ZScaleType = ZMIX;
-			               setpup(Menu,1,PUP_NONE);
-				       setpup(Menu,2,PUP_NONE);
-				       setpup(Menu,3,PUP_NONE);
-				       setpup(Menu,4,PUP_NONE);
-			               setpup(Menu,5,PUP_GREY);
-			               setpup(Menu,6,PUP_NONE);
-				       if( _global_BS ) {
-				       RedrawAllMarkers();DrawPlot();
-				       REDRAW_BANANAS_SelKeep;
-				       RedrawAllMarkers();}break;}
-			      case 6: {Plot.ZScaleType = ZATAN;
-			               setpup(Menu,1,PUP_NONE);
-				       setpup(Menu,2,PUP_NONE);
-				       setpup(Menu,3,PUP_NONE);
-				       setpup(Menu,4,PUP_NONE);
-				       setpup(Menu,5,PUP_NONE);
-			               setpup(Menu,6,PUP_GREY);
-				       if( _global_BS ) {
-				       RedrawAllMarkers();DrawPlot();
-				       REDRAW_BANANAS_SelKeep;
-				       RedrawAllMarkers();}break;}
-			      case 7: {Plot.Reverse = ( Plot.Reverse == LO_SRC )?LO_NSRC:LO_SRC;
-			               ClearDrawArea();
-				       if ( _global_BS ) {
-				       RedrawAllMarkers();
-				       DrawColorScale();DrawPlot();
-				       REDRAW_BANANAS_SelKeep;
-				       RedrawAllMarkers();}break;}
-			      }
-                         DOUBLEBUFF_OFF
-			 break;}
+       int choice = dopup(Menu);
+       if (choice >= 1 && choice <= 6) {
+         int k;
+         for (k = 1; k <= 6; k++) {
+           setpup(Menu, k, (k == choice) ? PUP_GREY : PUP_NONE);
+         }
+         switch (choice) {
+           case 1: Plot.ZScaleType = ZLIN; break;
+           case 2: Plot.ZScaleType = ZSQRT; break;
+           case 3: Plot.ZScaleType = ZCBRT; break;
+           case 4: Plot.ZScaleType = ZLOG; break;
+           case 5: Plot.ZScaleType = ZMIX; break;
+           case 6: Plot.ZScaleType = ZATAN; break;
+         }
+         DOUBLEBUFF_ON
+         DrawPlot();
+         REDRAW_BANANAS_SelKeep;
+         RedrawAllMarkers();
+         DOUBLEBUFF_OFF
+         FlushDrawings;
+       } else if (choice == 7) {
+         Plot.Reverse = (Plot.Reverse == LO_SRC) ? LO_NSRC : LO_SRC;
+         DOUBLEBUFF_ON
+         ClearDrawArea();
+         DrawColorScale();
+         DrawPlot();
+         REDRAW_BANANAS_SelKeep;
+         RedrawAllMarkers();
+         DOUBLEBUFF_OFF
+         FlushDrawings;
+       }
+       break;
+     }
+
      case UPARROWKEY:    { 
- 	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
+	if( val == 0 ) break;
+  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
 	      DOUBLEBUFF_ON
-	      MovePlotRegion ( MOVE_UP   ); REDRAW_BANANAS; usleep(200000); qreset();
+	      MovePlotRegion ( MOVE_UP   ); REDRAW_BANANAS_SelKeep; RedrawAllMarkers();
 	      DOUBLEBUFF_OFF
+	      FlushDrawings;
 	      }
-	else DrawMarker('O');
+	else { DrawMarker('O'); FlushDrawings; }
         break;}
      case DOWNARROWKEY:  { 
- 	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
+	if( val == 0 ) break;
+  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
 	      DOUBLEBUFF_ON
-	      MovePlotRegion ( MOVE_DOWN   ); REDRAW_BANANAS; usleep(200000); qreset();
+	      MovePlotRegion ( MOVE_DOWN   ); REDRAW_BANANAS_SelKeep; RedrawAllMarkers();
 	      DOUBLEBUFF_OFF
+	      FlushDrawings;
 	      }
-	else DrawMarker('U');
+	else { DrawMarker('U'); FlushDrawings; }
         break;}
      case RIGHTARROWKEY: { 
- 	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
+	if( val == 0 ) break;
+  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
 	      DOUBLEBUFF_ON
-	      MovePlotRegion ( MOVE_RIGHT   ); REDRAW_BANANAS; usleep(200000); qreset();
+	      MovePlotRegion ( MOVE_RIGHT   ); REDRAW_BANANAS_SelKeep; RedrawAllMarkers();
 	      DOUBLEBUFF_OFF
+	      FlushDrawings;
 	      }
-	else DrawMarker('R');
+	else { DrawMarker('R'); FlushDrawings; }
         break;}
      case LEFTARROWKEY:  { 
- 	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
+	if( val == 0 ) break;
+  	if( getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY) ){
 	      DOUBLEBUFF_ON
-	      MovePlotRegion ( MOVE_LEFT   ); REDRAW_BANANAS; usleep(200000); qreset();
+	      MovePlotRegion ( MOVE_LEFT   ); REDRAW_BANANAS_SelKeep; RedrawAllMarkers();
 	      DOUBLEBUFF_OFF
+	      FlushDrawings;
 	      }
-	else DrawMarker('L');
+	else { DrawMarker('L'); FlushDrawings; }
         break;}
      
      case DELKEY: 
-     case BACKSPACEKEY:{ while( ( getbutton( BACKSPACEKEY ))||( getbutton(DELKEY )) );
-                 val = 'd'; HandleKey( val ); qreset(); break; }
+     case BACKSPACEKEY:
+       if( val == 0 ) break;
+       val = 'd';
+       HandleKey( val );
+       break;
      default: break;
       }
     }  
@@ -3041,7 +3106,6 @@ int GetString( unsigned char *String ) {
 
   Int32 dev, imore;
   Int16 val;
-  char testdev;
   unsigned char c, c3[3];
   BStruct b;
   int Length;
@@ -3062,13 +3126,15 @@ int GetString( unsigned char *String ) {
                    imore = ISLPutInput( &c, 1);
 		   break; }
 
-      case LEFTARROWKEY: { c3[0] = 27; c3[1] =91; c3[2] = 68;
-                   dev = qread(&val);
+      case LEFTARROWKEY: { 
+                   if( val == 0 ) break;
+                   c3[0] = 27; c3[1] =91; c3[2] = 68;
 		   imore = ISLPutInput( &c3[0], 3);
 		   break; }
 
-      case RIGHTARROWKEY: { c3[0] = 27; c3[1] =91; c3[2] = 67;
-                   dev = qread(&val);
+      case RIGHTARROWKEY: { 
+                   if( val == 0 ) break;
+                   c3[0] = 27; c3[1] =91; c3[2] = 67;
 		   imore = ISLPutInput( &c3[0], 3);
 		   break; }
 

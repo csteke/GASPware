@@ -4,7 +4,13 @@
  *    EMail: fred@thp.Uni-Duisburg.DE
  */
 
-static char vcid[] = "$Id: gl2ppm.c,v 3.8 1998-10-27 17:32:22+01 fred Exp $";
+#if defined(__GNUC__) || defined(__clang__)
+#define YGL_UNUSED __attribute__((unused))
+#else
+#define YGL_UNUSED
+#endif
+
+static char vcid[] YGL_UNUSED = "$Id: gl2ppm.c,v 3.8 1998-10-27 17:32:22+01 fred Exp $";
 
 #ifdef YGL_PREFIX
 # include <X11/Yglprefix.h>
@@ -156,6 +162,9 @@ int gl2ppm(const char *fname) {
     maxr = BYTE(white, 0);
     maxg = BYTE(white, 8);
     maxb = BYTE(white,16);
+    if(maxr == 0) maxr = 255;
+    if(maxg == 0) maxg = 255;
+    if(maxb == 0) maxb = 255;
 #ifdef DEBUG
     fprintf(stderr, "gl2ppm: RGB white = (%d,%d,%d)\n",
 	    maxr, maxg, maxb);

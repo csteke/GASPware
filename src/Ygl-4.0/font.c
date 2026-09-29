@@ -4,7 +4,13 @@
  *    EMail: fred@thp.Uni-Duisburg.DE
  */
 
-static char vcid[] = "$Id: font.c,v 4.2 1997-07-07 11:09:39+02 fred Exp $";
+#if defined(__GNUC__) || defined(__clang__)
+#define YGL_UNUSED __attribute__((unused))
+#else
+#define YGL_UNUSED
+#endif
+
+static char vcid[] YGL_UNUSED = "$Id: font.c,v 4.2 1997-07-07 11:09:39+02 fred Exp $";
 
 #include "header.h"
 
@@ -27,6 +33,10 @@ void loadXfont(Int32 id, Char8 *name) {
       i = ++Ygl.LastFont;
       Ygl.Fonts = (YglFont*)realloc(Ygl.Fonts,
 				    (Ygl.LastFont + 1) * sizeof(YglFont));
+    } else {
+      if(Ygl.Fonts[i].fs != NULL) {
+        XFreeFont(D, Ygl.Fonts[i].fs);
+      }
     }
   }
   
@@ -72,28 +82,37 @@ void getfontencoding(char *r) {
   XFontProp *fp;
   int i;
   Atom fontatom;
-  char *name, *np = NULL, *rp = r;
+  char *name, *rp = r;
   
   const char * MyName = "getfontencoding";
   I(MyName);
+  *r = '\0';
   fs = Ygl.Fonts[W->font].fs;
+  if(fs == NULL) return;
   fontatom = XInternAtom(D, "FONT", False);
   
   for (i = 0, fp = fs->properties; i < fs->n_properties; i++, fp++) {
     if (fp->name == fontatom) {
-      np = name = XGetAtomName(D, fp->card32);
-      i = 0;
-      while(i < 13 && *np != 0) if(*np++ == '-') i++;
-      do {
-	if(*np != '-') *rp++ = *np;
+      name = XGetAtomName(D, fp->card32);
+      if(name != NULL) {
+        int dashes = 0;
+        char *p = name;
+        while(*p != '\0' && dashes < 13) {
+          if(*p++ == '-') dashes++;
+        }
+        if(dashes >= 13) {
+          while(*p != '\0') {
+            if(*p != '-') *rp++ = *p;
+            p++;
+          }
+          *rp = '\0';
+        }
+        XFree(name);
       }
-      while(*np++ != 0);
-      XFree(name);
     }
   }
-  if(np == NULL) {
+  if(*r == '\0') {
     Yprintf(MyName, "can't determine fontencoding.\n");
-    *r = '\0';
   }
 }
 

@@ -1,7 +1,7 @@
 /* smile.c by Fred Hucht (C) 1993-96.
  * Short and simple example program */
 
-static char vcid[] = "$Id: smile.c,v 3.2 1996/07/18 16:35:57 fred Exp $";
+static const char vcid[] __attribute__((unused)) = "$Id: smile.c,v 3.2 1996/07/18 16:35:57 fred Exp $";
 
 #include <X11/Ygl.h>
 #include <stdio.h>
@@ -12,6 +12,7 @@ int main() {
   
   prefsize(100, 100);
   win = winopen("Smile!");
+  (void)win;
 
   /*printf("%d\n", win);*/
 

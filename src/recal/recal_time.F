@@ -148,6 +148,8 @@
 	  nldot=1
 	  if(ncicli.ge.10 ) nldot=nldot+1
 	  if(ncicli.ge.100) nldot=nldot+1
+	  if(ncicli.ge.1000) nldot=nldot+1
+	  if(ncicli.ge.10000) nldot=nldot+1
 	endif
 
 1	if(list) READ(LISTLUN,'(A)',ERR=200,END=200) FNAME

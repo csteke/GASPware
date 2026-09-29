@@ -1,11 +1,12 @@
 /* popup.c by Fred Hucht (C) 1993-96.
  * Example program for popup menus */
 
-static char vcid[] = "$Id: popup.c,v 3.2 1996/07/18 16:35:57 fred Exp $";
+static const char vcid[] __attribute__((unused)) = "$Id: popup.c,v 3.2 1996/07/18 16:35:57 fred Exp $";
 
 #include <X11/Ygl.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 /* Callback functions */
 Int32 fn1(Int32 x) { printf("---> fn1(%d)\n", x); return(100 * x);}
@@ -15,7 +16,7 @@ Int32 fe1(Int32 m, Int32 s) { return(10 *(m-1) + s); }
 Int32 fe2(Int32 m, Int32 s) { return(100*(m-1) + s); }
 Int32 End(Int32 x) { return(4711); }
 
-main() {
+int main(void) {
   Int32 menu, sub, subsub, dev, r, sub1, sub10, sub100;
   Int16 val;
   minsize(300, 300);
@@ -72,7 +73,7 @@ main() {
   loadXfont(2, "-*-times-medium-r-*-*-*-140-*-*-*-*-iso8859-1");
   font(2);
   
-  while(dev = qread(&val)) {
+  while((dev = qread(&val))) {
     switch(dev) {
     case REDRAW:
       color(BLACK);

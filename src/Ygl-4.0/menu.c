@@ -4,7 +4,13 @@
  *    EMail: fred@thp.Uni-Duisburg.DE
  */
 
-static char vcid[] = "$Id: menu.c,v 3.5 1997-07-07 11:09:39+02 fred Exp $";
+#if defined(__GNUC__) || defined(__clang__)
+#define YGL_UNUSED __attribute__((unused))
+#else
+#define YGL_UNUSED
+#endif
+
+static char vcid[] YGL_UNUSED = "$Id: menu.c,v 3.5 1997-07-07 11:09:39+02 fred Exp $";
 
 #include "header.h"
 #include <X11/bitmaps/gray1>
@@ -281,11 +287,13 @@ static Int32 displayitem(YglMenu *m, int i, int on, int dosub) {
     arrow[0].y = menuheight * i + menuheight/2 + 4;
     XFillPolygon(D, m->win, menugc, arrow, 4, Convex, CoordModePrevious);
     
-    if(dosub && item->mode != PUP_GREY) if(on) {
-      map_menu(item->submenu, m, i);
-      r = do_pup(item->submenu, True);
-    } else {
-      XUnmapWindow(D, item->submenu->win);
+    if(dosub && item->mode != PUP_GREY) {
+      if(on) {
+        map_menu(item->submenu, m, i);
+        r = do_pup(item->submenu, True);
+      } else {
+        XUnmapWindow(D, item->submenu->win);
+      }
     }
   }
   return r;
@@ -296,11 +304,10 @@ static void map_menu(YglMenu *m, YglMenu *parent, int item) {
   int i;
   int xx, yy;
   
+  getsize(&xx, &yy);
   if(parent == NULL) { /* Mainmenu */
-    getsize(&xx, &yy);
     m->x = Ygl.lastreadevent.xbutton.x;
     m->y = Ygl.lastreadevent.xbutton.y - menuheight;
-/*    m->x = -m->x;  m->y = -m->y;*/
   } else { /* Submenu */
     m->x = parent->x + parent->w - SUBMENUOFFSET;
     m->y = parent->y + item * menuheight + 4;
@@ -415,7 +422,10 @@ static int do_pup(YglMenu *m, int issub) {
       displayitem(m, oldmenuval, OFF, dosub);
       oldmenuval = menuval = -1;
     }
-  } while(subr == -1 && mask & Button3Mask);
+    if(subr == -1 && (mask & Button3Mask)) {
+      usleep(10000); /* 10ms throttle: 0% CPU, eliminates socket flood */
+    }
+  } while(subr == -1 && (mask & Button3Mask));
   
 #ifdef DEBUG
   if(subr >= 0)
@@ -622,8 +632,8 @@ Int32 dopup(Int32 mid) {
   r = do_pup(m, False);
   
   /* Restore installed colormaps */
-  if(install) for(i = 0; i < numcmaps; i++) XInstallColormap(D, cmaps[i]);
-  XFree((char*) cmaps);
+  if(install && cmaps) for(i = 0; i < numcmaps; i++) XInstallColormap(D, cmaps[i]);
+  if(cmaps) XFree((char*) cmaps);
   
   return r;
 }

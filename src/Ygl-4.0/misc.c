@@ -4,7 +4,13 @@
  *    EMail: fred@thp.Uni-Duisburg.DE
  */
 
-static char vcid[] = "$Id: misc.c,v 4.10 1998-10-27 17:56:27+01 fred Exp $";
+#if defined(__GNUC__) || defined(__clang__)
+#define YGL_UNUSED __attribute__((unused))
+#else
+#define YGL_UNUSED
+#endif
+
+static char vcid[] YGL_UNUSED = "$Id: misc.c,v 4.10 1998-10-27 17:56:27+01 fred Exp $";
 
 #include "header.h"
 
@@ -50,23 +56,27 @@ static int  mbuf_errorhandler(Display *dpy, XErrorEvent *error);
 
 static void change_gc(Ulong mask, YglGCValues *yv) {
   YglWindow *w = W;
-  if(w->rgb || Ygl.GC) { /* RGB windows have only one GC */
+  if(w->rgb || Ygl.GC) { /* RGB windows or single-GC have only one GC */
     if(mask & YglClipMask) XSetClipRectangles(D, w->gc, 0, 0, &yv->rect, 1, Unsorted);
     if(mask & YglDashMask) XSetDashes        (D, w->gc, 0, yv->dashes, yv->ndashes);
     if(mask & YglGCMask)   XChangeGC         (D, w->gc, yv->gcmask, &yv->values);
-  } else {
+  } else if(w->gclist != NULL) {
     int i;
     for(i = 0; i < CMapSize; i++) {
-      if(mask & YglClipMask) XSetClipRectangles(D, w->gclist[i], 0, 0, &yv->rect, 1, Unsorted);
-      if(mask & YglDashMask) XSetDashes        (D, w->gclist[i], 0, yv->dashes, yv->ndashes);
-      if(mask & YglGCMask)   XChangeGC         (D, w->gclist[i], yv->gcmask, &yv->values);
+      if(w->gclist[i] != NULL) {
+        if(mask & YglClipMask) XSetClipRectangles(D, w->gclist[i], 0, 0, &yv->rect, 1, Unsorted);
+        if(mask & YglDashMask) XSetDashes        (D, w->gclist[i], 0, yv->dashes, yv->ndashes);
+        if(mask & YglGCMask)   XChangeGC         (D, w->gclist[i], yv->gcmask, &yv->values);
+      }
     }
   }
-  if(mask & YglClipMask) XSetClipRectangles(D, w->chargc, 0, 0, &yv->rect, 1, Unsorted);
-  if(mask & YglGCMask)   XChangeGC         (D, w->chargc, yv->gcmask, &yv->values); /* Added 960130 */
+  if(w->chargc != NULL && w->chargc != w->gc) {
+    if(mask & YglClipMask) XSetClipRectangles(D, w->chargc, 0, 0, &yv->rect, 1, Unsorted);
+    if(mask & YglGCMask)   XChangeGC         (D, w->chargc, yv->gcmask, &yv->values);
+  }
 }
 
-enum buffers { NoBuf, DBuf, MBuf, OBuf };
+enum buffers { NoBuf, DBuf, MBuf, OBuf, PxBuf };
 static int HasBuf = NoBuf;
 
 #ifdef MULTIBUF
@@ -135,12 +145,20 @@ void doublebuffer(void) {
     }
   }
 #endif /* MULTIBUF */
+  if(HasBuf == NoBuf && !w->dbuf) {
+    /* Fallback to offscreen Pixmap double-buffering */
+    w->dbufs[0] = w->main;
+    w->dbufs[1] = XCreatePixmap(D, w->main, w->xm, w->ym, YglDepth());
+    if (w->dbufs[1] != 0) {
+      HasBuf = PxBuf;
+      w->dbuf = True;
+      w->draw = w->dbufs[1];
+      XFillRectangle(D, w->draw, w->gc, 0, 0, w->xm, w->ym);
+    }
+  }
   if(HasBuf == NoBuf) {
     Yprintf(MyName, "Warning: cannot do doublebuffering.\n");
   }
-#if !(defined(DOUBLEBUF) || defined(MULTIBUF))
-  Yprintf(MyName, "Warning: Ygl is not compiled for doublebuffering.\n");
-#endif
 }
 
 void singlebuffer(void) {
@@ -165,6 +183,13 @@ void singlebuffer(void) {
     W->draw = IF_RGBWIN(W->win, W->main);
     break;
 #endif
+  case PxBuf:
+    if(w->dbufs[1] != 0) {
+      XFreePixmap(D, w->dbufs[1]);
+      w->dbufs[1] = 0;
+    }
+    W->draw = IF_RGBWIN(W->win, W->main);
+    break;
   case NoBuf:
     /* Do nothing */
     break;
@@ -192,8 +217,11 @@ void swapbuffers(void) {
     {
       XdbeSwapInfo xdbesi;
       xdbesi.swap_window = w->main;
-      xdbesi.swap_action = XdbeUndefined;
-      XdbeSwapBuffers(D, &xdbesi, 1);
+      xdbesi.swap_action = XdbeCopied;
+      if (!XdbeSwapBuffers(D, &xdbesi, 1)) {
+        xdbesi.swap_action = XdbeUndefined;
+        XdbeSwapBuffers(D, &xdbesi, 1);
+      }
       XFlush(D); /* Need it? */
       break;
     }
@@ -206,6 +234,10 @@ void swapbuffers(void) {
     XFlush(D); /* XmbufDisplayBuffers() seems not to flush */
     break;
 #endif
+  case PxBuf:
+    XCopyArea(D, w->dbufs[1], w->main, w->gc, 0, 0, w->xm, w->ym, 0, 0);
+    XFlush(D);
+    break;
   case NoBuf:
     /* Do nothing */
     break;
@@ -237,6 +269,9 @@ void frontbuffer(Int32 bool) {
     w->draw = bool ? w->dbufs[w->dispbuf] : w->dbufs[1 - w->dispbuf];
     break;
 #endif
+  case PxBuf:
+    w->draw = bool ? w->dbufs[0] : w->dbufs[1];
+    break;
   case NoBuf:
     /* Do nothing */
     break;
@@ -296,7 +331,7 @@ void wintitle(Char8 *Title) {
 void winset(Int32 wid) {
   const char * MyName = "winset";
   I(MyName);
-  if(wid > 0 && wid <= Ygl.NextWindow && Ygl.Windows[wid].main != 0) {
+  if(is_wid(wid)) {
     W = &Ygl.Windows[Ygl.ActiveWindow = wid];
     IFOGL(glXMakeCurrent(D, W->main, W->cx),NULL);
   } else {
@@ -362,11 +397,12 @@ Int32 getbutton(Device dev) {
     XQueryKeymap(D, keys);
     for(i = code = 0; i < 32; i++) for(j = 1; j < 256; j <<= 1, code++) {
       if(dev == (Ygl.keymap[code] & (KEYMAP_BIT-1))) { /* dev found */
-	r = 0 != (keys[i] & j);
+	if (r == -1) r = 0;
+	if (keys[i] & j) r = 1;
 #ifdef DEBUG
 	fprintf(stderr, "getbutton: key %d %s, device = %d\n",
 		code,
-		r ? "pressed" : "released",
+		(keys[i] & j) ? "pressed" : "released",
 		Ygl.keymap[code] & (KEYMAP_BIT-1));
 #endif
       }
@@ -476,6 +512,7 @@ void reshapeviewport(void) {
   I(MyName);
   
   getsize(&x, &y);
+  Int32 old_x = w->xm, old_y = w->ym;
   w->xm = x;
   w->ym = y;
   
@@ -488,6 +525,13 @@ void reshapeviewport(void) {
     XSelectInput(D, w->win,  Ygl.EventMask &  ExposureMask);
   }
 #endif
+  if(HasBuf == PxBuf && w->dbuf && w->dbufs[1] != 0) {
+    if (old_x != x || old_y != y) {
+      XFreePixmap(D, w->dbufs[1]);
+      w->dbufs[1] = XCreatePixmap(D, w->main, x, y, YglDepth());
+      if (w->draw != w->dbufs[0]) w->draw = w->dbufs[1];
+    }
+  }
 }
 
 void winpop(void) {
@@ -509,10 +553,11 @@ Int32 windepth(Int32 wid) {
   const char * MyName = "windepth";
   I(MyName);
   
-  if(wid <= 0 || wid > Ygl.NextWindow || (main = Ygl.Windows[wid].main) == 0) {
+  if(!is_wid(wid)) {
     Yprintf(MyName, "invalid window id: %d\n", wid);
     return 0;
   }
+  main = Ygl.Windows[wid].main;
   
   if(XQueryTree(D, Ygl.PWID, &root, &parent, &children, &nchildren)) {
     for(n = 0; n < nchildren && children[n] != main; n++);

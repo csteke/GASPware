@@ -1269,14 +1269,17 @@ CVMS	plotcom='LWP/DELETE'
 	NKAP=(NCHAN+1023)/1024
 	IKA=0
 	IKL=NKAP*1024
-	do ii=nchan,ikl-1
-	  spek(ii)=0
+	do ii=nchan,64*1024-1
+	  spek(ii)=0.
 	end do
 
 	do ii=ika,ikl-1
 	  e2=abs(spek(ii))
 	  if(e2.eq.0.) e2=1.
 	  err2(ii)=e2
+	end do
+	do ii=ikl,64*1024-1
+	  err2(ii)=1.
 	end do
 
 	BREAK=.FALSE.
@@ -1522,7 +1525,14 @@ c	e tutte le possibili combinazioni
 
 #include "trackn.inc"
 
-	call minmax_r(SPEK(NMIN),nmax-nmin+1,1,ymin,ymax)
+	nstart=min(max(0,nmin),ikl-1)
+	nend=min(max(0,nmax),ikl-1)
+	if(nend.ge.nstart) then
+	  call minmax_r(SPEK(nstart),nend-nstart+1,1,ymin,ymax)
+	else
+	  ymin=0.
+	  ymax=10.
+	endif
 	IF(YMIN.GT.0.) YMIN=0.
 	YMAX=YMAX*1.1
 	IF(YMAX.LE.YMIN) YMAX=YMIN+10.
@@ -1644,6 +1654,11 @@ c	e tutte le possibili combinazioni
 #include "trackn.inc"
 	
 	ich=ch
+	if(ikl.gt.ika) then
+	  ich=min(max(ika,ich),ikl-1)
+	else
+	  ich=ika
+	endif
 	dfautobg=autobg.bp(ich,gside)
 	
 	return
@@ -1654,7 +1669,11 @@ c	e tutte le possibili combinazioni
 #include "trackn.inc"
 
 	ICH=CH
-	ich=min(max(ika,ich),ikl)
+	if(ikl.gt.ika) then
+	  ich=min(max(ika,ich),ikl-1)
+	else
+	  ich=ika
+	endif
 	dfspek=spek(ich)
 *	YY=SPEK(ICH)
 *	DFSPEK=DIFUNCT(yy,ifunct)
@@ -1669,7 +1688,11 @@ c	e tutte le possibili combinazioni
 	real*4 DIFUNCT
 
 	ICH=CH
-	ich=min(max(ika,ich),ikl)
+	if(ikl.gt.ika) then
+	  ich=min(max(ika,ich),ikl-1)
+	else
+	  ich=ika
+	endif
 *	dfspek=spek(ich)
 	YY=SPEK(ICH)
 	DFSPEK_PS=DIFUNCT(yy,ifunct)
@@ -2504,8 +2527,7 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 *#if defined(__IFC) || defined(__INTEL_COMPILER)
 *	automatic IC(64)
 *#else
-	DIMENSION IC(64)
-*#endif
+	DIMENSION IC(256)
 	IF(IWCAL.NE.1) THEN
 	   WRITE(6,*)
 	1	 'To perform this command you should set the FWHM calibration'
@@ -2519,9 +2541,9 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 	GMAX = cpol(float(nmax),WCAL,-m$k)
 
 	GG=MAX(GMIN,GMAX)
-	IF(GG.GT.18. .and. GMIN .gt.18.0 .and. GMAX .gt. 18.0 ) RETURN
-	IF(GG.GT.18.) then
-	   GG = 17.999900
+	IF(GG.GT.80. .and. GMIN .gt.80.0 .and. GMAX .gt. 80.0 ) RETURN
+	IF(GG.GT.80.) then
+	   GG = 79.999900
 	   if(GMAX .gt. GG) GMAX = GG
 	   if(GMIN .gt. GG) GMAX = GG
 	endif
@@ -2534,8 +2556,8 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 	M1=IFIX(0.3*GG)*5+1
         J1 = NMIN+M1
 	J2 = NMAX-M1
-	K1 = 32-M1
-	K2 = 32+M1
+	K1 = MAX(1, 128-M1)
+	K2 = MIN(256, 128+M1)
 	I1 = J1
 	I2 = J1
 	I3 = J1
@@ -2633,31 +2655,31 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
  
 	SUBROUTINE SECO(IC,MM)
 
-	DIMENSION IB(32),IC(64)
+	DIMENSION IB(128),IC(256)
 
-	DO II=1,32
+	DO II=1,128
 	   IB(II)=0
 	   IC(II)=0
 	end do
-	IC(31)=1
-	IC(32)=-2
-	IC(33)=1
-	DO II=34,64
+	IC(127)=1
+	IC(128)=-2
+	IC(129)=1
+	DO II=130,256
 	   IC(II)=0
 	end do
-	I1=31
+	I1=127
 	DO IZ=1,5
-	   I1=I1-MM
-	   DO II=I1,32
-		L1=II-MM
-		L2=II+MM
+	   I1=MAX(1, I1-MM)
+	   DO II=I1,128
+		L1=MAX(1, II-MM)
+		L2=MIN(256, II+MM)
 		DO LL=L1,L2
 		   IB(II)=IB(II)+IC(LL)
 		end do
 	   end do
-	   DO II=I1,32
+	   DO II=I1,128
 		IC(II)=IB(II)
-		I2=64-II
+		I2=256-II
 		IC(I2)=IB(II)
 		IB(II)=0
 	   end do
@@ -2671,11 +2693,11 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 
 #include "trackn.inc"
 
-	DIMENSION IC(64)
+	DIMENSION IC(256)
 
 	SS=0.
 	FF=0.
-	LL=II-33+K1
+	LL=II-129+K1
 	DO KK=K1,K2
 	   LL=LL+1
 	   CK=IC(KK)
@@ -2883,9 +2905,11 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 
 	Real Par(100)
 
-	Real Deriv(100)
-	Real alpha(5050),beta(100),sq(100)
-	Real array(5050),bvec(100),var(100)
+	Real Deriv(100), dyi, wi
+	real*8 alpha(5050),beta(100),sq(100)
+	real*8 array(5050),bvec(100)
+	Real var(100)
+	real*8 flamda, derj, widerj
 
 	if(Npar0 .lt. 0)then
 	  NPar=1-NPar0
@@ -2907,24 +2931,23 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 
 300	chisqt=chisqr
 	DO J=1,NPar
-	   BETA(J)=0.
+	   BETA(J)=0.0D0
 	end do
 	DO J=1,NTpar
-	   ALPHA(J)=0.
+	   ALPHA(J)=0.0D0
 	end do
 
 	DO i=1,Ndat
 	  Kv=Fderiv(i,Par,NPar,Deriv,dyi,wi)
 	  DO J=1,NPar
-	    derj=deriv(j)
-*	    if(derj.ne.0.) then
-	    if(abs(derj).gt.1.0E-8) then
-		BETA(J)=BETA(J)+wi*dyi*DERJ
-		widerj=wi*derj
+	    derj=dble(deriv(j))
+	    if(dabs(derj).gt.1.0D-8) then
+		BETA(J)=BETA(J)+dble(wi)*dble(dyi)*derj
+		widerj=dble(wi)*derj
 		L=(J*(J-1))/2
 		DO  K=1,J
 		   L=L+1
-		   ALPHA(L)=ALPHA(L)+DERIV(K)*wiDERJ
+		   ALPHA(L)=ALPHA(L)+dble(DERIV(K))*wiDERJ
 		end do
 	    endif
 	  end do
@@ -2932,8 +2955,8 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 
 	DO J=1,NPar
 	   JJ=J*(J+1)/2    
-	   IF(ALPHA(JJ).LT.1.E-15) ALPHA(JJ)=1.E-15  
-	   SQ(J)=SQRT(ALPHA(JJ))    
+	   IF(ALPHA(JJ).LT.1.D-25) ALPHA(JJ)=1.D-25  
+	   SQ(J)=DSQRT(ALPHA(JJ))    
 	   BETA(J)=BETA(J)/SQ(J)    
 	end do
 
@@ -2944,7 +2967,7 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 		ARRAY(L)=ALPHA(L)/(SQ(J)*SQ(K)) 
 		L=L+1                           
 	   end do
-	   ARRAY(J*(J+1)/2)=1.+FLAMDA 
+	   ARRAY(J*(J+1)/2)=1.0D0+FLAMDA 
 	end do
 
 	CALL LinGls(Array,Bvec,NPar,KV)
@@ -2954,14 +2977,14 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 	endif
 
 	DO J=1,NPar
-	   Var(J)=Par(J)+Bvec(J)/SQ(J)
+	   Var(J)=Par(J)+sngl(Bvec(J)/SQ(J))
 	end do
 
 	chisq1=Fchisq(var,nPar)
 
 	if (chisq1.gt.chisqr) then
-	   FLAMDA=10.*FLAMDA            
-	   IF(FLAMDA.le.1.E20) GOTO 100
+	   FLAMDA=10.0D0*FLAMDA            
+	   IF(FLAMDA.le.1.0D20) GOTO 100
 	   Istat=5
 	   return
 	endif
@@ -2984,7 +3007,7 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 #endif
 
 	FLAMDA=0.10D0*FLAMDA  
-	flamda=max(flamda,1.0e-7)
+	flamda=dmax1(flamda,1.0D-7)
 	ITER=ITER+1   
 	IF ((DCHI.GT.0.1).and.(iter.lt.20))  GOTO 300 
 
@@ -2995,12 +3018,13 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 	subroutine Curfit1(Par,Npar,Ndat,Fderiv,Fchisq,Fsetdat,
 	1	Istat,ishow,chisqr)
 
-*	Real Par(max(1,Npar))
 	Real Par(1)
 
 	Real Deriv(100),dyi,wi
-	Real alpha(5050),beta(100),sq(100)
-	Real array(5050),bvec(100),var(100)
+	real*8 alpha(5050),beta(100),sq(100)
+	real*8 array(5050),bvec(100)
+	Real var(100)
+	real*8 flamda, derj, widerj
 	
 	integer Fsetdat, Fderiv
 	external Fsetdat, Fderiv, Fchisq
@@ -3030,14 +3054,14 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 	DO i=1,Ndat
 	  Kv=Fderiv(i,Par,Npar,Deriv,dyi,wi)
 	  DO J=1,Npar
-	    derj=deriv(j)
-	    if(derj.ne.0.0D0) then
-		BETA(J)=BETA(J)+wi*dyi*DERJ
-		widerj=wi*derj
+	    derj=dble(deriv(j))
+	    if(dabs(derj).gt.1.0D-8) then
+		BETA(J)=BETA(J)+dble(wi)*dble(dyi)*derj
+		widerj=dble(wi)*derj
 		L=(J*(J-1))/2
 		DO  K=1,J
 		   L=L+1
-		   ALPHA(L)=ALPHA(L)+DERIV(K)*wiDERJ
+		   ALPHA(L)=ALPHA(L)+dble(DERIV(K))*wiDERJ
 		end do
 	    endif
 	  end do
@@ -3045,9 +3069,8 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 
 	DO J=1,Npar
 	   JJ=J*(J+1)/2    
-*	   write(6,*)j,jj,alpha(jj)
-	   IF(ALPHA(JJ).LT.1.E-15) ALPHA(JJ)=1.E-15  
-	   SQ(J)=SQRT(ALPHA(JJ))    
+	   IF(ALPHA(JJ).LT.1.D-25) ALPHA(JJ)=1.D-25  
+	   SQ(J)=DSQRT(ALPHA(JJ))    
 	   BETA(J)=BETA(J)/SQ(J)    
 	end do
 
@@ -3059,7 +3082,6 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 		L=L+1                           
 	   end do
 	   ARRAY(J*(J+1)/2)=1.0D0+FLAMDA 
-*	   write(6,*) Par(j), Var(j),Bvec(j),SQ(j)
 	end do
 
 	CALL LinGls(Array,Bvec,Npar,KV)
@@ -3069,7 +3091,7 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 	endif
 
 	DO J=1,Npar
-	   Var(J)=Par(J)+Bvec(J)/SQ(J)
+	   Var(J)=Par(J)+sngl(Bvec(J)/SQ(J))
 	end do
 	ii=Fsetdat(var,Npar)
 
@@ -3077,8 +3099,8 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 
 	if (chisq1.gt.chisqr) then
 	   ii=Fsetdat(Par,Npar)
-	   FLAMDA=10.*FLAMDA            
-	   IF(FLAMDA.le.1.E20) GOTO 100
+	   FLAMDA=10.0D0*FLAMDA            
+	   IF(FLAMDA.le.1.0D20) GOTO 100
 	   Istat=5
 	   return
 	endif
@@ -3089,24 +3111,14 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 	ii=Fsetdat(Par,Npar)
 
 	CHISQR=CHISQ1  
-*	if(chisqr.ne.0) then
 	if(chisqr.gt.1.0E-3) then
 	   DCHI=(CHISQT-CHISQR)/CHISQR*100.  
 	else
 	   dchi=0
 	endif
 
-*	if(ishow.eq.1) then
-*	   nwri=nwri+1
-*	   if(nwri.eq.1) then
-*		write(6,'('' Chisq'',f8.2,''..'',$)') chisqr
-*	   else
-*		write(6,'(''\r'',f8.2,''..'',$)') chisqr
-*	   endif
-*	endif
-
 	FLAMDA=0.10D0*FLAMDA  
-	flamda=max(flamda,1.0e-7)
+	flamda=dmax1(flamda,1.0D-7)
 	ITER=ITER+1   
 	IF ((DCHI.GT.0.1).and.(iter.lt.100))  GOTO 300 
 
@@ -3119,17 +3131,18 @@ CCCCCCCCCC DETERMINA LA REGIONE DI INTEGRAZIONE
 	SUBROUTINE LinGls(Array,Par,Nord,Iflag)
 
 C         PARAMETER
-C            Array  ARRAY WITH PACKED MATRIX
-C            Par    PARAMETER VECTOR FOR I/O
+C            Array  ARRAY WITH PACKED MATRIX (REAL*8)
+C            Par    PARAMETER VECTOR FOR I/O (REAL*8)
 C            Nord   ORDER OF MATRIX <=100
 C            Iflag  <> 0  ERROR
 
-	DIMENSION Array(1),Par(1)
+	real*8 Array(1),Par(1)
 
 	INTEGER   Lsign(100)
 	real*8 Sum
 	
-	DATA Epsi /1.000E-18/	! square of MAXIMUM RELATIV PRECISION
+	real*8 Epsi
+	DATA Epsi /1.000D-28/	! square of MAXIMUM RELATIV PRECISION (double)
 
 	Iflag=0
 	IF(Nord.LT.1) RETURN
@@ -3157,7 +3170,7 @@ C            Iflag  <> 0  ERROR
 		Iflag=1
 		RETURN
 	   endif
-	   Array(II)=SQRT(Sum)
+	   Array(II)=DSQRT(Sum)
 	   IF(Iord.ne.Nord) then
 	     DO KK=Iord+1,Nord
 		NK=KK*(KK-1)/2
@@ -3299,25 +3312,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  dyfit(Ndata)=1./err2(ii)
 	end do
 
-****  [Refit] data init.   N.M.
-	np_nm=2*nmgau+1
-*	allocate(x_nm(ndata),y_nm(ndata),sy_nm(ndata))
-*	allocate(p_nm(np_nm),sp_nm(np_nm),pl_nm(np_nm),pu_nm(np_nm),cf_nm(np_nm))	
-	do ii=1,Ndata
-	  x_nm(ii)=xfit(ii)
-	  y_nm(ii)=yfit(ii)
-	  sy_nm(ii)=err2(ii+id1-1)
-	  if(ifbgd.eq.1)then
-	    y_nm(ii)=y_nm(ii)-bg0-bg1*(float(ii+id1-n0bgd)-0.5)
-	    sy_nm(ii)=sy_nm(ii)+e2bg0+e2bg1*(float(ii+id1-n0bgd)-0.5)**2
-	   else
-	    y_nm(ii)=y_nm(ii)-spek(id1)-(spek(id2)-spek(id1))/float(Ndata-1)*(ii-1)
-	  endif
-	  sy_nm(ii)=sqrt(sy_nm(ii))
-	enddo
-****	
-
-
 	if(ifbgd.eq.1) then
 	   y1=bg0+bg1*(id1-n0bgd)
 	   y2=bg0+bg1*(id2-n0bgd)
@@ -3372,7 +3366,17 @@ c	write(6,*) ' '
 
 	call Curfit(fitpar,Nfitpar,Ndata,GFDER,GFCHI,kv,0,chichi)
 
-****	[Refit] param. init. & fit    N.M.
+****	[Refit] data & param. init. & fit    N.M.
+	np_nm=2*nmgau+1
+	do ii=1,Ndata
+	  x_nm(ii)=xfit(ii)
+	  y_nm(ii)=yfit(ii)-(fitpar(1)+fitpar(2)*xfit(ii))
+	  sy_nm(ii)=err2(ii+id1-1)
+	  if(ifbgd.eq.1)then
+	    sy_nm(ii)=sy_nm(ii)+e2bg0+e2bg1*(float(ii+id1-n0bgd)-0.5)**2
+	  endif
+	  sy_nm(ii)=sqrt(sy_nm(ii))
+	enddo
 
 	p_nm(1)=fitpar(3)
 	do ii=1,nmgau
@@ -3487,7 +3491,7 @@ c	write(6,*) ' '
 
 #include "trackn.inc"
 	character*80 string
-	real*4 DFGFFUN,ch1,ch2
+	real*4 DFGFFUN,ch1,ch2,dsigma
 	EXTERNAL DFGFFUN
 	integer*4 ii
 
@@ -3513,14 +3517,16 @@ c	write(6,*) ' '
 	  	gfwhm=GFPAR(3+2*nmgau+ii)*2.35482
 	        sigma=GFPAR(3+2*nmgau+ii)
 	        dfwhm = sfitpar(3+2*nmgau+ii)*2.35482
+	        dsigma = sfitpar(3+2*nmgau+ii)
 	  else
 	  	gfwhm=GFPAR(3)*2.35482
 	        sigma=GFPAR(3)
 	        dfwhm = sfitpar(3)*2.35482
+	        dsigma = sfitpar(3)
 	  endif
 	  garea=GFPAR(2*ii+3)*sqrt(2*3.141593*sigma**2)
 ***** N.M.
-	   sgarea=(sfitpar(2*ii+3)*sigma)**2+(gfpar(2*ii+3)*sfitpar(3))**2
+	   sgarea=(sfitpar(2*ii+3)*sigma)**2+(gfpar(2*ii+3)*dsigma)**2
 	   sgarea=sqrt(2*3.141593*sgarea)
 	   sgposi=sfitpar(2*ii+2)/2.000
 *****
@@ -3681,8 +3687,8 @@ c	write(6,*) ' '
 		deriv(i+1)=eexx				! for h:
 		deriv(3)=deriv(3)+xeexx*z		! for sigma
 	   else
-		deriv(i+1)=0
-		deriv(i+2)=0
+		deriv(i  )=0.
+		deriv(i+1)=0.
 	   endif
 	end do
 
@@ -4475,8 +4481,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	end do
 
 	NTAPE=NTAPE+1
-	ldir=index(FNAMEI,']')
-	ldot=index(FNAMEI(ldir+1:),'.')
+	ldir=index(FNAMEI,'/',.TRUE.)
+	ldot=index(FNAMEI(ldir+1:),'.',.TRUE.)
 	LEXT=ldot+ldir
 	if(readtapnum)READ(FNAMEI(LEXT+1:LFNAMEI),*) ITAP
 
@@ -5873,6 +5879,17 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	    if(.not.cmt_close(%val(cmt),cmatfile)) continue
 	    goto 99
 	  endif
+	  do jj=1,4
+	    do ii=0,MAXRES-1
+	      mproj(ii,jj)=0
+	      autobg.p(ii,jj)=0.
+	      autobg.bp(ii,jj)=0.
+	    enddo
+	  enddo
+	  do ii=0,MAXRES-1
+	    autobg.sp(ii)=0.
+	    autobg.bg(ii)=0.
+	  enddo
 	  do ii=1,mdim
 	    if(.not.cmt_getproje(%val(cmt),ii,mproj(0,ii))) continue
 	  end do
@@ -6325,7 +6342,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  if(e2.eq.0) e2=1
 	  ERR2(ii)=e2
 	end do
-	do ii=mres(gside),1024*nkap-1
+	do ii=ikl,64*1024-1
 	  spek(ii)=0.
 	  ERR2(ii)=1.
 	end do
@@ -6348,6 +6365,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 	INTEGER speccut(0:MAXRES-1),specback(0:MAXRES-1)
 	real    e2cut(0:MAXRES-1),e2back(0:MAXRES-1)
+	real    d_slice(0:MAXRES-1),b_cross(0:MAXRES-1)
+	real    s_slice(0:MAXRES-1),s_cross(0:MAXRES-1)
+	real    fcross
 	real    centro(3),asse(3),distn2(3)
 	real*8  pbackr,pbacks
 	real	pfacr,pfacs,pfacf
@@ -6428,42 +6448,28 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  call autobgmin(autobg.sp(0),autobg.bg(0),cres,1,cres,autobg.m,autobg.itmax,autobg.fstep)
 	  autobg.gsc=autobg.gsc/autobg.tot
 	  autobg.gbc=autobg.gbc/autobg.tot
+
+*** Adaptive Coincidence Bound Background Subtraction
+*** 1. Single-Continuum: autobg.bg directly holds the slice continuum B_S(y).
+***    The redundant projection continuum term (gsc * R * bp) is eliminated.
+*** 2. Physical Coincidence Bound: B_cross is bounded by observed slice excess above continuum.
 	  do ii=0,cres-1
-	    autobg.rr=sqrt(4.0*autobg.bg(ii)*spec_divfac+1.96)+1.4
-	    autobg.rr=1-4.0*autobg.bg(ii)/autobg.rr/autobg.rr*spec_divfac
-	    autobg.bg(ii)=autobg.bg(ii)+autobg.gsc*autobg.rr*autobg.bp(ii,cside)
+	    d_slice(ii) = max(0.0, cut(ii) - autobg.bg(ii))
+	    b_cross(ii) = max(0.0, (autobg.p(ii,cside) - autobg.bp(ii,cside)) * real(autobg.gbc))
 	  enddo
+	  call smooth_3pt(d_slice(0), s_slice(0), cres)
+	  call smooth_3pt(b_cross(0), s_cross(0), cres)
+
 	  do ii=0,cres-1
-	    autobg.bg(ii)=autobg.bg(ii)+(autobg.p(ii,cside)-autobg.bp(ii,cside))*autobg.gbc
-	    e2cut(ii)=e2cut(ii)+abs(autobg.bg(ii))
-	    cut(ii)=cut(ii)-autobg.bg(ii)
-	    autobg.sp(ii)=0.00000
-	    autobg.mark(ii)=.false.
-	    if(cut(ii)+sqrt(e2cut(ii))*(1.00+2.00/(0.10+e2cut(ii))) .le. 0.0000)then
-	      if(ii.gt.0)then 
-	        if(.not. autobg.mark(ii-1))autobg.sp(ii-1)=cut(ii-1)+sqrt(e2cut(ii-1))
-	      endif
-	      autobg.sp(ii)=-cut(ii)
-	      autobg.mark(ii)=.true.
+	    if(s_cross(ii) .gt. 1.0e-6) then
+	      fcross = min(1.0, max(0.0, s_slice(ii) / s_cross(ii)))
 	    else
-	      if(ii.gt.0)then 
-	        if(autobg.mark(ii-1))autobg.sp(ii)=cut(ii)+sqrt(e2cut(ii))
-	      endif
+	      fcross = 0.0
 	    endif
-	  enddo
-	  r_sum=0
-	  do ii=1,cres-2
-	    autobg.bg(ii)=(autobg.sp(ii-1)/2.000+autobg.sp(ii)+autobg.sp(ii+1)/2.000)/2.000
-	    if(autobg.bg(ii) .gt.autobg.sp(ii))autobg.bg(ii)=autobg.bg(ii)*0.25+autobg.sp(ii)*0.75
-	    if(autobg.bg(ii) .le. 0.000)autobg.bg(ii)=0.000
-	    if(autobg.mark(ii))then 
-	       cut(ii)=cut(ii)+autobg.bg(ii)
-	       e2cut(ii)=e2cut(ii)+autobg.bg(ii)
-	       if( cut(ii)+sqrt(e2cut(ii))*(1.00+2.00/(0.10+e2cut(ii))) .lt. 0.00000 )then
-	           cut(ii) = cut(ii)+sqrt(e2cut(ii))/2.000
-		   e2cut(ii) = e2cut(ii)*1.50000
-	       endif
-	    endif
+	    b_cross(ii) = fcross * b_cross(ii)
+	    autobg.bg(ii) = autobg.bg(ii) + b_cross(ii)
+	    cut(ii) = cut(ii) - autobg.bg(ii)
+	    e2cut(ii) = e2cut(ii) + abs(autobg.bg(ii))
 	  enddo
 	  do ii=0,cres-1
 	     cut(ii)=cut(ii)*spec_divfac
@@ -6889,36 +6895,26 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	    autobg.sp(ii)=cut(ii)
 	  enddo
 	  call autobgmin(autobg.sp(0),autobg.bg(0),cres,1,cres,autobg.m,autobg.itmax,autobg.fstep)
+
+*** Adaptive Coincidence Bound for 3D Cube Gating
+*** Slice continuum B_S(z) is in autobg.bg
+*** 3D cross-term is in autobg.dbg
 	  do ii=0,cres-1
-	    e2cut(ii)=e2cut(ii)+abs(autobg.dbg(ii))+abs(autobg.bg(ii))
-	    cut(ii)=cut(ii)-autobg.dbg(ii)-autobg.bg(ii)
-	    autobg.sp(ii)=0.00000
-	    autobg.mark(ii)=.false.
-	    if(cut(ii)+sqrt(e2cut(ii))*(1.00+2.00/(0.10+e2cut(ii))) .le. 0.0000)then
-	      if(ii.gt.0)then 
-	        if(.not. autobg.mark(ii-1))autobg.sp(ii-1)=cut(ii-1)+sqrt(e2cut(ii-1))
-	      endif
-	      autobg.sp(ii)=-cut(ii)
-	      autobg.mark(ii)=.true.
-	    else
-	      if(ii.gt.0)then 
-	        if(autobg.mark(ii-1))autobg.sp(ii)=cut(ii)+sqrt(e2cut(ii))
-	      endif
-	    endif
+	    d_slice(ii) = max(0.0, cut(ii) - autobg.bg(ii))
+	    b_cross(ii) = max(0.0, autobg.dbg(ii))
 	  enddo
-	  r_sum=0
-	  do ii=1,cres-2
-	    autobg.bg(ii)=(autobg.sp(ii-1)/2.000+autobg.sp(ii)+autobg.sp(ii+1)/2.000)/2.000
-	    if(autobg.bg(ii) .gt.autobg.sp(ii))autobg.bg(ii)=autobg.bg(ii)*0.25+autobg.sp(ii)*0.75
-	    if(autobg.bg(ii) .le. 0.000)autobg.bg(ii)=0.000
-	    if(autobg.mark(ii))then 
-	       cut(ii)=cut(ii)+autobg.bg(ii)
-	       e2cut(ii)=e2cut(ii)+autobg.bg(ii)
-	       if( cut(ii)+sqrt(e2cut(ii))*(1.00+2.00/(0.10+e2cut(ii))) .lt. 0.00000 )then
-	           cut(ii) = cut(ii)+sqrt(e2cut(ii))/2.000
-		   e2cut(ii) = e2cut(ii)*1.50000
-	       endif
+	  call smooth_3pt(d_slice(0), s_slice(0), cres)
+	  call smooth_3pt(b_cross(0), s_cross(0), cres)
+
+	  do ii=0,cres-1
+	    if(s_cross(ii) .gt. 1.0e-6) then
+	      fcross = min(1.0, max(0.0, s_slice(ii) / s_cross(ii)))
+	    else
+	      fcross = 0.0
 	    endif
+	    autobg.dbg(ii) = fcross * b_cross(ii)
+	    cut(ii) = cut(ii) - autobg.dbg(ii) - autobg.bg(ii)
+	    e2cut(ii) = e2cut(ii) + abs(autobg.dbg(ii)) + abs(autobg.bg(ii))
 	  enddo
 	  goto 50
 	  endif
@@ -7052,17 +7048,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 	  if(e2.eq.0) e2=1.
 	  err2(ii)=e2
 	end do
-	do ii=cres,1024*nkap-1
-	  spek(ii)=0
-	  err2(ii)=1
+	do ii=ikl,64*1024-1
+	  spek(ii)=0.
+	  err2(ii)=1.
 	end do
-	
-	if( nkap .lt. 64 ) then
-	   do i = 1024*nkap, 1024*(nkap+1)-1
-	      spek(ii) = 0
-	      err2(ii) = 1
-	   enddo
-	endif
 
 **eff	     if(efficor) then
 **eff	       do ii=ika,ikl-1

@@ -7,7 +7,7 @@
   Free according GNU Public License.  
  
  ***************************************************************************/
-/* #define DEBUG /**/
+/* #define DEBUG */
 
 #define YGLVERS 2.6
 
@@ -37,17 +37,18 @@ static int    check_vers();
 static void   locate_slider(gl_slider *sl);
 static void   locate_button(gl_button *bt);
 
-static int    check_vers() {
+static int    check_vers(void) {
     char gvers[255];
     char *c;
-    double atof(), v; 
+    double v; 
     
     gversion(gvers);
+    gvers[254] = '\0';
 #ifdef DEBUG
     puts(gvers);
 #endif
     for (c = gvers; *c != '-' && *c != 0; c++);
-    if (strncmp(gvers, "Ygl", 3) == 0 && (v = atof(c+1)) < YGLVERS) {
+    if (*c == '-' && strncmp(gvers, "Ygl", 3) == 0 && (v = atof(c+1)) < YGLVERS) {
 	fprintf(stderr, "Sorry, you need at least Ygl-%g\n", YGLVERS);
 	fprintf(stderr, "You seem to have Ygl-%g\n", v);
 	exit(1);
@@ -241,7 +242,6 @@ static void drawslider(gl_slider *sl) {
     Int32 cl = getcolor();
     Int32 oriwin = winget();
     Int32 co;
-    int i;
     Screencoord x, y;
     Int32 xo, yo;
     
@@ -260,7 +260,7 @@ static void drawslider(gl_slider *sl) {
 	getorigin(&xo, &yo);
 	x -= xo;
 	y -= yo;
-	i = lrectread(x, y, x, y, &co);
+	(void)lrectread(x, y, x, y, &co);
 	sl->txbg = co;
 #ifdef DEBUG
 	printf("textbg = %d, bytes = %d x %d (soll %g) y %d (soll %g)\n",

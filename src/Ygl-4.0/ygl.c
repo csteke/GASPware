@@ -5,9 +5,15 @@
  */
 
 #define VERSION "4.0"
-static char vcid[] = "$Id: ygl.c,v 4.9 1999-10-12 09:50:49+02 fred Exp $";
+#if defined(__GNUC__) || defined(__clang__)
+#define YGL_UNUSED __attribute__((unused))
+#else
+#define YGL_UNUSED
+#endif
 
-static const char *WhatString[2]= {
+static char vcid[] YGL_UNUSED = "$Id: ygl.c,v 4.9 1999-10-12 09:50:49+02 fred Exp $";
+
+static const char *WhatString[2] YGL_UNUSED = {
   "@(#)Ygl V" VERSION " by Fred Hucht (C) 1993-96",
   "@(#)EMail: fred@thp.Uni-Duisburg.DE"
 };
@@ -39,7 +45,7 @@ static const char*devicename(Device dev);
 
 static void       init_keymap(void);
 static Int32      x2gl_wid(Window win, int which);
-static int        is_wid(Int32 wid);
+int               is_wid(Int32 wid);
 static int        ginit_badWindowHandler(Display *dpy, XErrorEvent *error);
 static void       get_environment(const char *caller);
 static void       create_gc(const char *caller, Int32);
@@ -553,8 +559,8 @@ static void await_windowevent(Window win, long mask, int type) {
   } while(ev.type != type);
 }
 
-static int is_wid(Int32 wid) {
-  return wid > 0 && wid < Ygl.NextWindow && Ygl.Windows[wid].main != 0;
+int is_wid(Int32 wid) {
+  return wid > 0 && wid < Ygl.NextWindow && Ygl.Windows != NULL && Ygl.Windows[wid].main != 0;
 }
 
 #if 0
@@ -654,8 +660,10 @@ static void get_environment(const char *caller) {  /* Parse environment */
     Yprintf(caller, "Invalid value of YGL_DSZ. Must be >= 0 and <= 6.\n");
     exit(1);
   }
-  Ygl.V[0] = (Ygl.V[0] == -1) ? DefaultVisual(D, YglScreen)->visualid : -1;
-  Ygl.V[1] = (Ygl.V[1] == -1) ? DefaultVisual(D, YglScreen)->visualid : -1;
+  if(Ygl.V[0] == -1) Ygl.V[0] = DefaultVisual(D, YglScreen)->visualid;
+  else if(Ygl.V[0] == -2) Ygl.V[0] = -1;
+  if(Ygl.V[1] == -1) Ygl.V[1] = DefaultVisual(D, YglScreen)->visualid;
+  else if(Ygl.V[1] == -2) Ygl.V[1] = -1;
 #ifdef OGL
   Ygl.UseOGL = useogl;
 #else
@@ -921,7 +929,8 @@ static void create_main_window(const char *caller, const char *Title,
   swa.border_pixel     = WhitePixel(D,YglScreen);
   swa.colormap         = YglColormap();
   swa.cursor           = YglCursor;
-  swa_mask = /*CWBackPixel |*/ CWBorderPixel | CWColormap | CWCursor;
+  swa.bit_gravity      = NorthWestGravity;
+  swa_mask = CWBackPixel | CWBorderPixel | CWColormap | CWCursor | CWBitGravity;
   
   if(!we_are_top) {
     /* Used with subwindows and with YGL_PWID,
@@ -931,10 +940,8 @@ static void create_main_window(const char *caller, const char *Title,
     swa_mask          |= CWWinGravity;
   }
   
-  if(Ygl.BS) {
-    swa.backing_store  = Always;
-    swa_mask          |= CWBackingStore;
-  }
+  swa.backing_store  = Ygl.BS ? Always : WhenMapped;
+  swa_mask          |= CWBackingStore;
   
   w->main = 
     XCreateWindow(D, w->xpid,
@@ -997,6 +1004,7 @@ static YglWindow *find_new_window_id(const char *caller) {
       exit(1);
     }
   }
+  memset(&Ygl.Windows[Ygl.ActiveWindow], 0, sizeof(YglWindow));
   return W = &Ygl.Windows[Ygl.ActiveWindow];
 }
 
@@ -1335,12 +1343,15 @@ static int setup_visuals(const char *caller) { /* find Visuals */
 #endif
 }
 
-Int32 gversion(Char8 *v) {
+Int32 gversion(Char8 v[12]) {
   const char * MyName = "gversion";
   const char * version_x11 = "Ygl:X11-" VERSION;
+#ifdef OGL
   const char * version_ogl = "Ygl:OGL-" VERSION;
+  int useogl;
+#endif
   const char * version;
-  int r, useogl;
+  int r;
   
   if(D == NULL) {
     YglControl tmp;
@@ -1367,6 +1378,7 @@ Int32 gversion(Char8 *v) {
   IFOGL(version = version_ogl, version = version_x11);
   
   strncpy(v, version, 12);
+  v[11] = '\0';
   
   return r ? 0 : -1;
 }

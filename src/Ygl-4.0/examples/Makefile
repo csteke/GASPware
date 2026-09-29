@@ -29,7 +29,14 @@ X11LIB	= $(LIBX64) $(LIBX) -lX11
 MBUFLIB	= -lXext
 
 
-linux: CDEBUGFLAGS = -mpreferred-stack-boundary=2 -march=i686
+CC ?= cc
+CDEBUGFLAGS ?= -O2
+
+gnu: CC = $(if $(GNU_CC),$(GNU_CC),cc)
+gnu: CDEBUGFLAGS = -O2
+gnu: all
+
+linux: CDEBUGFLAGS = -O2
 linux: CC = gcc
 linux: all
 

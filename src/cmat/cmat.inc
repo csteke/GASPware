@@ -41,15 +41,18 @@
 	  real*8 gsc
 	  real*8 gbc
 	  real*8 rr
-	  real p(0:maxres-1)
-	  real bp(0:maxres-1)
+	  real p(0:maxres-1,2)
+	  real bp(0:maxres-1,2)
 	  real sp(0:maxres-1)
 	  real bg(0:maxres-1)
 	  real dbg(0:maxres-1)
 	  real wgh(0:maxres-1)
 	  real bwgh(0:maxres-1)
 	  logical*1 mark(0:maxres-1)
-	  integer res
+	  integer res(2)
+	  integer cside
+	  integer gside
+	  integer cres
 	  logical*1 yes
 	  logical*1 useproj
 	  logical*1 changed

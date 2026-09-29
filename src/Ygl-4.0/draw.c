@@ -4,7 +4,13 @@
  *    EMail: fred@thp.Uni-Duisburg.DE
  */
 
-static char vcid[] = "$Id: draw.c,v 4.6 1998-07-26 13:02:35+02 fred Exp fred $";
+#if defined(__GNUC__) || defined(__clang__)
+#define YGL_UNUSED __attribute__((unused))
+#else
+#define YGL_UNUSED
+#endif
+
+static char vcid[] YGL_UNUSED = "$Id: draw.c,v 4.6 1998-07-26 13:02:35+02 fred Exp fred $";
 
 #include "header.h"
 #ifdef DEBUG /* see arc_ogl() */
@@ -230,21 +236,21 @@ static void q_add(const char *caller, int x, int y) {
 
 void concave(Int32 bool) { PMode = bool ? Complex : Convex;}
 
-void  pmv2 (Coo x, Coo y) { const char *MyName = "pmv2" ; I(MyName); SCP(=x, =y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(x), Y(y)));}
-void  pmv2i(Ico x, Ico y) { const char *MyName = "pmv2i"; I(MyName); SCP(=x, =y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(x), Y(y)));}
-void  pmv2s(Sco x, Sco y) { const char *MyName = "pmv2s"; I(MyName); SCP(=x, =y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(x), Y(y)));}
+void  pmv2 (Coo x, Coo y) { const char *MyName = "pmv2" ; I(MyName); SCP(=x, =y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(W->xp), Y(W->yp)));}
+void  pmv2i(Ico x, Ico y) { const char *MyName = "pmv2i"; I(MyName); SCP(=x, =y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(W->xp), Y(W->yp)));}
+void  pmv2s(Sco x, Sco y) { const char *MyName = "pmv2s"; I(MyName); SCP(=x, =y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(W->xp), Y(W->yp)));}
 
-void rpmv2 (Coo x, Coo y) { const char *MyName = "rpmv2" ; I(MyName); SCP(+=x, +=y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(x), Y(y)));}
-void rpmv2i(Ico x, Ico y) { const char *MyName = "rpmv2i"; I(MyName); SCP(+=x, +=y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(x), Y(y)));}
-void rpmv2s(Sco x, Sco y) { const char *MyName = "rpmv2s"; I(MyName); SCP(+=x, +=y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(x), Y(y)));}
+void rpmv2 (Coo x, Coo y) { const char *MyName = "rpmv2" ; I(MyName); SCP(+=x, +=y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(W->xp), Y(W->yp)));}
+void rpmv2i(Ico x, Ico y) { const char *MyName = "rpmv2i"; I(MyName); SCP(+=x, +=y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(W->xp), Y(W->yp)));}
+void rpmv2s(Sco x, Sco y) { const char *MyName = "rpmv2s"; I(MyName); SCP(+=x, +=y, =0); IFOGL(NI(MyName),q_len = 0; q_add(MyName, X(W->xp), Y(W->yp)));}
 
-void  pdr2 (Coo x, Coo y) { const char *MyName = "pdr2" ; I(MyName); IFOGL(NI(MyName),q_add(MyName, X(x), Y(y)));}
-void  pdr2i(Ico x, Ico y) { const char *MyName = "pdr2i"; I(MyName); IFOGL(NI(MyName),q_add(MyName, X(x), Y(y)));}
-void  pdr2s(Sco x, Sco y) { const char *MyName = "pdr2s"; I(MyName); IFOGL(NI(MyName),q_add(MyName, X(x), Y(y)));}
+void  pdr2 (Coo x, Coo y) { const char *MyName = "pdr2" ; I(MyName); SCP(=x, =y, =0); IFOGL(NI(MyName),q_add(MyName, X(W->xp), Y(W->yp)));}
+void  pdr2i(Ico x, Ico y) { const char *MyName = "pdr2i"; I(MyName); SCP(=x, =y, =0); IFOGL(NI(MyName),q_add(MyName, X(W->xp), Y(W->yp)));}
+void  pdr2s(Sco x, Sco y) { const char *MyName = "pdr2s"; I(MyName); SCP(=x, =y, =0); IFOGL(NI(MyName),q_add(MyName, X(W->xp), Y(W->yp)));}
 
-void rpdr2 (Coo x, Coo y) { const char *MyName = "rpdr2" ; I(MyName); IFOGL(NI(MyName),q_add(MyName, queue[q_len-1].x + X(x), queue[q_len-1].y - Y(y)));}
-void rpdr2i(Ico x, Ico y) { const char *MyName = "rpdr2i"; I(MyName); IFOGL(NI(MyName),q_add(MyName, queue[q_len-1].x + X(x), queue[q_len-1].y - Y(y)));}
-void rpdr2s(Sco x, Sco y) { const char *MyName = "rpdr2s"; I(MyName); IFOGL(NI(MyName),q_add(MyName, queue[q_len-1].x + X(x), queue[q_len-1].y - Y(y)));}
+void rpdr2 (Coo x, Coo y) { const char *MyName = "rpdr2" ; I(MyName); SCP(+=x, +=y, =0); IFOGL(NI(MyName),q_add(MyName, X(W->xp), Y(W->yp)));}
+void rpdr2i(Ico x, Ico y) { const char *MyName = "rpdr2i"; I(MyName); SCP(+=x, +=y, =0); IFOGL(NI(MyName),q_add(MyName, X(W->xp), Y(W->yp)));}
+void rpdr2s(Sco x, Sco y) { const char *MyName = "rpdr2s"; I(MyName); SCP(+=x, +=y, =0); IFOGL(NI(MyName),q_add(MyName, X(W->xp), Y(W->yp)));}
 
 void pclos(void) { const char *MyName = "pclos";I(MyName); IFOGL(NI(MyName),if(q_len) XFillPolygon(DWGC, queue, q_len, PMode, CoordModeOrigin)); F;}
 

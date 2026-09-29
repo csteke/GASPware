@@ -2,10 +2,11 @@
  * Example program with two windows,
  * one in RGBmode and one in Colormap mode */
 
-static char vcid[] = "$Id: rgbtest.c,v 3.3 1996/07/18 16:35:57 fred Exp $";
+static const char vcid[] __attribute__((unused)) = "$Id: rgbtest.c,v 3.3 1996/07/18 16:35:57 fred Exp $";
 
 #include <X11/Ygl.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #define STEP 2
 #define SIZE (256 * STEP)
@@ -48,7 +49,7 @@ void drawit2(void) {
   winset(RGBwin);
 }
 
-main() {
+int main(void) {
   Device dev;
   short val;
   int green = 128, openwins=0;
@@ -96,7 +97,7 @@ main() {
     case LEFTMOUSE:
       if(val==1) { /* If button pressed */
 	Int32 x, y, xs, ys;
-	Int16 r, g, b, mx, my;
+	Int16 r, g, b, mx = 0, my = 0;
 	char buf[80];
 	getorigin(&x, &y);
 	getsize(&xs, &ys);

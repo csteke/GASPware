@@ -11,7 +11,7 @@ intel: OPT =  "GS_ONLINE=" "GS_AIO=-DUSE_AIO" "GS_OPT=-O2" intel
 intel: MAKE = make
 intel: Libr Cmat Gsort Recal Sadd Stopp Tape Xtrack
 
-gnu: OPT = "GNU_CC=gcc-13 @../../etc/gcc.cfg" "GNU_FOR=gfortran-13 @../../etc/gfort.cfg" "GS_ONLINE=" "GS_AIO=-DUSE_AIO" "GS_OPT=-O2" gnu
+gnu: OPT = "GNU_CC=gcc-16 @../../etc/gcc.cfg" "GNU_FOR=gfortran-16 @../../etc/gfort.cfg" "GS_ONLINE=" "GS_AIO=-DUSE_AIO" "GS_OPT=-O2" gnu
 gnu: MAKE = make
 gnu: Libr Cmat Gsort Recal Sadd Stopp Tape Xtrack
 
@@ -86,5 +86,5 @@ clean:
 	@cd $(SRC_DIR)/StopP && $(MAKE) clean
 	@cd $(SRC_DIR)/tape && $(MAKE) clean
 	@cd $(SRC_DIR)/xtrack && $(MAKE) clean
-
+	rm -f $(BIN_DIR)/*
 

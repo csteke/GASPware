@@ -4,7 +4,13 @@
  *    EMail: fred@thp.Uni-Duisburg.DE
  */
 
-static char vcid[] = "$Id: color.c,v 4.6 1998-10-27 17:30:33+01 fred Exp fred $";
+#if defined(__GNUC__) || defined(__clang__)
+#define YGL_UNUSED __attribute__((unused))
+#else
+#define YGL_UNUSED
+#endif
+
+static char vcid[] YGL_UNUSED = "$Id: color.c,v 4.6 1998-10-27 17:30:33+01 fred Exp fred $";
 
 #include "header.h"
 
@@ -12,17 +18,38 @@ static int   rect_read_errh(Display *, XErrorEvent *);
 static Int32 rect_read(const char*, Screencoord, Screencoord, Screencoord, Screencoord, int, void *);
 static void rect_write(const char*, Screencoord, Screencoord, Screencoord, Screencoord, int, void *);
 static Ulong emuColorsInv(Ulong x);
+static void  clear_emu_cache(void);
 #ifdef X11
 static void create_dither(int r, int g, int b);
 static void set_color(const char *caller, int r, int g, int b);
 #endif
 
+#define EMU_HASH_SIZE 1024
+#define EMU_HASH_MASK (EMU_HASH_SIZE - 1)
+static struct {
+  Ulong pixel;
+  Ulong ind;
+  int valid;
+} emuCache[EMU_HASH_SIZE];
+
+static void clear_emu_cache(void) {
+  memset(emuCache, 0, sizeof(emuCache));
+}
+
 #define YGL_COLORSINV(x) (Ygl.PCM ? CMapSize-1-(x) : Ygl.EmulateCmap ? emuColorsInv(x) : Ygl.ColorsInv[x])
 
 static Ulong emuColorsInv(Ulong x) {
+  Ulong hash = (x ^ (x >> 10) ^ (x >> 20)) & EMU_HASH_MASK;
+  if(emuCache[hash].valid && emuCache[hash].pixel == x) {
+    return emuCache[hash].ind;
+  }
   Ulong i;
   for(i = 0; i < CMapSize && Ygl.Colors[i] != x; i++);
-  return i < CMapSize ? i : 0;
+  Ulong res = (i < CMapSize ? i : 0);
+  emuCache[hash].pixel = x;
+  emuCache[hash].ind = res;
+  emuCache[hash].valid = 1;
+  return res;
 }
 
 Int32 usePCMAP(void){return Ygl.PCM;}
@@ -41,6 +68,7 @@ void mapcolor(Colorindex ind, Int16 r, Int16 g, Int16 b) {
   xc.green = g << 8;
   xc.blue  = b << 8;
   if(!Ygl.PCM) { /* use default colormap */
+    clear_emu_cache();
     if (Ygl.Colors[ind])XFreeColors(D, Ygl.CCmap, Ygl.Colors + ind, 1, 0);
     if(XAllocColor(D, Ygl.CCmap, &xc)) {
       Ygl.Colors[ind] = xc.pixel;
@@ -247,6 +275,11 @@ Int32 getcolor(void) {
   return W->color;
 }
 
+unsigned long getXpixel(Colorindex ind) {
+  if (ind < CMapSize) return (unsigned long)YGL_COLORS(ind);
+  return 0;
+}
+
 void getmcolor (Colorindex ind, Int16 *r, Int16 *g, Int16 *b) {
   XColor xc;
   const char * MyName = "getmcolor";
@@ -281,7 +314,7 @@ void getmcolors (Colorindex ind1, Colorindex ind2,
     exit(1);
   }
 
-  for(i = 0; i < n; i++) xc[i].pixel = YGL_COLORS(i);
+  for(i = 0; i < n; i++) xc[i].pixel = YGL_COLORS(ind1 + i);
   XQueryColors(D, Ygl.CCmap, xc, n);
   for(i = 0; i < n; i++) {
     r[i] = xc[i].red   >> 8;
@@ -430,7 +463,7 @@ static Int32 rect_read(const char *caller,
 		 rect_read_front ? IF_RGBWIN(W->win, W->main) : W->draw,
 		 x1, W->ym - 1 - y2,
 		 width, height,
-		 (1 << YglDepth())-1,
+		 AllPlanes,
 		 ZPixmap);
   
   XSync (D, False);
@@ -588,9 +621,10 @@ Int32 readpixels(Int16 n, Colorindex data[]) {
     Yprintf(MyName, "not in CMap mode.\n");
     exit(1);
   }
+  if(n <= 0) return 0;
   x = X(W->xc);
   y = Y(W->yc);
-  r = rect_read(MyName, x, y, x + n, y + 1, 2, data);
+  r = rect_read(MyName, x, y, x + n - 1, y, 2, data);
   W->xc += n / W->xf;
   return r;
 }
@@ -603,9 +637,10 @@ void writepixels(Int16 n, Colorindex data[]) {
     Yprintf(MyName, "not in CMap mode.\n");
     exit(1);
   }
+  if(n <= 0) return;
   x = X(W->xc);
   y = Y(W->yc);
-  rect_write(MyName, x, y, x + n, y + 1, 2, data);
+  rect_write(MyName, x, y, x + n - 1, y, 2, data);
   W->xc += n / W->xf;
 }
 
@@ -618,6 +653,7 @@ Int32 readRGB(Int16 n, RGBvalue r[], RGBvalue g[], RGBvalue b[]) {
     Yprintf(MyName, "not in RGB mode.\n");
     exit(1);
   }
+  if(n <= 0) return 0;
   x = X(W->xc);
   y = Y(W->yc);
   W->xc += n / W->xf;
@@ -625,7 +661,7 @@ Int32 readRGB(Int16 n, RGBvalue r[], RGBvalue g[], RGBvalue b[]) {
     Yprintf(MyName, "out of memory.\n");
     exit(1);
   }
-  ret = rect_read(MyName, x, y, x + n, y + 1, 4, data);
+  ret = rect_read(MyName, x, y, x + n - 1, y, 4, data);
   for(i = 0; i < n; i++) {
     r[i] = (data[i] >>  0) & 0xFF;
     g[i] = (data[i] >>  8) & 0xFF;
@@ -644,6 +680,7 @@ void writeRGB(Int16 n, RGBvalue r[], RGBvalue g[], RGBvalue b[]) {
     Yprintf(MyName, "not in RGB mode.\n");
     exit(1);
   }
+  if(n <= 0) return;
   x = X(W->xc);
   y = Y(W->yc);
   W->xc += n / W->xf;
@@ -654,7 +691,7 @@ void writeRGB(Int16 n, RGBvalue r[], RGBvalue g[], RGBvalue b[]) {
   for(i = 0; i < n; i++) {
     data[i] = (b[i] << 16) + (g[i] << 8) + r[i];
   }
-  rect_write(MyName, x, y, x + n, y + 1, 4, data);  
+  rect_write(MyName, x, y, x + n - 1, y, 4, data);  
   free(data);
 }
 
